@@ -2,6 +2,10 @@ $xxx <<= 2                               don't use "<<=", use the expanded versi
 
 m@xxx@                                   don't use m@...@, replace @ with / ! , or |
 
+s:xxx:yyy:                               don't use s:...:, replace : with / ! , or |
+
+qw/a b c/                                don't use qw/.../, use qw(...) instead
+
 qx(xxx)                                  don't use qx{...}, use `...` instead
 
 not $xxx                                 don't use "not", use "!" instead

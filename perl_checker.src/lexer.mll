@@ -399,13 +399,14 @@ let hex_in_string lexbuf next_rule s =
 let set_delimit_char lexbuf op = 
   match lexeme_char lexbuf (String.length op) with
   | '@' -> die lexbuf ("don't use " ^ op ^ "@...@, replace @ with / ! , or |")
+  | ':' -> die lexbuf ("don't use " ^ op ^ ":...:, replace : with / ! , or |")
   | c -> delimit_char := c
 }
 
 let stash = [ '$' '@' '%' '&' '*' ]
 let ident_start = ['a'-'z' 'A'-'Z' '_']
 let ident = ident_start ['0'-'9' 'A'-'Z' 'a'-'z' '_'] *
-let pattern_separator = [ '/' '!' ',' '|' '@' ]
+let pattern_separator = [ '/' '!' ',' '|' '@' ':' ] 
 
 let in_string_expr = (ident | (ident? ("::" ident)+)) "->"? (('{' [^ '{' '}' '\n']* '}') | ('[' [^ '[' ']' '\n']* ']'))*
 
@@ -604,6 +605,14 @@ rule token = parse
   let opts, _ = raw_ins pattern_options lexbuf in
   check_multi_line_delimited_string (Some opts) pos ;
   QR_PATTERN(s, opts, pos)
+}
+
+| "qw" pattern_separator {
+  set_delimit_char lexbuf "qw" ;
+  current_string_start_line := !current_file_current_line;
+  let s, pos = raw_ins delimited_string lexbuf in
+  warn_with_pos pos (Printf.sprintf "don't use qw%c...%c, use qw(...) instead" !delimit_char !delimit_char) ;
+  QUOTEWORDS(s, pos)
 }
 
 | "s" pattern_separator {
