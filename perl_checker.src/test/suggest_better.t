@@ -62,6 +62,10 @@ member($xxx, keys %h)                    you can replace "member($xxx, keys %yyy
 
 !($xxx =~ /.../)                         !($var =~ /.../) is better written $var !~ /.../
 
+!($xxx == 1)                             !($foo == $bar) is better written $foo != $bar
+
+!($xxx eq 'foo')                         !($foo eq $bar) is better written $foo ne $bar
+
 foreach (@l) {                           use "push @l2, grep { ... } ..." instead of "foreach (...) { push @l2, $_ if ... }"
   push @l2, $_ if yyy($_);                 or sometimes "@l2 = grep { ... } ..."
 }                                        

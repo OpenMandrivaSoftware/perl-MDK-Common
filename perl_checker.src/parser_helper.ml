@@ -439,12 +439,22 @@ let check_scalar_subscripted esp =
   | Deref(I_scalar, Deref _) -> warn_rule "for complex dereferencing, use \"->\""
   | _ -> ()
 
+let negatable_ops = collect (fun (a, b) -> [ a, b ; b, a ]) [
+  "==", "!=" ; 
+  "eq", "ne" ;
+]
+
 let check_negatable_expr esp =
   match un_parenthesize_full esp.any.expr with
   | Call_op("m//", var :: _, _) when not (is_var_dollar_ var) ->
       warn_rule "!($var =~ /.../) is better written $var !~ /.../"
   | Call_op("!m//", var :: _, _) when not (is_var_dollar_ var) ->
       warn_rule "!($var !~ /.../) is better written $var =~ /.../"
+  | Call_op(op, _, _) ->
+      (try
+	let neg_op = List.assoc op negatable_ops in
+        warn_rule (Printf.sprintf "!($foo %s $bar) is better written $foo %s $bar" op neg_op)
+      with Not_found -> ())
   | _ -> ()
 
 let check_ternary_paras(cond, a, b) =
