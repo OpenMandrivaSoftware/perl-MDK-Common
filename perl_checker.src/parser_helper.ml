@@ -598,15 +598,6 @@ let check_block_lines esp_lines esp_BRACKET_END =
       (if List.hd l = Semi_colon then sp_0 else sp_p) esp_lines ;
       check_block_expr (snd esp_lines.any) (last l) esp_lines esp_BRACKET_END
 
-let check_block_ref esp_lines esp_BRACKET_END =
-  let l = esp_lines.any in
-  if l <> [] && List.hd l = Semi_colon 
-  then (sp_0 esp_lines ; sp_p esp_BRACKET_END)
-  else sp_same esp_lines esp_BRACKET_END ;
-
-  if esp_BRACKET_END.spaces <> Space_cr then
-    (if l <> [] && last l = Semi_colon then warn_verb [Warn_white_space] (get_pos_end esp_lines) "spurious \";\" before closing block")
-
 let check_unless_else elsif else_ =
   if elsif.any <> [] then warn [Warn_complex_expressions] elsif.pos "don't use \"elsif\" with \"unless\" (replace \"unless\" with \"if\")";
   if else_.any <> [] then warn [Warn_complex_expressions] else_.pos "don't use \"else\" with \"unless\" (replace \"unless\" with \"if\")"

@@ -132,9 +132,6 @@ val check_block_expr :
 val check_block_lines :
   (Types.fromparser list * bool) Types.any_spaces_pos ->
   'a Types.any_spaces_pos -> unit
-val check_block_ref :
-  Types.fromparser list Types.any_spaces_pos ->
-  'a Types.any_spaces_pos -> unit
 val check_unless_else :
   'a list Types.any_spaces_pos -> 'b list Types.any_spaces_pos -> unit
 val check_my_our_paren :
