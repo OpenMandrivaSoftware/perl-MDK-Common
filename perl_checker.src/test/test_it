@@ -65,7 +65,11 @@ foreach my $test (@tests) {
         if ($l[-1] !~ /(;|[\s{]\})\s+$/) {
             $l[-1] =~ s/^(.*?)(\s+$)/xxx($1);$2/;
         } else {
-            my $no_comma = $l[-1] =~ /(^\s*(for|foreach|if|unless|while|sub)\s)|(;\s+$)/;
+            # no comma for: 
+            # - prefix for/foreach/...
+            # - already a comma
+            # - a block { ... }
+            my $no_comma = $l[-1] =~ /(^\s*(for|foreach|if|unless|while|sub)\s)|(;\s+$)|(^{.*}\s*$)/;
             my $opt_comma = $no_comma ? '' : ';';
 	    $l[-1] =~ s/(\s+$)/$opt_comma nop();$1/;
         }

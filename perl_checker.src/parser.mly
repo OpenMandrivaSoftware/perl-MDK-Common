@@ -114,8 +114,7 @@ line:
 | PERL_CHECKER_COMMENT {sp_p($1); new_1esp [Perl_checker_comment($1.any, get_pos $1)] $1 }
 | semi_colon {warn_rule [Warn_white_space] "unneeded \";\""; new_1esp [Semi_colon] $1 }
 | sideff semi_colon {new_1esp [$1.any ; Semi_colon] $1 }
-| BRACKET lines BRACKET_END            {new_esp $2.mcontext [lines_to_Block $2 $3] $1 $3}
-| BRACKET lines BRACKET_END semi_colon {new_esp $2.mcontext [lines_to_Block $2 $3] $1 $4}
+| BRACKET lines BRACKET_END {new_esp $2.mcontext [lines_to_Block $2 $3] $1 $3}
 
 if_then_else: /* Real conditional expressions */
 | IF     PAREN expr PAREN_END BRACKET lines BRACKET_END elsif else_ {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; to_Call_op (if $9.any = [] then M_none else mcontext_lmerge ($6.mcontext :: mcontext_lmaybe $8 @ [$9.mcontext])) "if"     (prio_lo P_loose $3 :: lines_to_Block $6 $7 :: $8.any @ $9.any) $1 $9}
