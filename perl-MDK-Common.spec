@@ -64,6 +64,24 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Tue May 27 2003 Pixel <pixel@mandrakesoft.com> 1.1.4-1mdk
+- many perl_checker enhancements:
+  - disallow return(...), prefering return ...
+  - enhance restricted_subscripted to correctly handle -e foo::bar()->{boo}
+  - handle  use foo()  and  use foo ("x", "y")
+  - better warning for:  print $a . 'foo'
+  - add a special case to handle "arch => 1" without going through word_alone()
+  - warn things like:  if ($a = 1) { ... }  or  0 or ...
+  - explicitly disallow <<=, >>= and **= (instead of having a syntax error)
+  - check prototype coherence: disallow  ($a, @b, $c)  or  ($a, $o_b, $c)
+  - warn spurious space in ( 1, 2) which should be (1, 2)
+  - warn $o->method() which should be $o->method
+  - suggest using the functional map instead of the imperative foreach when possible
+  - add warning: you can replace "map { if_(..., $_) }" with "grep { ... }"
+  - suggest any instead of grep in scalar context
+  - suggest foreach instead of map in empty context
+  - fix "/^\d+\.\*$/" giving warning "you can remove \".*$\" at the end of your regexp"
+
 * Fri May 16 2003 Pixel <pixel@mandrakesoft.com> 1.1.3-1mdk
 - fix pot generation (have \" instead of \\\")
 
