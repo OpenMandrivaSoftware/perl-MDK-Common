@@ -237,7 +237,11 @@ let prio_lo pri_out in_ =
 	   prio_less(pri_in', pri_out) && not_complex (un_parenthesize in_.any.expr) then 
 	  warn in_.pos "unneeded parentheses"
     | _ -> ())
-  else warn in_.pos "missing parentheses (needed for clarity)" ;
+  else 
+    (match in_.any.expr with
+    | Call_op ("print", [Deref (I_star, Ident (None, "STDOUT", _)); Deref(I_scalar, ident)], _) -> 
+	 warn in_.pos (sprintf "use parentheses: replace \"print $%s ...\" with \"print($%s ...)\"" (string_of_Ident ident) (string_of_Ident ident))
+    | _ -> warn in_.pos "missing parentheses (needed for clarity)") ;
   in_.any.expr
     
 let prio_lo_after pri_out in_ =
