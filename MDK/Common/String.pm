@@ -115,7 +115,7 @@ sub formatLines {
     "$t$tmp\n";
 }
 sub formatAlaTeX {
-    my ($t, $tmp);
+    my ($t, $tmp) = ('', '');
     foreach (split "\n", $_[0]) {
 	if (/^$/) {
 	    $t .= ($t && "\n") . $tmp;
