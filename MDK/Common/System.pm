@@ -303,9 +303,9 @@ sub whereis_binary {
 
 sub getVarsFromSh {
     my %l;
-    local *F; open F, $_[0] or return;
+    open(my $F, $_[0]) or return;
     local $_;
-    while (<F>) {
+    while (<$F>) {
 	s/#.*//; # remove comments
 	my ($v, $val, $val2) =
 	  /^\s*			# leading space

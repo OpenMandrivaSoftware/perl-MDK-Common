@@ -86,6 +86,10 @@ let rec un_parenthesize_full = function
   | List[e] -> un_parenthesize_full e
   | e -> e
 
+let rec un_parenthesize_full_l = function
+  | [ List l ] -> un_parenthesize_full_l l
+  | l -> l
+
 let is_always_true = function
   | Num(n, _) -> float_of_string n <> 0.
   | Raw_string(s, _) -> s <> ""
@@ -804,6 +808,15 @@ let call_raw force_non_builtin_func (e, para) =
 	  if is_not_a_scalar (List.hd para) then warn_rule "never use \"length @l\", it returns the length of the string int(@l)" ;
 	  None
 
+      | "open" ->
+	  (match para with
+	  | [ List(Ident(None, name, _) :: _) ]
+	  | Ident(None, name, _) :: _ ->
+	      if not (List.member [ "STDIN" ; "STDOUT" ; "STDERR" ]) then
+		warn_rule (sprintf "use a scalar instead of a bareword (eg: occurrences of %s with $%s)" name name)
+	  | _ -> ());
+	  None
+
       | "split" ->
 	  (match para with
 	  | [ List(Call_op("m//", Deref(I_scalar, Ident(None, "_", _)) :: pattern, pos) :: l) ]
@@ -1134,7 +1147,7 @@ let mcontext_check_none msg expr esp =
 		  iter (l_expr, l)
 	      | [], [] -> ()
 	      | _ -> internal_error "mcontext_check_none"
-	    in iter (l_expr, l)
+	    in iter (un_parenthesize_full_l l_expr, l)
 	| _ -> internal_error "mcontext_check_none")
     | _ -> 
 	match expr with

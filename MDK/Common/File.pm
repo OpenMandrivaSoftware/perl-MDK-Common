@@ -122,11 +122,11 @@ use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
 sub basename { local $_ = shift; s|/*\s*$||; s|.*/||; $_ }
-sub cat_ { local *F; open F, $_[0] or return; my @l = <F>; wantarray() ? @l : join '', @l }
-sub cat_or_die { local *F; open F, $_[0] or die "can't read file $_[0]: $!\n"; my @l = <F>; wantarray() ? @l : join '', @l }
+sub cat_ { open(my $F, $_[0]) or return; my @l = <$F>; wantarray() ? @l : join '', @l }
+sub cat_or_die { open(my $F, $_[0]) or die "can't read file $_[0]: $!\n"; my @l = <$F>; wantarray() ? @l : join '', @l }
 sub cat__ { my ($f) = @_; my @l = <$f>; wantarray() ? @l : join '', @l }
-sub output { my $f = shift; local *F; open F, ">$f" or die "output in file $f failed: $!\n"; print F foreach @_; 1 }
-sub append_to_file { my $f = shift; local *F; open F, ">>$f" or die "output in file $f failed: $!\n"; print F foreach @_; 1 }
+sub output { my $f = shift; open(my $F, ">$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; 1 }
+sub append_to_file { my $f = shift; open(my $F, ">>$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; 1 }
 sub output_p { my $f = shift; mkdir_p(dirname($f)); output($f, @_) }
 sub output_with_perm { my ($f, $perm, @l) = @_; mkdir_p(dirname($f)); output($f, @l); chmod $perm, $f }
 sub linkf    { unlink $_[1]; link    $_[0], $_[1] }
@@ -186,9 +186,9 @@ sub cp_with_option {
 	    require MDK::Common::System;
 	    MDK::Common::System::syscall_('mknod', $dest, $stat[2], $stat[6]) or die "mknod failed (dev $dest): $!";
 	} else {
-	    local *F; open F, $src or die "can't open $src for reading: $!\n";
-	    local *G; open G, "> $dest";
-	    local $_; while (<F>) { print G $_ }
+	    open(my $F, $src) or die "can't open $src for reading: $!\n";
+	    open(my $G, "> $dest");
+	    local $_; while (<$F>) { print $G $_ }
 	    chmod((stat($src))[2], $dest);
 	}
     }
@@ -201,8 +201,8 @@ sub cp_af { cp_with_option('af', @_) }
 sub touch {
     my ($f) = @_;
     unless (-e $f) {
-	local *F;
-	open F, ">$f";
+	my $F;
+	open($F, ">$f");
     }
     my $now = time();
     utime $now, $now, $f;
@@ -286,9 +286,8 @@ sub expand_symlinks {
 sub openFileMaybeCompressed { 
     my ($f) = @_;
     -e $f || -e "$f.gz" or die "file $f not found";
-    local *F;
-    open F, -e $f ? $f : "gzip -dc $f.gz|" or die "file $f is not readable";
-    *F;
+    open(my $F, -e $f ? $f : "gzip -dc $f.gz|") or die "file $f is not readable";
+    $F;
 }
 sub catMaybeCompressed { cat__(openFileMaybeCompressed($_[0])) }
 
