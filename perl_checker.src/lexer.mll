@@ -321,6 +321,18 @@ let check_multi_line_delimited_string opts (start, end_) =
    if check then
      if !current_file_current_line <> !current_string_start_line then
      failwith (pos2sfull_with start end_ ^ "multi-line patterns are not allowed (or use /x modifier)")
+
+let hex_in_string lexbuf next_rule s =
+  let i = 
+    try int_of_string ("0x" ^ s)
+    with Failure("int_of_string") -> die_in_string lexbuf ("Bad_hex_in_string \"" ^ lexeme lexbuf ^ "\"")
+  in
+  let s =
+    if i < 256 then
+      String.make 1 (Char.chr i)
+    else
+      "\\x{" ^ s ^ "}" in
+  next_s s (Stack.pop next_rule) lexbuf 
 }
 
 let stash = [ '$' '@' '%' '&' '*' ]
@@ -722,12 +734,8 @@ and string_escape = parse
 | '\\'{ next_s "\\" (Stack.pop next_rule) lexbuf }
 | 'n' { next_s "\n" (Stack.pop next_rule) lexbuf }
 | 't' { next_s "\t" (Stack.pop next_rule) lexbuf }
-| 'x' _ _ { 
-  try
-    let s = String.make 1 (Char.chr (int_of_string ("0" ^ lexeme lexbuf))) in
-    next_s s (Stack.pop next_rule) lexbuf 
-  with Failure("int_of_string") -> die_in_string lexbuf ("Bad_hex_in_string \"" ^ lexeme lexbuf ^ "\"")
-  }
+| "x{" [^ '}']* '}' { hex_in_string lexbuf next_rule (skip_n_char_ 2 1 (lexeme lexbuf)) }
+| 'x' [^ '{'] _ { hex_in_string lexbuf next_rule (skip_n_char 1 (lexeme lexbuf)) }
 | '\n' { die lexbuf "do not use \"\\\" before end-of-line, it's useless and generally bad" }
 | _ { next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 
