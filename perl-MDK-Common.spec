@@ -8,6 +8,7 @@ Summary: Various simple functions
 Name: perl-MDK-Common
 Version: %{version}
 Release: %{release}
+URL: http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-MDK-Common/
 Source0: %{name}.tar.bz2
 License: GPL
 Group: Development/Perl
