@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 3mdk
+%define release 4mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Apr  5 2004 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.11-4mdk
+- perl_checker: sync with glib/gtk+ 2.4.0
+
 * Thu Mar 11 2004 Pixel <pixel@mandrakesoft.com> 1.1.11-3mdk
 - cp_af() now handles devices (mknod)
 
