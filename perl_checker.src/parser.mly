@@ -385,9 +385,7 @@ subscripted: /* Some kind of subscripted expression */
 | variable PKG_SCOPE bracket_subscript {sp_0($2); sp_0($3); new_esp M_unknown (Call(Too_complex, [$3.any])) $1 $3} /* $foo::{something} */
 | scalar bracket_subscript             {sp_0($2); check_scalar_subscripted $1; new_esp M_unknown_scalar (to_Deref_with(I_hash , I_scalar, from_scalar $1, $2.any               )) $1 $2} /* $foo{bar} */
 | scalar arrayref                      {sp_0($2); check_scalar_subscripted $1; new_esp M_unknown_scalar (to_Deref_with(I_array, I_scalar, from_scalar $1, only_one_array_ref $2)) $1 $2} /* $array[$element] */
-| term ARROW bracket_subscript         {sp_0($2); sp_0($3); check_arrow_needed $1 $2; new_esp M_unknown_scalar (to_Deref_with(I_hash , I_scalar, $1.any.expr, $3.any               )) $1 $3} /* somehref->{bar} */
-| term ARROW arrayref                  {sp_0($2); sp_0($3); check_arrow_needed $1 $2; new_esp M_unknown_scalar (to_Deref_with(I_array, I_scalar, $1.any.expr, only_one_array_ref $3)) $1 $3} /* somearef->[$element] */
-| term ARROW parenthesized             {sp_0($2); sp_0($3); new_esp M_unknown (to_Deref_with(I_func , I_scalar, $1.any.expr, List($3.any.expr))) $1 $3} /* $subref->(@args) */
+| term ARROW simple_subscript          {sp_0($2); sp_0($3); new_esp $3.mcontext (to_Deref_with_arrow $2 (fst $3.any, I_scalar, $1.any.expr, snd $3.any)) $1 $3}
 | subscripted bracket_subscript        {sp_0($2); new_esp M_unknown_scalar  (to_Deref_with(I_hash , I_scalar, $1.any, $2.any               )) $1 $2} /* $foo->[bar]{baz} */
 | subscripted arrayref                 {sp_0($2); new_esp M_unknown_scalar  (to_Deref_with(I_array, I_scalar, $1.any, only_one_array_ref $2)) $1 $2} /* $foo->[$bar][$baz] */
 | subscripted parenthesized            {sp_0($2); new_esp M_unknown (to_Deref_with(I_func , I_scalar, $1.any, List($2.any.expr))) $1 $2} /* $foo->{bar}(@args) */
@@ -397,15 +395,19 @@ restricted_subscripted: /* Some kind of subscripted expression */
 | word_paren parenthesized {new_esp M_unknown (call(Deref(I_func, $1.any), $2.any.expr)) $1 $2}
 | scalar bracket_subscript             {sp_0($2); check_scalar_subscripted $1; new_esp M_unknown_scalar (to_Deref_with(I_hash , I_scalar, from_scalar $1, $2.any               )) $1 $2} /* $foo{bar} */
 | scalar arrayref                      {sp_0($2); check_scalar_subscripted $1; new_esp M_unknown_scalar (to_Deref_with(I_array, I_scalar, from_scalar $1, only_one_array_ref $2)) $1 $2} /* $array[$element] */
-| restricted_subscripted ARROW bracket_subscript         {sp_0($2); sp_0($3); new_esp M_unknown_scalar (to_Deref_with(I_hash , I_scalar, $1.any, $3.any               )) $1 $3} /* somehref->{bar} */
-| restricted_subscripted ARROW arrayref                  {sp_0($2); sp_0($3); new_esp M_unknown_scalar (to_Deref_with(I_array, I_scalar, $1.any, only_one_array_ref $3)) $1 $3} /* somearef->[$element] */
-| restricted_subscripted ARROW parenthesized             {sp_0($2); sp_0($3); new_esp M_unknown (to_Deref_with(I_func , I_scalar, $1.any, List($3.any.expr))) $1 $3} /* $subref->(@args) */
+| restricted_subscripted ARROW simple_subscript {sp_0($2); sp_0($3); new_esp $3.mcontext (to_Deref_with_arrow $2 (fst $3.any, I_scalar, $1.any, snd $3.any)) $1 $3} /* somehref->{bar} */
 | restricted_subscripted bracket_subscript        {sp_0($2); new_esp M_unknown_scalar  (to_Deref_with(I_hash , I_scalar, $1.any, $2.any               )) $1 $2} /* $foo->[bar]{baz} */
 | restricted_subscripted arrayref                 {sp_0($2); new_esp M_unknown_scalar  (to_Deref_with(I_array, I_scalar, $1.any, only_one_array_ref $2)) $1 $2} /* $foo->[$bar][$baz] */
 | restricted_subscripted parenthesized            {sp_0($2); new_esp M_unknown (to_Deref_with(I_func , I_scalar, $1.any, List($2.any.expr))) $1 $2} /* $foo->{bar}(@args) */
 
 | restricted_subscripted ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); if $4.any.expr = [] then warn [Warn_suggest_simpler] $4.pos "remove these unneeded parentheses"; new_esp M_unknown (to_Method_call($1.any, $3.any, $4.any.expr)) $1 $4} /* $foo->bar(list) */
 | restricted_subscripted ARROW word_or_scalar {sp_0($2); sp_0($3); new_esp M_unknown (to_Method_call($1.any, $3.any, [])) $1 $3} /* $foo->bar */
+
+simple_subscript:
+| bracket_subscript         {new_esp M_unknown_scalar (I_hash,  $1.any) $1 $1}
+| arrayref                  {new_esp M_unknown_scalar (I_array, only_one_array_ref $1) $1 $1}
+| parenthesized             {new_esp M_unknown        (I_func , List($1.any.expr)) $1 $1}
+
 
 arrayref:
 | arrayref_start ARRAYREF_END {sp_0($2); new_esp (M_ref M_array) $1.any $1 $2}
