@@ -120,6 +120,13 @@ file
 read in a template file, replace keys @@@key@@@ with value, save it in every homes.
 If BOOL is true, overwrite existing files. FILENAME_OUT must be a relative filename
 
+=item read_gnomekderc(FILENAME, STRING)
+
+reads GNOME-like and KDE-like config files (aka windows-like).
+You must give a category. eg:
+
+    read_gnomekderc("/etc/skels/.kderc", 'KDE')
+
 =item update_gnomekderc(FILENAME, STRING, HASH)
 
 modifies GNOME-like and KDE-like config files (aka windows-like).
@@ -168,7 +175,7 @@ use MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_int $bitof_int); #);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch typeFromMagic list_passwd list_home list_skels list_users syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile update_gnomekderc fuzzy_pidofs); #);
+@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch typeFromMagic list_passwd list_home list_skels list_users syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile read_gnomekderc update_gnomekderc fuzzy_pidofs); #);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -345,6 +352,18 @@ sub template2userfile {
 	m|/home/(.+?)/| and chown(getpwnam($1), getgrnam($1), $_);
     }
 }
+
+sub read_gnomekderc {
+    my ($file, $category) = @_;
+    my %h;
+    foreach (MDK::Common::File::cat_($file), "[NOCATEGORY]\n") {
+	if (/^\s*\[\Q$category\E\]/i ... /^\[/) {
+	    $h{$1} = $2 if /^\s*(\w*?)=(.*)/;
+	}
+    }
+    %h;
+}
+
 sub update_gnomekderc {
     my ($file, $category, %subst_) = @_;
 
@@ -352,7 +371,7 @@ sub update_gnomekderc {
 
     my $s;
     foreach (MDK::Common::File::cat_($file), "[NOCATEGORY]\n") {
-	if (my $i = /^\s*\[$category\]/i ... /^\[/) {
+	if (my $i = /^\s*\[\Q$category\E\]/i ... /^\[/) {
 	    if ($i =~ /E/) { #- for last line of category
 		chomp $s; $s .= "\n";
 		$s .= "$_->[0]=$_->[1]\n" foreach values %subst;

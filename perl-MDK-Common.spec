@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 2mdk
+%define release 1mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Jul 30 2003 Pixel <pixel@mandrakesoft.com> 1.1.5-1mdk
+- add read_gnomekderc() (and make update_gnomekderc() a little more robust when the category is plain weird)
+
 * Mon Jun 16 2003 Pixel <pixel@mandrakesoft.com> 1.1.4-2mdk
 - no native perl_checker for x86_64, only bytecode
 - build require ocaml >= 3.06 (thanks to Per Øyvind Karlsen)
