@@ -36,7 +36,9 @@ EOF
 
 foreach my $f (<MDK/Common/*.pm>) {
     (my $pkg = $f) =~ s|/|::|g;
+    (my $pm = $pkg) =~ s/.pm$//g;
     open F, $f or die "can't open file $f";
+    print "=cut\npackage MDK::Common::$pm;\n";
     while (<F>) {
 	if (/^=head1 (EXPORTS|OTHER)/ .. /^=back/) {
 	    s/^=head1 EXPORTS/=head1 EXPORTS from $pkg/;
@@ -57,6 +59,7 @@ modify it under the same terms as Perl itself.
 
 =cut
 
+package MDK::Common;
 
 use MDK::Common::DataStructure qw(:all);
 use MDK::Common::File qw(:all);
