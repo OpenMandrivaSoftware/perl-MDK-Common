@@ -20,6 +20,7 @@ type raw_token =
   | BAREWORD_PAREN of (string * raw_pos)
   | REVISION of (string * raw_pos)
   | PERL_CHECKER_COMMENT of (string * raw_pos)
+  | PO_COMMENT of (string * raw_pos)
   | POD of (string * raw_pos)
   | LABEL of (string * raw_pos)
   | COMMAND_STRING of (raw_interpolated_string * raw_pos)
@@ -75,6 +76,7 @@ let rec raw_token_to_pos_and_token spaces = function
   | BAREWORD_PAREN(s, pos) -> pos, Parser.BAREWORD_PAREN(s, (spaces, pos))
   | REVISION(s, pos) -> pos, Parser.REVISION(s, (spaces, pos))
   | PERL_CHECKER_COMMENT(s, pos) -> pos, Parser.PERL_CHECKER_COMMENT(s, (spaces, pos))
+  | PO_COMMENT(s, pos) -> pos, Parser.PO_COMMENT(s, (spaces, pos))
   | POD(s, pos) -> pos, Parser.POD(s, (spaces, pos))
   | LABEL(s, pos) -> pos, Parser.LABEL(s, (spaces, pos))
   | PRINT(s, pos) -> pos, Parser.PRINT(s, (spaces, pos))
@@ -327,12 +329,13 @@ let ident = ident_start ['0'-'9' 'A'-'Z' 'a'-'z' '_'] *
 let pattern_separator = [ '/' '!' ',' '|' ]
 
 rule token = parse
-| ' '+ { 
+| [' ' '\t']+ { 
     (* propagate not_ok_for_match when it was set by the previous token *)
     if lexeme_start lexbuf = !not_ok_for_match then not_ok_for_match := lexeme_end lexbuf; 
     SPACE(lexeme_end lexbuf - lexeme_start lexbuf)
   }
 | "# perl_checker: " [^ '\n']* { PERL_CHECKER_COMMENT(skip_n_char 16 (lexeme lexbuf), pos lexbuf) }
+| "#-PO: " [^ '\n']* { PO_COMMENT(skip_n_char 1 (lexeme lexbuf), pos lexbuf) }
 | '#' [^ '\n']* { SPACE(1) }
 
 | "\n=" { 
@@ -623,7 +626,6 @@ and string = parse
     add_a_new_line(lexeme_end lexbuf);
     next string lexbuf
   }
-
 | [^ '\n' '\\' '"' '$' '@']+ { next string lexbuf }
 | eof { die_in_string lexbuf "Unterminated_string" }
 
@@ -716,6 +718,8 @@ and string_escape = parse
 | '0' { next_s "\000" (Stack.pop next_rule) lexbuf }
 | '"' { next_s "\"" (Stack.pop next_rule) lexbuf }
 | ''' { next_s "'"  (Stack.pop next_rule) lexbuf }
+| ':' { next_s ":"  (Stack.pop next_rule) lexbuf }
+| '\\'{ next_s "\\" (Stack.pop next_rule) lexbuf }
 | 'n' { next_s "\n" (Stack.pop next_rule) lexbuf }
 | 't' { next_s "\t" (Stack.pop next_rule) lexbuf }
 | 'x' _ _ { 
@@ -724,6 +728,7 @@ and string_escape = parse
     next_s s (Stack.pop next_rule) lexbuf 
   with Failure("int_of_string") -> die_in_string lexbuf ("Bad_hex_in_string \"" ^ lexeme lexbuf ^ "\"")
   }
+| '\n' { die lexbuf "do not use \"\\\" before end-of-line, it's useless and generally bad" }
 | _ { next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 
 
@@ -738,7 +743,8 @@ and string_interpolate_scalar = parse
 
 | "{"
 | ident "->"? '{'
-| eof { next_s "$" (Stack.pop next_rule) lexbuf }
+| '"' { putback lexbuf 1; next_s "$" (Stack.pop next_rule) lexbuf }
+| eof {                   next_s "$" (Stack.pop next_rule) lexbuf }
 | _ { warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); next_s ("$" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 
 and delimited_string_interpolate_scalar = parse (* needed for delimited string like m!foo$! where $! should not be taken as is... *)
@@ -772,8 +778,9 @@ and string_interpolate_array = parse
 | (ident | (ident? ("::" ident)+)) { string_interpolate token "@" lexbuf }
 
 | [ '@' '*' '<' '>' ']' '.' '('] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
-| eof { next_s "$" (Stack.pop next_rule) lexbuf }
-| _ { warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); next_s ("$" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| '"' { putback lexbuf 1; next_s "@" (Stack.pop next_rule) lexbuf }
+| eof {                   next_s "@" (Stack.pop next_rule) lexbuf }
+| _ { warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 
 and delimited_string_interpolate_array = parse
 | '$' ident
@@ -781,12 +788,12 @@ and delimited_string_interpolate_array = parse
 | (ident | (ident? ("::" ident)+)) { string_interpolate token "@" lexbuf }
 
 | [ '@' '*' '<' '>' ']' '.' '('] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
-| eof { next_s "$" (Stack.pop next_rule) lexbuf }
+| eof { next_s "@" (Stack.pop next_rule) lexbuf }
 | _ { 
     let c = lexeme_char lexbuf 0 in
     if c <> !delimit_char then warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf));
     putback lexbuf 1;
-    next_s "$" (Stack.pop next_rule) lexbuf
+    next_s "@" (Stack.pop next_rule) lexbuf
   }
 
 and pattern_options = parse

@@ -187,6 +187,7 @@ val non_index : string -> char -> int
 val non_rindex_from : string -> int -> char -> int
 val non_rindex : string -> char -> int
 val explode_string : string -> char list
+val count_matching_char : string -> char -> int
 val is_uppercase : char -> bool
 val is_lowercase : char -> bool
 val char_is_alphanumerical : char -> bool

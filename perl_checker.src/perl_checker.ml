@@ -27,12 +27,12 @@ let findfile dirs f = List.find Sys.file_exists (List.map (fun dir -> dir ^ "/" 
 let rec parse_file state file =
   try
     if !Flags.verbose then print_endline_flush ("checking " ^ file) ;
-    let channel = Unix.open_process_in (Printf.sprintf "expand \"%s\"" file) in
+    let channel = Unix.open_process_in (Printf.sprintf "%s \"%s\"" (if !Flags.expand_tabs then "expand" else "cat") file) in
     let lexbuf = Lexing.from_channel channel in
     try
       Info.start_a_new_file file ;
       let tokens = Lexer.get_token Lexer.token lexbuf in
-      let _ = Unix.close_process_in channel in
+      (*let _ = Unix.close_process_in channel in*)
       let t = Parser_helper.parse_tokens Parser.prog tokens (Some lexbuf) in
       let packages, required_packages = get_global_info_from_package t in
       List.fold_left (fun (required_packages, state) package ->
@@ -69,19 +69,30 @@ let rec parse_required_packages state = function
       let el, state = parse_package_if_needed state e in
       parse_required_packages state (el @ l)
 
+
 let parse_options =
   let args_r = ref [] in
   let restrict_to_files = ref false in
+
+  let pot_file = ref "" in
+  let generate_pot_chosen file =
+    Flags.generate_pot := true ;
+    Flags.expand_tabs := false ;
+    pot_file := file
+  in
   let options = [
     "-v", Arg.Set Flags.verbose, "  be verbose" ;
     "-q", Arg.Set Flags.quiet, "  be quiet" ;
     "--restrict-to-files", Arg.Set restrict_to_files, "  only display warnings concerning the file(s) given on command line" ;
+    "--generate-pot", Arg.String generate_pot_chosen, "" ;
   ] in
   let usage = "Usage: perl_checker [-v] [-q] <files>\nOptions are:" in
   Arg.parse options (lpush args_r) usage;
 
   let files = if !args_r = [] then ["../t.pl"] else !args_r in
   let required_packages, state = collect_withenv parse_file default_state files in
+
+  if !Flags.generate_pot then Parser_helper.generate_pot !pot_file else (
 
   if !restrict_to_files then Common.print_endline_flush_quiet := true ;
   let state = parse_required_packages state required_packages in
@@ -94,3 +105,4 @@ let parse_options =
   let l = if !restrict_to_files then List.filter (fun pkg -> List.mem pkg.file_name files) l else l in
 
   List.iter (check_tree state) l
+  )

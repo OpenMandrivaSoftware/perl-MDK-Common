@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 7mdk
+%define release 8mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -50,6 +50,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Tue Dec 10 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-8mdk
+- perl_checker: new --generate-pot feature
+
 * Fri Dec  6 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-7mdk
 - perl_checker: print on stdout, not stderr
 - perl_checker: add option --restrict-to-files (mainly for perl_checko the Clean Keeper)

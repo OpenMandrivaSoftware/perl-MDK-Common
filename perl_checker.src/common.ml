@@ -692,6 +692,15 @@ let rec explode_string = function
   | "" -> []
   | s -> (String.get s 0) :: explode_string (String.sub s 1 (String.length s - 1))
 
+let count_matching_char s c =
+  let rec count_matching_char_ nb i =
+    try
+      let i' = String.index_from s i c in
+      count_matching_char_ (nb+1) (i'+1)
+    with Not_found -> nb
+  in
+  count_matching_char_ 0 0
+
 let is_uppercase c = Char.lowercase c <> c
 let is_lowercase c = Char.uppercase c <> c
 

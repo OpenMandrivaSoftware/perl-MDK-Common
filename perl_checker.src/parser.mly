@@ -12,7 +12,7 @@
 
 
 %token <unit   * (Types.spaces * Types.raw_pos)> EOF
-%token <string * (Types.spaces * Types.raw_pos)> NUM RAW_STRING BAREWORD BAREWORD_PAREN REVISION COMMENT POD LABEL PERL_CHECKER_COMMENT ONE_SCALAR_PARA
+%token <string * (Types.spaces * Types.raw_pos)> NUM RAW_STRING BAREWORD BAREWORD_PAREN REVISION COMMENT POD LABEL PO_COMMENT PERL_CHECKER_COMMENT ONE_SCALAR_PARA
 %token <(string * string) * (Types.spaces * Types.raw_pos)> PRINT_TO_STAR PRINT_TO_SCALAR
 %token <string * (Types.spaces * Types.raw_pos)> QUOTEWORDS COMPACT_HASH_SUBSCRIPT
 %token <(string * Types.raw_pos) * (Types.spaces * Types.raw_pos)> RAW_HERE_DOC
@@ -425,6 +425,8 @@ bareword:
 word_paren:
 | BAREWORD_PAREN { Ident(None, fst $1, get_pos $1), snd $1}
 | RAW_IDENT_PAREN { to_Ident $1, snd $1}
+| PO_COMMENT word_paren { po_comment($1); fst $2, sp_pos_range $1 $2 }
+
 
 arraylen: ARRAYLEN_IDENT {deref_arraylen (to_Ident $1), snd $1} | ARRAYLEN  scalar {sp_0($2); deref_arraylen (fst $2), snd $1} | ARRAYLEN  bracket_subscript {deref_arraylen (fst $2), sp_pos_range $1 $2}
 scalar:   SCALAR_IDENT   {Deref(I_scalar, to_Ident $1), snd $1} | DOLLAR    scalar {sp_0($2); Deref(I_scalar, fst $2), snd $1} | DOLLAR    bracket_subscript {Deref(I_scalar, fst $2), sp_pos_range $1 $2} | DOLLAR BRACKET BRACKET expr BRACKET_END BRACKET_END {sp_0($2); sp_0($3); sp_p($5); sp_0($6); Deref(I_scalar, Ref(I_hash, sndfst $4)), sp_pos_range $1 $6}
