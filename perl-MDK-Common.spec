@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -49,6 +49,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Thu Nov 28 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-2mdk
+- new perl_checker now has every feature of the old version 
+  (except checking $_ in small subs, a more global solution should come)
+
 * Wed Nov 13 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-1mdk
 - new perl_checker written in OCaml (not as featured as previous perl_checker yet)
 - MDK::* made perl_checker compliant
