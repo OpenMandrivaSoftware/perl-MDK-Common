@@ -64,6 +64,39 @@ let s2context s =
   | _ -> I_raw, s
 
 
+let rec get_pos_in_tree = function
+  | Anonymous_sub(_, _, pos)
+  | String(_, pos)
+  | Call_op(_, _, pos)
+  | Perl_checker_comment(_, pos)
+  | My_our(_, _, pos)
+  | Raw_string(_, pos)
+  | Num(_, pos)
+  | Ident(_, _, pos)
+      -> pos
+
+  | Package e
+  | Ref(_, e)
+  | Deref(_, e)
+  | Sub_declaration(e, _, _, _)
+  | Deref_with(_, _, e, _)
+  | Use(e, _)
+  | Call(e, _)
+  | Method_call(_, e, _)
+      -> get_pos_in_tree e
+
+  | Diamond(option_e) 
+      -> if option_e = None then raw_pos2pos bpos else get_pos_in_tree (some option_e)
+      
+  | List l
+  | Block l
+      -> if l = [] then raw_pos2pos bpos else get_pos_in_tree (List.hd l)
+
+  | Semi_colon
+  | Too_complex
+  | Undef
+  | Label _
+      -> raw_pos2pos bpos
 
 let get_current_package t =
   match t with
@@ -90,13 +123,13 @@ let from_qw_raw = function
       [ s, pos ]
   | List [] -> []
   | List [ List l ] ->
-      List.map (function
+      some_or (l_option2option_l (List.map (function
 	| String([s, List []], pos)
-	| Raw_string(s, pos) -> s, pos
-	| Ident(_, _, pos) as ident -> string_of_Ident ident, pos
-	| _ -> internal_error "from_qw_raw"
-      ) l
-  | _ -> internal_error "from_qw_raw"
+	| Raw_string(s, pos) -> Some(s, pos)
+	| Ident(_, _, pos) as ident -> Some(string_of_Ident ident, pos)
+	| e -> warn_with_pos (get_pos_in_tree e) "not recognised yet"; None
+      ) l)) []
+  | e -> warn_with_pos (get_pos_in_tree e) "not recognised yet"; []
 
 let from_qw e =
   List.map (fun (s, pos) -> 
