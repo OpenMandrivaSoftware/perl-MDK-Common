@@ -27,7 +27,11 @@ let findfile dirs f = List.find Sys.file_exists (List.map (fun dir -> dir ^ "/" 
 let rec parse_file state file =
   try
     if !Flags.verbose then print_endline_flush ("checking " ^ file) ;
-    let channel = Unix.open_process_in (Printf.sprintf "%s \"%s\"" (if !Flags.expand_tabs then "expand" else "cat") file) in
+    let command = 
+      match !Flags.expand_tabs with
+      | Some width -> "expand -t " ^ string_of_int width
+      | None -> "cat" in
+    let channel = Unix.open_process_in (Printf.sprintf "%s \"%s\"" command file) in
     let lexbuf = Lexing.from_channel channel in
     try
       Info.start_a_new_file file ;
@@ -77,12 +81,13 @@ let parse_options =
   let pot_file = ref "" in
   let generate_pot_chosen file =
     Flags.generate_pot := true ;
-    Flags.expand_tabs := false ;
+    Flags.expand_tabs := None ;
     pot_file := file
   in
   let options = [
     "-v", Arg.Set Flags.verbose, "  be verbose" ;
     "-q", Arg.Set Flags.quiet, "  be quiet" ;
+    "-t", Arg.Int (fun i -> Flags.expand_tabs := Some i), "  set the tabulation width (default is 8)" ;
     "--restrict-to-files", Arg.Set restrict_to_files, "  only display warnings concerning the file(s) given on command line" ;
     "--generate-pot", Arg.String generate_pot_chosen, "" ;
   ] in

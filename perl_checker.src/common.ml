@@ -760,16 +760,16 @@ let split_at2 c1 c2 s =
   split_at2_ [] 0 0
 
 let words s =
-  let rec words_ accu i =
+  let rec words_ accu i s =
     try
       let i2 = non_index_from s i ' ' in
       try
 	let i3 = String.index_from s i2 ' ' in
-	words_ (String.sub s i2 (i3 - i2) :: accu) (i3+1)
+	words_ (String.sub s i2 (i3 - i2) :: accu) (i3+1) s
       with Not_found -> rev (skip_n_char i2 s :: accu)
     with Invalid_argument _ -> rev accu
   in
-  words_ [] 0
+  collect (words_ [] 0) (split_at '\n' s)
 
 let to_CamelCase s_ =
   let l = ref [] in

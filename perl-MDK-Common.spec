@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 9mdk
+%define release 10mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -50,6 +50,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Dec 11 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-10mdk
+- perl_checker: add option "-t" enabling titi to precise tab-width=4
+- perl_checker: fix a bug in getting exported functions (fixes "unknown function gtkshow")
+
 * Tue Dec 10 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-9mdk
 - perl_checker: check the c-format conformity of translated strings
 
