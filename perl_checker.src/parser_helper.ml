@@ -97,12 +97,12 @@ let from_array (e, _) =
   | _ -> internal_error "from_array"
 
 let msg_with_rawpos (start, end_) msg = Info.pos2sfull_current start end_ ^ msg
-let die_with_rawpos raw_pos msg = failwith      (msg_with_rawpos raw_pos msg)
-let warn         raw_pos msg = prerr_endline (msg_with_rawpos raw_pos msg)
+let die_with_rawpos raw_pos msg = failwith (msg_with_rawpos raw_pos msg)
+let warn raw_pos msg = print_endline_flush (msg_with_rawpos raw_pos msg)
 
 let die_rule msg = die_with_rawpos (Parsing.symbol_start(), Parsing.symbol_end()) msg
 let warn_rule msg = warn (Parsing.symbol_start(), Parsing.symbol_end()) msg
-let debug msg = if true then prerr_endline msg
+let debug msg = if true then print_endline_flush msg
 
 let warn_verb pos msg = if not !Flags.quiet then warn (pos, pos) msg
 let warn_too_many_space start = warn_verb start "you should have only one space here"

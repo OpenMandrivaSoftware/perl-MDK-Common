@@ -46,11 +46,11 @@ let ignored_packages = ref []
 let use_lib = ref []
 
 let ignore_package pkg = 
-  if !Flags.verbose then prerr_endline ("ignoring package " ^ pkg);
+  if !Flags.verbose then print_endline_flush ("ignoring package " ^ pkg);
   lpush ignored_packages pkg
 
 let die_with_pos pos msg = failwith (Info.pos2sfull pos ^ msg)
-let warn_with_pos pos msg = prerr_endline (Info.pos2sfull pos ^ msg)
+let warn_with_pos pos msg = print_endline_flush (Info.pos2sfull pos ^ msg)
 
 let s2context s = 
   match s.[0] with
@@ -388,7 +388,7 @@ let is_global_var context ident =
       | "caller" | "chdir" | "chmod" | "chomp" | "chop" | "chown" | "chr" | "chroot" | "close" | "closedir" | "crypt"
       | "defined" | "delete" | "die"
       | "each" | "endpwent" | "eof" | "eval" | "exec" | "exists" | "exit"
-      | "fcntl" | "fileno" | "formline" | "fork"
+      | "fcntl" | "fileno" | "flock" | "formline" | "fork"
       | "gethostbyaddr" | "gethostbyname" | "getgrnam" | "getgrgid" | "getppid" | "getpwent" | "getpwnam" | "getpwuid" | "gmtime" | "goto" | "grep" | "hex"
       | "index" | "int" | "ioctl" | "join" | "keys" | "kill"
       | "last" | "lc" | "length" | "link" | "localtime" | "log" | "lstat"
@@ -575,7 +575,7 @@ let add_package_to_state state package =
   let per_package =
     try
       update_assoc (fun existing_package ->
-	(*prerr_endline (existing_package.file_name ^ " vs " ^ package.file_name); *)
+	(*print_endline_flush (existing_package.file_name ^ " vs " ^ package.file_name); *)
 	Hashtbl.iter (fun var pos -> Hashtbl.replace existing_package.vars_declared var pos) package.vars_declared ;
 	{ existing_package with
 	  body = existing_package.body @ package.body ;

@@ -26,13 +26,13 @@ let findfile dirs f = List.find Sys.file_exists (List.map (fun dir -> dir ^ "/" 
 
 let rec parse_file state file =
   try
-    if !Flags.verbose then prerr_endline ("checking " ^ file) ;
+    if !Flags.verbose then print_endline_flush ("checking " ^ file) ;
     let channel = Unix.open_process_in (Printf.sprintf "expand \"%s\"" file) in
     let lexbuf = Lexing.from_channel channel in
     try
       Info.start_a_new_file file ;
       let tokens = Lexer.get_token Lexer.token lexbuf in
-      (*let _ = Unix.close_process_in channel in*)
+      let _ = Unix.close_process_in channel in
       let t = Parser_helper.parse_tokens Parser.prog tokens (Some lexbuf) in
       let packages, required_packages = get_global_info_from_package t in
       List.fold_left (fun (required_packages, state) package ->
@@ -41,7 +41,7 @@ let rec parse_file state file =
 	List.map (fun (s, (_, pos)) -> s, pos) package.uses @ required_packages, state
       ) (required_packages, state) packages
     with Failure s -> (
-      prerr_endline s ;
+      print_endline_flush s ;
       exit 1
      )
   with 
@@ -71,19 +71,26 @@ let rec parse_required_packages state = function
 
 let parse_options =
   let args_r = ref [] in
+  let restrict_to_files = ref false in
   let options = [
     "-v", Arg.Set Flags.verbose, "  be verbose" ;
     "-q", Arg.Set Flags.quiet, "  be quiet" ;
+    "--restrict-to-files", Arg.Set restrict_to_files, "  only display warnings concerning the file(s) given on command line" ;
   ] in
   let usage = "Usage: perl_checker [-v] [-q] <files>\nOptions are:" in
   Arg.parse options (lpush args_r) usage;
 
-  let args = if !args_r = [] then ["../t.pl"] else !args_r in
-  let required_packages, state = collect_withenv parse_file default_state args in
+  let files = if !args_r = [] then ["../t.pl"] else !args_r in
+  let required_packages, state = collect_withenv parse_file default_state files in
 
+  if !restrict_to_files then Common.print_endline_flush_quiet := true ;
   let state = parse_required_packages state required_packages in
+  if !restrict_to_files then Common.print_endline_flush_quiet := false ;
 
   let l = List.map snd state.per_package in
   (* HACK: skip ignored_packages. Some package may have appeared in ignored_packages due to the xs bootstrap hack *)
   let l = List.filter (fun pkg -> not (List.mem pkg.package_name !ignored_packages)) l in
+
+  let l = if !restrict_to_files then List.filter (fun pkg -> List.mem pkg.file_name files) l else l in
+
   List.iter (check_tree state) l

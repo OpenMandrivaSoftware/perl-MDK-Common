@@ -202,6 +202,8 @@ val split_at2 : char -> char -> string -> string list
 val words : string -> string list
 val to_CamelCase : string -> string option
 val string_of_ref : 'a ref -> string
+val print_endline_flush_quiet : bool ref
+val print_endline_flush : string -> unit
 val is_int : float -> bool
 val compare_lists : ('a -> 'b -> int) -> 'a list -> 'b list -> int
 val compare_best : int -> int -> int

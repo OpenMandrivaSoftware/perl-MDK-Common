@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 6mdk
+%define release 7mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -50,6 +50,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Dec  6 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-7mdk
+- perl_checker: print on stdout, not stderr
+- perl_checker: add option --restrict-to-files (mainly for perl_checko the Clean Keeper)
+
 * Fri Dec  6 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-6mdk
 - perl_checker now checks usage of $_
 - ignore unknown functions coming from XS bootstrap when we can't use the .c

@@ -780,6 +780,9 @@ let to_CamelCase s_ =
 let (string_of_ref : 'a ref -> string) = fun r ->
   Printf.sprintf "0x%x" (Obj.magic r : int)
 
+let print_endline_flush_quiet = ref false
+let print_endline_flush s = if not !print_endline_flush_quiet then (print_endline s ; flush stdout)
+
 let is_int n = n = floor n
 
 (* total order *)
