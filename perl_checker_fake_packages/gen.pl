@@ -27,6 +27,10 @@ sub gtk2 {
       [ 'visible',                      ' { my ($_widget, $o_bool) = @_ }' ],
       [ 'white_gc',                     ' { my ($_style, $o_gc) = @_ }' ],
       [ 'black_gc',                     ' { my ($_style, $o_gc) = @_ }' ],
+      [ 'get',                          ' {}' ],
+      [ 'append_item',                  ' { my ($_self, $_text, $_tooltip, $_private, $_icon, $_callback, $o_user_data) = @_ }' ],
+      [ 'toggle_expansion',             ' { my ($_self, $_path, $o_open_all) = @_ }' ],
+      [ 'get_path_at_pos',              ' { my ($_self, $_x, $_y) = @_ }' ],
                       );
     my @added_subroutines;
     my $add = sub {
