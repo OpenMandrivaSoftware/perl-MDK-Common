@@ -231,9 +231,9 @@ term:
 
 | term ASSIGN     term {sp_same $2 $3; let pri = P_assign    in to_Call_op_ (mcontext_op_assign $1 $3)       pri $2.any [$1.any.expr   ; prio_lo_after pri $3] $1 $3}
 
-| term ASSIGN     BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); to_Call_op_ (M_mixed [M_ref M_hash; M_none]) P_assign $2.any [prio_lo P_assign $1; hash_ref $4] $1 $5}
-| term AND_TIGHT  BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); to_Call_op_ M_bool P_tight_and "&&"   [prio_lo P_assign $1; hash_ref $4] $1 $5}
-| term OR_TIGHT   BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); to_Call_op_ M_bool P_tight_or  "||"   [prio_lo P_assign $1; hash_ref $4] $1 $5}
+| term ASSIGN     BRACKET expr_bracket_end {sp_p($2); sp_p($3); sp_p($4); to_Call_op_ (M_mixed [M_ref M_hash; M_none]) P_assign $2.any [prio_lo P_assign $1; $4.any] $1 $4}
+| term AND_TIGHT  BRACKET expr_bracket_end {sp_p($2); sp_p($3); sp_p($4); to_Call_op_ M_bool P_tight_and "&&"   [prio_lo P_assign $1; $4.any] $1 $4}
+| term OR_TIGHT   BRACKET expr_bracket_end {sp_p($2); sp_p($3); sp_p($4); to_Call_op_ M_bool P_tight_or  "||"   [prio_lo P_assign $1; $4.any] $1 $4}
 
 
 | term PATTERN_MATCH     PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_   ($1); mcontext_check M_string $1; to_Call_op_ M_array P_expr "m//"  ($1.any.expr :: from_PATTERN $3) $1 $3}
@@ -353,6 +353,10 @@ term:
 | hash PKG_SCOPE {sp_0($2); new_pesp M_hash P_tok (Call(Too_complex, [$1.any])) $1 $2} /* %main:: */
 
 | terminal {$1}
+
+expr_bracket_end:
+| expr BRACKET_END { sp_p($2); new_esp (M_ref M_hash) (hash_ref $1) $1 $2 }
+| expr BRACKET_END ARROW bracket_subscript {sp_p($2); sp_0($3); new_esp M_unknown_scalar (to_Deref_with(I_hash, I_scalar, hash_ref $1, $4.any)) $1 $4} /* { foo }->{Bar} */
 
 terminal:
 | word {word_alone $1}

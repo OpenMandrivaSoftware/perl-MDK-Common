@@ -35,3 +35,7 @@ qw(a b) > 2                              context tuple(string, string) is not co
                                          you should use a number operator, not the string operator "eq" (or replace the number with a string)
 
 @l == ()
+
+$xxx = { xxx() }->{xxx};
+
+$xxx = { xxx() }->{$xxx};
