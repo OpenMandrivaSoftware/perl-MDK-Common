@@ -151,7 +151,7 @@ sub cp_af {
 
 	if (-d $src) {
 	    -d $dest or mkdir $dest, (stat($src))[2] or die "mkdir: can't create directory $dest: $!\n";
-	    &$cp(glob_($src), $dest);
+	    cp_af(glob_($src), $dest);
 	} elsif (-l $src) {
 	    unless (symlink((readlink($src) || die "readlink failed: $!"), $dest)) {
 		warn "symlink: can't create symlink $dest: $!\n";

@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 6mdk
+%define release 7mdk
 %define perl_sitelib %(eval "`perl -V:installsitelib`"; echo $installsitelib)
 
 Summary: Various simple functions
@@ -50,6 +50,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Sep 17 2001 Pixel <pixel@mandrakesoft.com> 1.0.2-7mdk
+- (cp_af): fix typo
+
 * Sun Sep 16 2001 Pixel <pixel@mandrakesoft.com> 1.0.2-6mdk
 - add output_p, cp_af, rm_rf
 
