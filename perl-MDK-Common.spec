@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -51,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Thu Apr 17 2003 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.0-2mdk
+- fix tools crash in each_index
+
 * Wed Apr 16 2003 Pixel <pixel@mandrakesoft.com> 1.1.0-1mdk
 - MDK::Common::Func: map_index, each_index and grep_index do not pass $::i as
 a parameter anymore (this breaks backward compatibility, but it is cleaner and
