@@ -1122,7 +1122,8 @@ let mcontext_check_none msg expr esp =
     | M_mixed l when List.exists (fun c -> c = M_none) l -> ()
     | M_tuple l ->
 	(match expr with
-	| [List l_expr] ->
+	| [List l_expr]
+	| [List l_expr ; Semi_colon] ->
 	    let rec iter = function
 	      | e::l_expr, mcontext::l ->
 		  mcontext_check_none_rec (if l = [] then msg else "value is dropped") [e] mcontext ;
