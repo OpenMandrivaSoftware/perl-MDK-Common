@@ -965,6 +965,7 @@ let rec mcontext2s = function
   | M_sub -> "sub"
   | M_scalar -> "scalar"
 
+  | M_tuple l -> "tuple(" ^ String.concat ", " (List.map mcontext2s l) ^ ")"
   | M_list -> "list"
   | M_array -> "array"
   | M_hash -> "hash"
@@ -993,6 +994,10 @@ let rec mcontext_lower c1 c2 =
   | M_string, M_string | M_string, M_scalar | M_string, M_list
   | M_revision, M_revision | M_revision, M_scalar | M_revision, M_list
   | M_scalar, M_scalar | M_scalar, M_list
+    -> true
+
+  | M_tuple t1, M_tuple t2 -> List.for_all2 mcontext_lower t1 t2
+  | M_tuple _, M_list
 
   | M_list, M_list
   | M_none, M_none
@@ -1088,16 +1093,28 @@ let mcontext_unop_l wanted_mcontext esp = mcontext_unop wanted_mcontext { esp wi
 let mcontext_check_non_none esp =
   if esp.mcontext = M_none then warn_rule "() context not accepted here"
 
-let mcontext_check_none esp =
-  match esp.mcontext with
-  | M_none | M_unknown -> ()
-  | M_mixed l when List.exists (fun c -> c = M_none) l -> ()
-  | _ -> 
-      match esp.any with
-      | [List [Num("1", _)]; Semi_colon] -> () (* allow "1;" for package return value. It would be much better to check we are at toplevel, but hell i don't want to wire this information up to here *)
-      | [List [Call_op ("<>", [Ident (None, "STDIN", _)], _)]; Semi_colon] -> () (* allow <STDIN> to ask "press return" *)
-      | [List [Call(Deref(I_func, Ident(None, "map", _)), _)]; Semi_colon] -> warn_rule "if you don't use the return value, use \"foreach\" instead of \"map\""
-      | _ -> warn esp.pos "value is dropped"
+let mcontext_check_none msg expr esp =
+  let rec mcontext_check_none_rec msg expr = function
+    | M_none | M_unknown -> ()
+    | M_mixed l when List.exists (fun c -> c = M_none) l -> ()
+    | M_tuple l ->
+	(match expr with
+	| [List l_expr] ->
+	    let rec iter = function
+	      | e::l_expr, mcontext::l ->
+		  mcontext_check_none_rec (if l = [] then msg else "value is dropped") [e] mcontext
+	      | [], [] -> ()
+	      | _ -> internal_error "mcontext_check_none"
+	    in iter (l_expr, l)
+	| _ -> internal_error "mcontext_check_none")
+    | _ -> 
+	match expr with
+	| [List [Num("1", _)]; Semi_colon] -> () (* allow "1;" for package return value. It would be much better to check we are at toplevel, but hell i don't want to wire this information up to here *)
+	| [List [Call_op ("<>", [Ident (None, "STDIN", _)], _)]; Semi_colon] -> () (* allow <STDIN> to ask "press return" *)
+	| [List [Call(Deref(I_func, Ident(None, "map", _)), _)]; Semi_colon] -> warn_rule "if you don't use the return value, use \"foreach\" instead of \"map\""
+	| _ -> warn esp.pos msg
+  in
+  mcontext_check_none_rec msg expr esp.mcontext
 
 let mcontext_op_assign left right =
   mcontext_check_non_none right;
@@ -1105,3 +1122,8 @@ let mcontext_op_assign left right =
   match left.any.expr with
   | Deref(I_array, _) | My_our("my", [(I_array, _)], _) -> M_mixed [ M_array; M_none ]
   | _ -> mcontext_merge right.mcontext M_none
+
+let mtuple_context_concat c1 c2 =
+  match c1 with
+  | M_tuple l -> M_tuple (l @ [c2])
+  | _ -> M_tuple [c1 ; c2]

@@ -20,6 +20,7 @@ type maybe_context =
   | M_int | M_float | M_string | M_ref of maybe_context | M_revision | M_sub
   | M_scalar
 
+  | M_tuple of maybe_context list
   | M_list
   | M_array
   | M_hash

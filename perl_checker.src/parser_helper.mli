@@ -190,6 +190,13 @@ val call : Types.fromparser * Types.fromparser list -> Types.fromparser
 val check_return :
   Types.fromparser Types.any_spaces_pos ->
   Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos -> unit
+val call_and_context :
+  Types.fromparser * Types.fromparser list ->
+  bool ->
+  Types.priority ->
+  'a Types.any_spaces_pos ->
+  'b Types.any_spaces_pos ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
 val call_no_paren :
   Types.fromparser Types.any_spaces_pos ->
   Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
@@ -197,13 +204,6 @@ val call_no_paren :
 val call_with_paren :
   Types.fromparser Types.any_spaces_pos ->
   Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
-  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
-val call_and_context :
-  Types.fromparser * Types.fromparser list ->
-  bool ->
-  Types.priority ->
-  'a Types.any_spaces_pos ->
-  'b Types.any_spaces_pos ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
 val call_func :
   Types.fromparser Types.any_spaces_pos ->
@@ -282,7 +282,10 @@ val mcontext_unop_l :
   Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
   Types.maybe_context
 val mcontext_check_non_none : 'a Types.any_spaces_pos -> unit
-val mcontext_check_none : Types.fromparser list Types.any_spaces_pos -> unit
+val mcontext_check_none :
+  string -> Types.fromparser list -> 'a Types.any_spaces_pos -> unit
 val mcontext_op_assign :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
   'a Types.any_spaces_pos -> Types.maybe_context
+val mtuple_context_concat :
+  Types.maybe_context -> Types.maybe_context -> Types.maybe_context

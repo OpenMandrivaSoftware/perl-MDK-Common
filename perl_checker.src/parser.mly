@@ -62,8 +62,8 @@
 %nonassoc PREC_LOW
 %nonassoc LOOPEX
 
-%left       OR XOR
-%left       AND
+%right      OR XOR
+%right      AND
 %right      NOT
 %nonassoc   LSTOP
 %left   COMMA RIGHT_ARROW
@@ -104,7 +104,7 @@ prog: lines EOF {$1.any}
 lines: /* A collection of "lines" in the program */
 | { default_esp [] }
 | sideff { new_1esp [$1.any] $1 }
-| line lines { if $2.any <> [] then mcontext_check_none $1; new_esp $2.mcontext ($1.any @ $2.any) $1 $2 }
+| line lines { if $2.any <> [] then mcontext_check_none "value is dropped" $1.any $1; new_esp $2.mcontext ($1.any @ $2.any) $1 $2 }
 
 line:
 | decl { new_1esp [$1.any] $1 }
@@ -189,16 +189,16 @@ listexpr: /* Basic list expressions */
 | argexpr %prec PREC_LOW {$1}
 
 expr: /* Ordinary expressions; logical combinations */
-| expr AND expr {sp_p($2); sp_p($3); if $1.any.priority <> P_and then mcontext_check M_scalar $1; to_Call_op_ M_none P_and "and" [ prio_lo P_and $1; prio_lo_after P_and $3 ] $1 $3}
-| expr OR  expr {sp_p($2); sp_p($3); if $1.any.priority <> P_or  then mcontext_check M_scalar $1; to_Call_op_ M_none P_or  "or"  [ prio_lo P_or  $1; prio_lo_after P_or  $3 ] $1 $3}
+| expr AND expr {sp_p($2); sp_p($3); mcontext_check M_scalar $1; mcontext_check_none "value should be dropped" [$3.any.expr] $3; to_Call_op_ M_none P_and "and" [ prio_lo P_and $1; prio_lo_after P_and $3 ] $1 $3}
+| expr OR  expr {sp_p($2); sp_p($3); mcontext_check M_scalar $1; mcontext_check_none "value should be dropped" [$3.any.expr] $3; to_Call_op_ M_none P_or  "or"  [ prio_lo P_or  $1; prio_lo_after P_or  $3 ] $1 $3}
 | argexpr %prec PREC_LOW { new_1pesp $1.any.priority (List $1.any.expr) $1 }
 
 argexpr: /* Expressions are a list of terms joined by commas */
-| argexpr comma { new_pesp M_list P_comma $1.any.expr $1 $2}
-| bareword RIGHT_ARROW term {if not_simple ($3.any.expr) then sp_p($3); new_pesp M_list P_comma (followed_by_comma [$1.any] false @ [$3.any.expr]) $1 $3}
-| bareword RIGHT_ARROW BRACKET expr BRACKET_END {sp_p($3); sp_p($5); new_pesp M_list P_comma (followed_by_comma [$1.any] false @ [ Ref(I_hash, $4.any.expr) ]) $1 $5}
-| argexpr comma term {if not_simple ($3.any.expr) then sp_p($3); new_pesp M_list P_comma (followed_by_comma $1.any.expr $2.any @ [$3.any.expr]) $1 $3}
-| argexpr comma BRACKET expr BRACKET_END {sp_p($3); sp_p($5); new_pesp M_list P_comma (followed_by_comma $1.any.expr $2.any @ [ Ref(I_hash, $4.any.expr) ]) $1 $5}
+| argexpr comma { new_pesp $1.mcontext P_comma $1.any.expr $1 $2}
+| bareword RIGHT_ARROW term {if not_simple ($3.any.expr) then sp_p($3); new_pesp (mtuple_context_concat M_string $3.mcontext)  P_comma (followed_by_comma [$1.any] false @ [$3.any.expr]) $1 $3}
+| bareword RIGHT_ARROW BRACKET expr BRACKET_END {sp_p($3); sp_p($5); new_pesp (mtuple_context_concat M_string (M_ref M_hash)) P_comma (followed_by_comma [$1.any] false @ [ Ref(I_hash, $4.any.expr) ]) $1 $5}
+| argexpr comma term {if not_simple ($3.any.expr) then sp_p($3); new_pesp (mtuple_context_concat $1.mcontext $3.mcontext) P_comma (followed_by_comma $1.any.expr $2.any @ [$3.any.expr]) $1 $3}
+| argexpr comma BRACKET expr BRACKET_END {sp_p($3); sp_p($5); new_pesp (mtuple_context_concat $1.mcontext (M_ref M_hash)) P_comma (followed_by_comma $1.any.expr $2.any @ [ Ref(I_hash, $4.any.expr) ]) $1 $5}
 | term %prec PREC_LOW { new_1pesp $1.any.priority [$1.any.expr] $1 }
 
 /********************************************************************************/
