@@ -72,8 +72,19 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
-* Mon Apr  5 2004 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.11-4mdk
-- perl_checker: sync with glib/gtk+ 2.4.0
+* Wed Apr  7 2004 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.11-4mdk
+- pixel:
+  o add perl_checker.html
+  o add testsuite
+  o cp_af() now handles devices (block and character)
+  o fix detecting of boolean context vs scalar context
+  o fix some warning
+  o in "$a ? $a : xxx", "xxx" can need short circuit
+  o recognize "-c" function
+  o turn some errors to warnings
+- perl_checker's faked packages:
+  o sync with glib/gtk+ 2.4.0
+  o support Gnome2 and Gnome2::Vte too
 
 * Thu Mar 11 2004 Pixel <pixel@mandrakesoft.com> 1.1.11-3mdk
 - cp_af() now handles devices (mknod)
