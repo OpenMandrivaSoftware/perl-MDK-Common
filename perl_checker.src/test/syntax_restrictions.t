@@ -8,6 +8,8 @@ qw/a b c/                                don't use qw/.../, use qw(...) instead
 
 qx(xxx)                                  don't use qx{...}, use `...` instead
 
+-xxx                                     don't use -xxx, use '-xxx' instead
+
 not $xxx                                 don't use "not", use "!" instead
 
 $1 =~ /xxx/                              do not use the result of a match (eg: $1) to match another pattern

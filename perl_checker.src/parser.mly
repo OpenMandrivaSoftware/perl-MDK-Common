@@ -258,7 +258,6 @@ term:
 | term QUESTION_MARK BRACKET expr BRACKET_END COLON term {sp_p($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); mcontext_check M_bool $1; to_Call_op_ (mcontext_merge $7.mcontext (M_ref M_hash)) P_ternary "?:" (check_ternary_paras(prio_lo P_ternary $1, hash_ref $4, prio_lo_after P_ternary $7)) $1 $7}
 | term QUESTION_MARK BRACKET expr BRACKET_END COLON BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); sp_p($8); sp_p($9); mcontext_check M_bool $1; to_Call_op_ (M_ref M_hash) P_ternary "?:" (check_ternary_paras(prio_lo P_ternary $1, hash_ref $4, hash_ref $8)) $1 $9}
 
-
 /* Unary operators and terms */
 | PLUS term %prec UNARY_MINUS {
     sp_0($2); 
@@ -267,7 +266,12 @@ term:
 	warn_rule "don't use unary +" ;
 	to_Call_op_ (mcontext_float_or_int [$2.mcontext]) P_tight "+ unary" [$2.any.expr] $1 $2
     | "-" ->
-	to_Call_op_ (mcontext_float_or_int [$2.mcontext]) P_tight "- unary" [$2.any.expr] $1 $2
+	(match $2.any.expr with
+	| Ident(_, _, pos) when $2.spaces = Space_0 ->
+	    let s = "-" ^ string_of_Ident $2.any.expr in
+	    warn_rule (Printf.sprintf "don't use %s, use '%s' instead" s s);
+	    new_pesp M_string P_tok (Raw_string(s, pos)) $1 $2
+	| _ -> to_Call_op_ (mcontext_float_or_int [$2.mcontext]) P_tight "- unary" [$2.any.expr] $1 $2)
     | _ -> die_rule "syntax error"
 }
 | TIGHT_NOT term {check_negatable_expr $2; mcontext_check M_bool $2; to_Call_op_ M_bool P_tight "not" [$2.any.expr] $1 $2}
