@@ -75,21 +75,29 @@ and get_imports state package =
       package.imported := Some l ;
       l
 
-let check_para_comply_with_prototype para proto =
-  match para, proto with
-  | Some(pos, para), Some proto -> 
+let do_para_comply_with_prototype para proto =
+  match proto with
+  | Some proto -> 
       (match para with
       | [List [List paras]] 
       | [List paras] -> 
-	  if not (List.exists is_not_a_scalar paras) then
+	  if List.exists is_not_a_scalar paras then 0 else
 	    let len = List.length paras in
-	    if len < proto.proto_nb_min then
-	      warn_with_pos pos "not enough parameters"
+	    if len < proto.proto_nb_min then -1
 	    else (match proto.proto_nb_max with
-	    | Some max -> if len > max then warn_with_pos pos "too many parameters"
-	    | None -> ())
-      | _ -> ())
-  | _ -> ()
+	    | Some max -> if len > max then 1 else 0
+	    | None -> 0)
+      | _ -> 0)
+  | _ -> 0
+
+let check_para_comply_with_prototype para proto =
+  match para with
+  | None -> ()
+  | Some(pos, para) -> 
+      match do_para_comply_with_prototype para proto with
+      | -1 -> warn_with_pos pos "not enough parameters"
+      |  1 -> warn_with_pos pos "too many parameters"
+      | _ -> ()
 
 let is_anonymous_variable_name s = String.length s > 1 && s.[0] = '_'
 
@@ -217,6 +225,10 @@ let declare_My_our vars (my_or_our, l, pos) =
   | "local"
   | "our" -> declare_Our vars (l, pos)
   | _ -> internal_error "declare_My_our"
+
+let un_parenthesize_one_elt_List = function
+  | [List l] -> l
+  | l -> l
 
 let check_unused_local_variables vars =
   List.iter (fun ((_, s as v), (pos, used, _proto)) ->
@@ -357,7 +369,7 @@ let check_variables vars t =
     | Method_call(Raw_string(pkg, _) as class_, Raw_string(method_, pos), para) ->
 	let vars = List.fold_left check_variables_ vars para in	
 	let rec search pkg =
-	  if is_global_var_declared vars (I_func, pkg, method_) (Some(pos, [ List (class_ :: para) ])) then true
+	  if is_global_var_declared vars (I_func, pkg, method_) (Some(pos, [ List (class_ :: un_parenthesize_one_elt_List para) ])) then true
 	  else
 	    let package = Hashtbl.find vars.state.per_package pkg in
 	    List.exists search (List.map fst (some_or package.isa []))
@@ -373,7 +385,18 @@ let check_variables vars t =
 	let vars = List.fold_left check_variables_ vars para in	
 	(try 
 	  let l = Hashtbl.find vars.state.methods method_ in
-	  List.iter (fun (_, used, _) -> used := true) l
+	  let l_and = List.map (fun (_, used, proto) -> used, do_para_comply_with_prototype [ List (o :: un_parenthesize_one_elt_List para) ] proto) l in
+	  let l_and =
+	    match List.filter (fun (_, n) -> n = 0) l_and with
+	    | [] ->
+		(match uniq (List.map snd l_and) with
+		| [-1] -> warn_with_pos pos "not enough parameters"
+		| [ 1] -> warn_with_pos pos "too many parameters"
+		| _ -> warn_with_pos pos "not enough or too many parameters") ;
+		l_and
+	    | l -> l
+	  in
+	  List.iter (fun (used, _) -> used := true) l_and
 	with Not_found -> 
 	  if not (List.mem method_ [ "isa" ]) then
 	    warn_with_pos pos ("unknown method " ^ method_)) ;
