@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 19mdk
+%define release 1mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -52,6 +52,7 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Wed Nov 13 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-1mdk
 - new perl_checker written in OCaml (not as featured as previous perl_checker yet)
+- MDK::* made perl_checker compliant
 
 * Thu Nov  7 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-18mdk
 - perl_checker: many more warnings
