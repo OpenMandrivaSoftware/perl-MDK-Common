@@ -1,0 +1,327 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<!--
+     (local-set-key [(meta return)] 
+        	    (ilam (shell-command-on-region (point) (mark) "perl -MMDK::Common")))
+-->
+
+<head>
+  <title>perl-MDK-Common tutorial</title>
+  <link rev="made" href="mailto:gc at mandrake_nospam_soft.com" />
+  <meta name="keywords" content="perl mandrakesoft pixel library functional" />
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000" link="#0000ee" vlink="#551a8b">
+
+  <h1 align="center">perl-MDK-Common tutorial v0.1</h1>
+
+<p><a href="mailto:gc at mandrake_nospam_soft.com">Guillaume Cottenceau</a></p>
+
+<hr />
+
+
+  <h2>Introduction</h2>
+  
+  <p>This document aims at helping people interested in learning
+  more on <tt>perl-MDK-Common</tt>, a Perl library which is intensively
+  used in MandrakeSoft in-house software development.</p>
+
+  <p>The library adds some convenient "basic" functions to Perl,
+  allows easier functional-style programming, and also provides
+  some better system-related operations. It can be seen as an
+  extension to the standard Perl library, adding missing helpful
+  functions. It is divided as follows:</p>
+
+  <ul>
+    <li><tt>MDK::Common::File</tt>: some useful list/hash functions</li>
+    <li><tt>MDK::Common::Func</tt>: functions suited to functional-style programming</li>
+    <li><tt>MDK::Common::Globals</tt>: allows to share constant values between packages</li>
+    <li><tt>MDK::Common::Math</tt>: some math functions</li>
+    <li><tt>MDK::Common::String</tt>: functions to perform various formatting on strings</li>
+    <li><tt>MDK::Common::System</tt>: system-related useful functions</li>
+    <li><tt>MDK::Common::Various</tt>: other useful functions</li>
+  </ul>
+
+  <p>Thanks to <tt>perl-MDK-Common</tt>'s own documentation, an
+  easy way to directly access information about the provided
+  functions, you can use <tt>perldoc</tt>, for example
+  <tt>perldoc MDK::Common::Func</tt> will explain the functions
+  of the Func module. Use <tt>perldoc MDK::Common</tt> to view
+  information on all the available functions.</p>
+
+  <p>Additionally, <tt>perl-MDK-Common</tt> provides a binary
+  called <tt>perl_checker</tt>, which is a Perl compiler aiming
+  at enforcing the use of a subset of Perl, so that all
+  MandrakeSoft Perl programs roughly follow the same code style.
+  It will also help the programmer to remove unneeded parentheses
+  and conditionals.</p>
+
+<hr />
+
+
+  <h2>Prerequisites</h2>
+
+  <p>Of course, a first look at the Perl language will be
+  necessary for the reader. The following can be a good Perl
+  Tutorial (though there are many of them on the web): <a
+  href="http://www.comp.leeds.ac.uk/Perl/">http://www.comp.leeds.ac.uk/Perl/</a>.</p>
+
+  <p>Programming with <tt>perl-MDK-Common</tt> also emphasizes
+  the following quality properties on your code:</p>
+
+  <ul>
+  <li><b>no code duplication:</b> at the grassroots, this library
+  aims at helping you with simple operations you have to deal
+  with so many times in usual programs; this includes reading the
+  contents of a file, finding the maximum numeric element of an
+  array, etc; in order to be efficient with
+  <tt>perl-MDK-Common</tt>, you need to always keep in mind to
+  not duplicate code to perform a single action</li>
+  <br>
+
+  <li><b>functional style programming:</b> this is not a so
+  common technique among programmers, and maybe it's even worse
+  with Perl programmers; but functional-style programs are often
+  clearer, more expressive, more reusable, and more
+  maintainable</li>
+  <br>
+
+  <li><b>strict code style:</b> Perl is known to be a language
+  with which "there is more than one way to do it"; actually,
+  nearly every Perl program uses a different code-style; that's
+  nice for the programmer's freedom, and that's awful for code
+  maintainance; <tt>perl_checker</tt> will ask you to follow a
+  specific code style</li>
+
+  </ul>
+
+  <p>We can't discuss Perl programming without referring to two
+  excellent books from O'Reilly. The first one is called "The
+  Perl Cookbook", and covers many daily problems a Perl
+  programmer will face, in a recipe-like fashion. All Perl
+  programmers should own this book :). The second one can be a
+  good resource for more skillful programmers, and is called
+  "Advanced Perl Programming"; it covers interesting advanced
+  features of Perl.</p>
+
+<hr />
+
+
+  <h2>Structure of this document</h2>
+
+  <p>This document will first try to emphasize the most useful
+  functions of the <tt>perl-MDK-Common</tt> library, e.g. the
+  most commonly used and simple. Then, some functions whose use
+  is not trivial will be explained. As a last part, an
+  introduction to the code-style to please
+  <tt>perl_checker</tt> will be shown.</p>
+
+<hr />
+
+
+  <h2>Most useful functions</h2>
+
+  <p><b>Note:</b> many functions' name, extending capabilities of
+  existing functions, or being their functional counterpart, are
+  suffixed with the underscore character (<tt>_</tt>); for
+  example, <tt>chomp_</tt> is the equivalent of <tt>chomp</tt>,
+  but returns the chomp'ed results instead of modifying its
+  argument.</p>
+
+  <ul>
+  <li>
+   <b>cat_</b>(FILENAME): returns the file contents: in scalar 
+    context it returns a single string, in array context it
+    returns the lines. If the file doesn't exist, it returns
+    <tt>undef</tt>.
+
+  <p>Perl IO operations are verbose and the API is cluttered.
+  There are many situations in which you want to read the
+  contents of a file, put it in a scalar or loop around the
+  files. <tt>cat_</tt> allows to do that easily:</p>
+
+  <pre class="SCREEN">
+  printf "Mandrake release:\n%s\n", cat_('/etc/mandrake-release');
+
+  foreach (cat_('/proc/mounts')) {
+      my ($dev, $where, $type) = split;
+      print "$dev is mounted on $where (type $type)\n";
+  }
+  </pre>
+  </li>
+
+
+  <li>
+   <b>output</b>(FILENAME, LIST): creates a file and outputs the
+    list (if the file exists, it is clobbered)
+
+  <p>Counterpart of <tt>cat_</tt>. Build the contents of the file
+  in your program, and when you're happy with it, write it on
+  disk:</p>
+
+  <pre class="SCREEN">
+  my @resolv_conf = qw(search mandrakesoft.com);
+  push @resolv_conf, "nameserver $_" foreach @name_servers;
+  output('/etc/resolv.conf', @resolv_conf);
+  </pre>
+  </li>
+
+
+  <li>
+   <b>member</b>(SCALAR, LIST): is the value in the list?
+
+  <p>Returns true if the value is stringwise equivalent to an
+  element of the list:</p>
+
+  <pre class="SCREEN">
+  if (!member($driver, @modules)) {
+      print "Sorry, the driver is not available in our modules.\n"
+  }
+  </pre>
+  </li>
+
+
+  <li>
+   <b>difference2</b>(ARRAY REF, ARRAY REF): returns the first
+   list without the element of the second list
+
+  <p>Performs a set-wise substraction, e.g. removes in first list
+  the elements that are members of the second one:</p>
+
+  <pre class="SCREEN">
+  my @types = difference2(\@available_types, \@bad_types);
+  print "Please select a type from: @types\n";
+  </pre>
+  </li>
+
+
+  <li>
+   <b>uniq</b>(LIST): returns the list with no duplicates
+
+  <p>Removes duplicates from the list, keeping the order of the
+  list, and the first element when duplicates.</p>
+
+  <pre class="SCREEN">
+  my @types = uniq map { (split)[2] } cat_('/proc/mounts');
+  print "Filesystem types in use: @types\n"
+  </pre>
+  </li>
+
+
+  <li>
+   <b>min</b>(LIST): returns the minimum number from a list
+   <p></p>
+  </li>
+
+
+  <li>
+   <b>man</b>(LIST): returns the maximum number from a list
+   <p></p>
+  </li>
+
+
+  <li>
+   <b>chomp_</b>(STRING): non-mutable version of <tt>chomp</tt>:
+    do not modify the argument, returns the chomp'ed value.
+
+  <p>Very useful for simple functional expressions.</p>
+
+  <p>Note: also works on lists: <tt>chomp_($a, $b)</tt> is
+  equivalent to <tt>chomp($a); chomp($b); ($a,$b)</tt>.</p>
+
+  <pre class="SCREEN">
+  my $pid = chomp_(cat_('/var/run/cardmgr.pid'));
+  </pre>
+  </li>
+
+
+  </ul>
+
+<hr />
+
+
+  <h2>Other interesting functions</h2>
+
+  <p>The following describes functions whose use is not
+  trivial.</p>
+
+  <ul>
+  <li>
+   <b>if_</b>(BOOL, LIST)
+
+  <p>Returns LIST if the BOOL condition is true, else an empty
+  list.</p>
+
+  <p>Note: it's equivalent as doing <tt>BOOL ? LIST : ()</tt>,
+  except that since it's a function, LIST is evaluated even if
+  BOOL is false. It's useful because it's shorter and more
+  readable than the ternary <tt>?:</tt>.</p>
+
+  <p>A first convenient use is when you want to loop on a list
+  and conditionally on another:</p>
+
+  <pre class="SCREEN">
+  foreach (@types, if_($arch eq 'ppc', @ppc_types)) {
+      # ...
+  }</pre>
+
+  <p>It's also useful to select elements from a list and modify
+  them on-the-fly, e.g. performing the equivalent of a
+  <tt>grep</tt> then a <tt>map</tt>. It works because
+  Perl automatically concatenates lists.</p>
+
+  <pre class="SCREEN">
+  my @md_devices = map { if_(/^(md\d+)/, $1) } cat_('/proc/mdstat');
+
+      # equivalent (but much more elegant!) to:
+
+  my @md_devices = map { /^(md\d+)/; $1 } grep { /^md\d+/ } cat_('/proc/mdstat');
+  </pre>
+  </li>
+
+
+  <li>
+  <b>substInFile</b> { CODE } FILENAME: executes the code for
+    each line of the file; you can know the end of the file is
+    reached using <tt>eof</tt>
+
+  <p>Typically used to change a parameter in a file:
+
+  <pre class="SCREEN">
+  substInFile { s/^FORWARD_IPV4.*\n//; $_ .= "FORWARD_IPV4=true\n" if eof } '/etc/sysconfig/network';
+  </pre>
+
+
+  <li>
+   <b>each_index</b> { CODE } LIST: just like <tt>each</tt>, but
+   sets $::i
+
+  <p>Useful when you need to perform an action on each element of
+  a list, but you also need the index of each element:</p>
+
+  <pre class="SCREEN">
+  each_index { printf "%s mountpoint: $_", $::i == 2 ? 'third' : 'other' } cat_('/proc/mounts');
+  </pre>
+  </li>
+
+
+  </ul>
+
+<hr />
+
+
+  <h2>perl_checker</h2>
+
+  <p></p>
+
+
+<hr />
+
+    <p>
+       Last update: Fri Apr 18 22:08:06 2003
+    </p>
+
+</body>
+
+</html>
