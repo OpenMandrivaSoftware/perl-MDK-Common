@@ -74,6 +74,8 @@ member($xxx, keys %h)                    you can replace "member($xxx, keys %yyy
 
 grep { !member($_, qw(a b c)) } @l       you can replace "grep { !member($_, ...) } @l" with "difference2([ @l ], [ ... ])"
 
+any { $_ eq 'foo' } @l                   you can replace "any { $_ eq ... } @l" with "member(..., @l)"
+
 foreach (@l) {                           use "push @l2, grep { ... } ..." instead of "foreach (...) { push @l2, $_ if ... }"
   push @l2, $_ if yyy($_);                 or sometimes "@l2 = grep { ... } ..."
 }                                        

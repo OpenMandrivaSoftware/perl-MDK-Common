@@ -891,9 +891,17 @@ let call_raw force_non_builtin_func (e, para) =
 	      warn_rule "you can replace \"grep { member($_, ...) } @l\" with \"intersection([ @l ], [ ... ])\""
 	  | _ -> check_anonymous_block f para)
 
+      | "any" ->
+	  (match para with
+	    [Anonymous_sub (None, Block 
+			      [ List [ Call_op("eq", [Deref(I_scalar, Ident(None, "_", _)); _ ], _) ] ], 
+			    _); _ ] ->
+	      warn_rule "you can replace \"any { $_ eq ... } @l\" with \"member(..., @l)\""
+	  | _ -> check_anonymous_block f para)		
+
       | "grep_index" | "map_index" | "partition" | "uniq_"
       | "find"
-      | "any" | "every"
+      | "every"
       | "find_index"
       | "each_index" -> check_anonymous_block f para
 
