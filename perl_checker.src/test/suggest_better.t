@@ -60,6 +60,8 @@ $l[$#l]                                  you can replace $#l with -1
 
 $#l == 0                                 $#x == 0 is better written @x == 1
 
+$#l < 0                                  change your expression to use @xxx instead of $#xxx
+
 $l[@l] = 1                               "$a[@a] = ..." is better written "push @a, ..."
 
 xxx(@_)                                  replace xxx(@_) with &xxx

@@ -1287,6 +1287,11 @@ let symops pri para_context return_context op_str left op right =
     | Deref(I_array, _), List [] -> true (* allow @l == () and @l != () *)
     | _ -> false)
   in
+  if op_str <> "==" && op_str <> "!=" && para_context = M_float then
+    (match un_parenthesize_full left.any.expr with
+    | Call_op("last_array_index", _, _) -> warn_rule "change your expression to use @xxx instead of $#xxx"
+    | _ -> ());
+
   if not skip_context_check then
     (mcontext_check para_context left ; mcontext_check para_context right) ;
   to_Call_op_ return_context pri op_str [prio_lo pri left; prio_lo_after pri right] left right
