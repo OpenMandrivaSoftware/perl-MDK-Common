@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 13mdk
+%define release 14mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -51,6 +51,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Jan 15 2003 Pixel <pixel@mandrakesoft.com> 1.0.4-14mdk
+- perl_checker: when generating pot, add an header and fake line numbers to
+  please msgmerge
+
 * Mon Jan  6 2003 Pixel <pixel@mandrakesoft.com> 1.0.4-13mdk
 - MDK::Common::Func: add "find", "any" and "every"
 

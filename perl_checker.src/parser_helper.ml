@@ -493,7 +493,26 @@ let check_format_a_la_printf s pos =
   in check_format_a_la_printf_ 0
   
 let generate_pot file = 
-  let fd = open_out file in   
+  let fd = open_out file in
+  output_string fd 
+"# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Free Software Foundation, Inc.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid \"\"
+msgstr \"\"
+\"Project-Id-Version: PACKAGE VERSION\\n\"
+\"POT-Creation-Date: 2002-12-05 19:52+0100\\n\"
+\"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\\n\"
+\"Last-Translator: FULL NAME <EMAIL@ADDRESS>\\n\"
+\"Language-Team: LANGUAGE <LL@li.org>\\n\"
+\"MIME-Version: 1.0\\n\"
+\"Content-Type: text/plain; charset=CHARSET\\n\"
+\"Content-Transfer-Encoding: 8-bit\\n\"
+
+" ;
+
   let rec print_formatted_char = function
     | '"'  -> output_char fd '\\'; output_char fd '"'
     | '\t' -> output_char fd '\\'; output_char fd 't'
@@ -508,7 +527,7 @@ let generate_pot file =
 	List.iter (fun po_comment -> output_string fd ("#. " ^ po_comment ^ "\n")) po_comments;
 
 	List.iter (fun _ -> Hashtbl.remove pot_strings_and_file s) l ;
-	fprintf fd "#: %s\n" (String.concat " " l) ;
+	fprintf fd "#: %s\n" (String.concat " " (List.map (fun s -> s ^ ":1") l)) ;
 	output_string fd "#, c-format\n" ;
 
 	output_string fd (if String.contains s '\n' then "msgid \"\"\n\"" else "msgid \"") ;
