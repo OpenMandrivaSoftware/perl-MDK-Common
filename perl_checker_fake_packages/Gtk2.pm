@@ -8,6 +8,7 @@ sub XSetInputFocus {}
 sub XWINDOW {}
 sub action_area {}
 sub active {}
+sub add {}
 sub add_accel_group {}
 sub add_attribute {}
 sub add_events {}
@@ -43,6 +44,7 @@ sub copy {}
 sub create_items {}
 sub create_pango_layout {}
 sub create_tag {}
+sub destroy {}
 sub dir_list {}
 sub direction {}
 sub disable_activate {}
@@ -50,6 +52,8 @@ sub draw {}
 sub draw_arc {}
 sub draw_drawable {}
 sub draw_layout {}
+sub draw_line {}
+sub draw_pixbuf {}
 sub draw_rectangle {}
 sub entry {}
 sub expand {}
@@ -190,6 +194,7 @@ sub set_value {}
 sub set_visibility {}
 sub set_wrap_mode {}
 sub shape_combine_mask {}
+sub show {}
 sub show_all {}
 sub signal_connect {}
 sub signal_disconnect {}
