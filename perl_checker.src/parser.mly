@@ -330,10 +330,6 @@ term:
 
 | term ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); if $4.any.expr = [] then warn $4.pos "remove these unneeded parentheses"; new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, $4.any.expr)) $1 $4} /* $foo->bar(list) */
 | term ARROW word_or_scalar {sp_0($2); sp_0($3); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, [])) $1 $3} /* $foo->bar */
-| term ARROW MULT_L_STR parenthesized {sp_0($2); sp_0($3); sp_0($4); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, Ident(None, "x", get_pos $3), $4.any.expr)) $1 $4} /* $foo->bar(list) */
-| term ARROW MULT_L_STR {sp_0($2); sp_0($3); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, Ident(None, "x", get_pos $3), [])) $1 $3} /* $foo->bar */
-| term ARROW FOR  parenthesized {sp_0($2); sp_0($3); sp_0($4); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, Ident(None, $3.any, get_pos $3), $4.any.expr)) $1 $4} /* $foo->bar(list) */
-| term ARROW FOR  {sp_0($2); sp_0($3); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, Ident(None, $3.any, get_pos $3), [])) $1 $3} /* $foo->bar */
 
 | NEW word { sp_n($2); new_pesp (M_ref M_unknown) P_call_no_paren (to_Method_call ($2.any, Ident(None, "new", get_pos $1), [])) $1 $2} /* new Class */
 | NEW word_paren parenthesized { sp_n($2); sp_0($3); new_pesp (M_ref M_unknown) P_call_no_paren (to_Method_call($2.any, Ident(None, "new", get_pos $1), $3.any.expr)) $1 $3} /* new Class(...) */
@@ -450,6 +446,8 @@ word_or_scalar:
 | word      {$1}
 | scalar    {$1}
 | word_paren {$1}
+| MULT_L_STR { new_1esp (Ident(None, "x", get_pos $1)) $1 }
+| FOR { new_1esp (Ident(None, $1.any, get_pos $1)) $1 }
 
 bareword:
 | NEW { new_1esp (Ident(None, "new", get_pos $1)) $1 }
