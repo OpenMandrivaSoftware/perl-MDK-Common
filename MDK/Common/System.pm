@@ -26,6 +26,10 @@ sizeof(int)
 
 $sizeof_int * 8
 
+=item arch()
+
+return the architecture (eg: i686, ppc, ia64, k7...)
+
 =item typeFromMagic(FILENAME, LIST)
 
 find the first corresponding magic in FILENAME. eg of LIST:
@@ -119,6 +123,28 @@ If the category doesn't exist, it creates it. eg:
 
 =back
 
+=head1 OTHER
+
+=over
+
+=item better_arch(ARCH1, ARCH2)
+
+is ARCH1 compatible with ARCH2?
+
+better_arch('i386', 'ia64') and better_arch('ia64', 'i386') are false
+
+better_arch('k7', 'k6') is true and better_arch('k6', 'k7') is false
+
+=item compat_arch(STRING)
+
+test the architecture compatibility. eg: 
+
+compat_arch('i386') is false on a ia64
+
+compat_arch('k6') is true on a k6 and k7 but false on a i386 and i686
+
+=back
+
 =head1 SEE ALSO
 
 L<MDK::Common>
@@ -133,7 +159,7 @@ use MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_int $bitof_int); #);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int typeFromMagic list_passwd list_home list_skels syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setVarsInCsh template2file template2userfile update_gnomekderc); #);
+@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch typeFromMagic list_passwd list_home list_skels syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setVarsInCsh template2file template2userfile update_gnomekderc); #);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -160,6 +186,21 @@ use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_i
 $printable_chars = "\x20-\x7E";
 $sizeof_int      = psizeof("i");
 $bitof_int       = $sizeof_int * 8;
+
+
+sub arch() {
+    my $SYS_NMLN = 65;
+    my $format = "Z$SYS_NMLN" x 6;
+    my $t = pack $format;
+    syscall_('uname', $t);
+    (unpack($format, $t))[4];
+}
+sub better_arch {
+    my ($new, $old) = @_;
+    while ($new && $new ne $old) { $new = $compat_arch{$new} }
+    $new;
+}
+sub compat_arch { better_arch(arch(), $_[0]) }
 
 sub typeFromMagic {
     my $f = shift;
