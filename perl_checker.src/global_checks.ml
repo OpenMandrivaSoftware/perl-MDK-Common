@@ -417,7 +417,7 @@ let check_variables vars t =
 	  in
 	  List.iter (fun (used, _) -> used := true) l_and
 	with Not_found -> 
-	  if not (List.mem method_ [ "isa" ]) then
+	  if not (List.mem method_ [ "isa"; "can" ]) then
 	    warn_with_pos pos ("unknown method " ^ method_)) ;
 	Some vars
 	
