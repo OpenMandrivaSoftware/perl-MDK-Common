@@ -4,7 +4,7 @@ open Tree
 type state = {
     per_files : (string, per_file) Hashtbl.t ;
     per_packages : (string, per_package) Hashtbl.t ;
-    methods : (string, (pos * bool ref * prototype option) list) Hashtbl.t ;
+    methods : (string, (pos * variable_used ref * prototype option) list) Hashtbl.t ;
     global_vars_used : ((context * string * string) * pos) list ref ;
     packages_being_classes : (string, unit) Hashtbl.t ;
   }

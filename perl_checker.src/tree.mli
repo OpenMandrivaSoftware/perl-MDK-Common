@@ -17,10 +17,12 @@ type prototype = {
     proto_nb_max : int option ;
   }
 
+type variable_used = Access_none | Access_write_only | Access_various
+
 type per_package = {
     package_name : string ; has_package_name : bool ;
-    vars_declared : (context * string, pos * bool ref * prototype option) Hashtbl.t;
-    imported : ((context * string) * (string * bool ref * prototype option)) list option ref;
+    vars_declared : (context * string, pos * variable_used ref * prototype option) Hashtbl.t;
+    imported : ((context * string) * (string * variable_used ref * prototype option)) list option ref;
     exports : exports ;
     uses : uses ;
     required_packages : (string * pos) list ;

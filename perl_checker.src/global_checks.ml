@@ -8,15 +8,15 @@ open Tree
 type state = {
     per_files : (string, per_file) Hashtbl.t ;
     per_packages : (string, per_package) Hashtbl.t ;
-    methods : (string, (pos * bool ref * prototype option) list) Hashtbl.t ;
+    methods : (string, (pos * variable_used ref * prototype option) list) Hashtbl.t ;
     global_vars_used : ((context * string * string) * pos) list ref ;
     packages_being_classes : (string, unit) Hashtbl.t ;
   }
 
 type vars = { 
-    my_vars : ((context * string) * (pos * bool ref * prototype option)) list list ;
-    our_vars : ((context * string) * (pos * bool ref * prototype option)) list list ;
-    locally_imported : ((context * string) * (string * bool ref * prototype option)) list ;
+    my_vars : ((context * string) * (pos * variable_used ref * prototype option)) list list ;
+    our_vars : ((context * string) * (pos * variable_used ref * prototype option)) list list ;
+    locally_imported : ((context * string) * (string * variable_used ref * prototype option)) list ;
     required_vars : (context * string * string) list ;
     current_package : per_package ;
     is_toplevel : bool ;
@@ -37,7 +37,7 @@ let rec get_imported state current_package (package_name, (imports, pos)) =
 	    sndter3 (List.assoc var (get_imports state package_used))
 	  with Not_found ->
 	    warn_with_pos pos (sprintf "name %s is not defined in package %s" (variable2s var) package_name) ;
-	    ref true, None
+	    ref Access_various, None
       in
       var, (package_name, b, prototype)
     in
@@ -104,13 +104,17 @@ let check_para_comply_with_prototype para proto =
 
 let is_anonymous_variable_name s = String.length s > 1 && s.[0] = '_'
 
+let variable_used write_only used =
+  if !used != Access_various then
+    used := if write_only then Access_write_only else Access_various
+
 let is_my_declared vars t = 
   List.exists (fun l ->
-    List.mem_assoc t l && (if not vars.write_only then snd3 (List.assoc t l) := true ; true)
+    List.mem_assoc t l && (variable_used vars.write_only (snd3 (List.assoc t l)) ; true)
   ) vars.my_vars
 let is_our_declared vars t = 
   List.exists (fun l ->
-    List.mem_assoc t l && (if not vars.write_only then snd3 (List.assoc t l) := true ; true)
+    List.mem_assoc t l && (variable_used vars.write_only (snd3 (List.assoc t l)) ; true)
   ) vars.our_vars
 
 let is_var_declared_raw write_only state package var para =
@@ -126,7 +130,7 @@ let is_var_declared_raw write_only state package var para =
   with 
   | Some (used, proto) ->
       check_para_comply_with_prototype para proto ;
-      if not write_only then used := true ; 
+      variable_used write_only used ; 
       true
   | None ->
       false
@@ -213,7 +217,7 @@ let declare_My vars (mys, pos) =
   List.iter (fun v ->
     if List.mem_assoc v l_pre then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
   ) l_new ;
-  { vars with my_vars = (List.map (fun v -> v, (pos, ref false, None)) l_new @ l_pre) :: List.tl vars.my_vars }
+  { vars with my_vars = (List.map (fun v -> v, (pos, ref Access_none, None)) l_new @ l_pre) :: List.tl vars.my_vars }
 
 let declare_Our vars (ours, pos) =
   match vars.our_vars with
@@ -222,7 +226,7 @@ let declare_Our vars (ours, pos) =
       List.iter (fun v ->
 	if List.mem_assoc v l_pre && v <> (I_scalar, "_") then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
       ) ours ;
-      { vars with our_vars = (List.map (fun v -> v, (pos, ref false, None)) ours @ l_pre) :: other }
+      { vars with our_vars = (List.map (fun v -> v, (pos, ref Access_none, None)) ours @ l_pre) :: other }
 
 let declare_My_our vars (my_or_our, l, pos) =
   match my_or_our with
@@ -237,13 +241,15 @@ let un_parenthesize_one_elt_List = function
 
 let check_unused_local_variables vars =
   List.iter (fun ((context, s as v), (pos, used, _proto)) ->
-    if not !used then
+    if !used != Access_various then
       match s with
       | "BEGIN" | "END" | "DESTROY" -> ()
       | "_" when context = I_array ->
 	  warn_with_pos pos "if the function doesn't take any parameters, please use the empty prototype.\nexample \"sub foo() { ... }\""
       | _ ->
-	  if s.[0] != '_' || s = "_" then warn_with_pos pos (sprintf "unused variable %s" (variable2s v))
+	  if s.[0] != '_' || s = "_" then
+	    let msg = if !used = Access_write_only then sprintf "variable %s assigned, but not read" else sprintf "unused variable %s" in
+	    warn_with_pos pos (msg (variable2s v))
   ) (List.hd vars.my_vars)
 
 let check_variables vars t = 
@@ -256,7 +262,7 @@ let check_variables vars t =
 	Some vars
     | Call(Deref(I_func, Ident(None, "sort", _)), (Anonymous_sub(_, Block f, pos) :: l)) ->
 	let vars = List.fold_left check_variables_ vars l in
-	let vars' = { vars with my_vars = [ (I_scalar, "a"), (pos, ref true, None) ; (I_scalar, "b"), (pos, ref true, None) ] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
+	let vars' = { vars with my_vars = [ (I_scalar, "a"), (pos, ref Access_various, None) ; (I_scalar, "b"), (pos, ref Access_various, None) ] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' f in
 	check_unused_local_variables vars' ;
 	Some vars
@@ -264,7 +270,7 @@ let check_variables vars t =
     | Call(Deref(I_func, Ident(None, func, func_pos)), Anonymous_sub(_, Block f, pos) :: l) 
       when List.mem func [ "grep" ; "map" ; "substInFile" ; "map_index" ; "each_index" ; "partition" ; "find_index" ; "grep_index" ; "find" ; "any" ; "every" ] ->
 	let vars = List.fold_left check_variables_ vars l in
-	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true, None)] :: vars.our_vars } in
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref Access_various, None)] :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' f in
 	check_unused_local_variables vars' ;
 	check_variable (I_func, Ident(None, func, func_pos)) vars None ;
@@ -299,7 +305,7 @@ let check_variables vars t =
     | Call_op("while infix", [ expr ; (List [ Call_op("<>", _, _) ] as l) ], pos)
     | Call_op("for infix", [ expr ; l ], pos) ->
 	let vars = check_variables_ vars l in
-	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true, None)] :: vars.our_vars } in
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref Access_various, None)] :: vars.our_vars } in
 	let vars' = check_variables_ vars' expr in
 	if List.hd(vars'.my_vars) <> [] then warn_with_pos pos "you can't declare variables in foreach infix";
 	Some vars
@@ -327,11 +333,11 @@ let check_variables vars t =
 		fq = None && List.mem name ["DESTROY"] ||
 		Hashtbl.mem vars.state.packages_being_classes (some_or fq vars.current_package.package_name)
 	      in
-	      [(I_array, "_"), (pos, ref dont_check_use, None)], body
+	      [(I_array, "_"), (pos, ref (if dont_check_use then Access_various else Access_none), None)], body
 	in
 	let local_vars = 
 	  if fq = None && name = "AUTOLOAD" 
-	  then [ (I_scalar, "AUTOLOAD"), (pos, ref true, None) ]
+	  then [ (I_scalar, "AUTOLOAD"), (pos, ref Access_various, None) ]
 	  else [] in
 
 	let vars' = { vars with my_vars = my_vars :: vars.my_vars ; our_vars = local_vars :: vars.our_vars ; is_toplevel = false } in
@@ -340,14 +346,14 @@ let check_variables vars t =
 	Some vars
 
     | Anonymous_sub(_, Block l, pos) ->
-	let vars' = { vars with my_vars = [(I_array, "_"), (pos, ref true, None)] :: vars.my_vars ; is_toplevel = false } in
+	let vars' = { vars with my_vars = [(I_array, "_"), (pos, ref Access_various, None)] :: vars.my_vars ; is_toplevel = false } in
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
 	Some vars
 
     | Call_op("foreach", [ expr ; Block l ], pos) ->
 	let vars = check_variables_ vars expr in
-	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true, None)] :: vars.our_vars } in
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref Access_various, None)] :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
 	Some vars
@@ -442,7 +448,7 @@ let check_variables vars t =
 		l_and
 	    | l -> l
 	  in
-	  List.iter (fun (used, _) -> used := true) l_and
+	  List.iter (fun (used, _) -> used := Access_various) l_and
 	with Not_found -> 
 	  if not (List.mem method_ [ "isa"; "can" ]) then
 	    warn_with_pos pos ("unknown method " ^ method_)) ;
@@ -493,7 +499,7 @@ let add_file_to_files per_files file =
 
 let check_unused_vars package =
   Hashtbl.iter (fun (context, name) (pos, is_used, _proto) ->
-    if not (!is_used || List.mem name ["BEGIN"; "END"; "DESTROY"; "ISA"; "AUTOLOAD"; "EXPORT"; "EXPORT_OK"; "EXPORT_TAGS"]) then
+    if not (!is_used != Access_various || List.mem name ["BEGIN"; "END"; "DESTROY"; "ISA"; "AUTOLOAD"; "EXPORT"; "EXPORT_OK"; "EXPORT_TAGS"]) then
       warn_with_pos pos (sprintf "unused %s%s::%s" (if context = I_func then "function " else "variable " ^ context2s context) package.package_name name)
   ) package.vars_declared
 
@@ -520,7 +526,7 @@ let arrange_global_vars_declared global_vars_declared state =
 	package
     in
     if not (Hashtbl.mem package.vars_declared (context, name)) then
-      Hashtbl.add package.vars_declared (context, name) (pos, ref false, proto)
+      Hashtbl.add package.vars_declared (context, name) (pos, ref Access_none, proto)
 	(* otherwise dropping this second declaration *)
   ) global_vars_declared ;
   state

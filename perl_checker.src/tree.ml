@@ -20,10 +20,12 @@ type prototype = {
     proto_nb_max : int option ;
   }
 
+type variable_used = Access_none | Access_write_only | Access_various
+
 type per_package = {
     package_name : string ; has_package_name : bool ;
-    vars_declared : (context * string, pos * bool ref * prototype option) Hashtbl.t;
-    imported : ((context * string) * (string * bool ref * prototype option)) list option ref;
+    vars_declared : (context * string, pos * variable_used ref * prototype option) Hashtbl.t;
+    imported : ((context * string) * (string * variable_used ref * prototype option)) list option ref;
     exports : exports ;
     uses : uses ;
     required_packages : (string * pos) list ;
@@ -218,7 +220,7 @@ let read_xs_extension_from_c global_vars_declared file_name package pos =
 	  let end_ = String.index_from s offset '"' in
 	  let ident = String.sub s offset (end_ - offset) in
 	  match split_name_or_fq_name ident with
-	  | None, ident -> Hashtbl.replace package.vars_declared (I_func, ident) (pos, ref false, None)
+	  | None, ident -> Hashtbl.replace package.vars_declared (I_func, ident) (pos, ref Access_none, None)
 	  | Some fq, ident -> 
 	      let fq = package.package_name ^ "::" ^ fq in
 	      Hashtbl.replace global_vars_declared (I_func, fq, ident) (pos, None)
@@ -292,7 +294,7 @@ let get_proto perl_proto body =
 let get_vars_declaration global_vars_declared file_name package = 
   List.iter (function
     | Sub_declaration(Ident(None, name, pos), perl_proto, body, _) ->
-	Hashtbl.replace package.vars_declared (I_func, name) (pos, ref false, get_proto perl_proto body)
+	Hashtbl.replace package.vars_declared (I_func, name) (pos, ref Access_none, get_proto perl_proto body)
     | Sub_declaration(Ident(Some fq, name, pos), perl_proto, body, _) ->
 	Hashtbl.replace global_vars_declared (I_func, fq, name) (pos, get_proto perl_proto body)
 
@@ -300,11 +302,11 @@ let get_vars_declaration global_vars_declared file_name package =
     | List [ Call_op("=", [My_our("local", ([ I_scalar, "_" ] as ours), pos); _], _) ]
     | List [ My_our("our", ours, pos) ]
     | My_our("our", ours, pos) ->
-	List.iter (fun (context, name) -> Hashtbl.replace package.vars_declared (context, name) (pos, ref false, None)) ours
+	List.iter (fun (context, name) -> Hashtbl.replace package.vars_declared (context, name) (pos, ref Access_none, None)) ours
 
     | Use(Ident(Some "MDK::Common", "Globals", pos), [ String _ ; ours ])
     | Use(Ident(None, "vars", pos), [ours]) -> 
-	List.iter (fun (context, name) -> Hashtbl.replace package.vars_declared (context, name) (pos, ref false, None)) (from_qw ours)
+	List.iter (fun (context, name) -> Hashtbl.replace package.vars_declared (context, name) (pos, ref Access_none, None)) (from_qw ours)
     | Use(Ident(None, "vars", pos), _) -> 
 	die_with_pos pos "usage: use vars qw($var func)"
 
