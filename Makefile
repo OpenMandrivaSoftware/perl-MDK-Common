@@ -40,7 +40,7 @@ commit:
 tar: clean
 	cd .. ; tar cf - $(NAME) | bzip2 -9 >$(TAR)
 
-build:
+build: MDK/Common.pm
 	cp -f ../$(TAR) $(RPM)/SOURCES
 	perl -I. -MMDK::Common -pe 's/THEVERSION/$$MDK::Common::VERSION/' $(NAME).spec > $(RPM)/SPECS/$(NAME).spec
 	-rpm -ba $(RPM)/SPECS/$(NAME).spec
