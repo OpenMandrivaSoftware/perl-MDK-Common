@@ -15,11 +15,16 @@ type exports = {
 
 type uses = (string * ((context * string) list option * pos)) list
 
+type prototype = {
+    proto_nb_min : int ;
+    proto_nb_max : int option ;
+  }
+
 type per_package = {
     file_name : string ;
     package_name : string ; has_package_name : bool ;
-    vars_declared : (context * string, pos * bool ref) Hashtbl.t ;
-    imported : ((context * string) * (string * bool ref)) list option ref ;
+    vars_declared : (context * string, pos * bool ref * prototype option) Hashtbl.t ;
+    imported : ((context * string) * (string * bool ref * prototype option)) list option ref ;
     exports : exports ;
     uses : uses ;
     required_packages : (string * pos) list ;
@@ -201,10 +206,10 @@ let read_xs_extension_from_c global_vars_declared package pos =
 	  let end_ = String.index_from s offset '"' in
 	  let ident = String.sub s offset (end_ - offset) in
 	  match split_name_or_fq_name ident with
-	  | None, ident -> Hashtbl.replace package.vars_declared (I_func, ident) (pos, ref false)
+	  | None, ident -> Hashtbl.replace package.vars_declared (I_func, ident) (pos, ref false, None)
 	  | Some fq, ident -> 
 	      let fq = package.package_name ^ "::" ^ fq in
-	      Hashtbl.replace global_vars_declared (I_func, fq, ident) pos
+	      Hashtbl.replace global_vars_declared (I_func, fq, ident) (pos, None)
 	 with Not_found -> ());
       in_bootstrap || str_contains s "XS_VERSION_BOOTCHECK"
     ) false (open_in cfile));
@@ -235,28 +240,41 @@ let read_xs_extension_from_so global_vars_declared package pos =
 	  with Not_found -> List.rev accu, skip_n_char i s
 	in
 	let fq, name = find_package_name [] 0 in
-	Hashtbl.replace global_vars_declared (I_func, String.concat "::" fq, name) pos	
+	Hashtbl.replace global_vars_declared (I_func, String.concat "::" fq, name) (pos, None)
     ) () channel;
     let _ = Unix.close_process_in channel in
     true
   with Not_found -> false
 
+let has_proto = function
+  | Block (List [Call_op ("=", [My_our ("my", mys, mys_pos); Deref(I_array, Ident(None, "_", _))], _pos)] :: body) ->
+      Some(mys, mys_pos, body)
+  | _ -> None
+
+let get_proto body =
+  map_option (fun (mys, _pos, _) ->
+    let scalars, others = break_at (fun (context, _) -> context <> I_scalar) mys in
+    let must_have, optional = break_at (fun (_, s) -> String.length s > 2 && (s.[0] = 'o' || s.[0] = 'b') && s.[1] = '_') scalars in
+    let min = List.length must_have in    
+    { proto_nb_min = min; proto_nb_max = if others = [] then Some(min + List.length optional) else None }
+  ) (has_proto body)
+
 let get_vars_declaration global_vars_declared package = 
   List.iter (function
-    | Sub_declaration(Ident(None, name, pos), _proto, _) ->
-	Hashtbl.replace package.vars_declared (I_func, name) (pos, ref false)
-    | Sub_declaration(Ident(Some fq, name, pos), _proto, _) ->
-	Hashtbl.replace global_vars_declared (I_func, fq, name) pos
+    | Sub_declaration(Ident(None, name, pos), _perl_proto, body) ->
+	Hashtbl.replace package.vars_declared (I_func, name) (pos, ref false, get_proto body)
+    | Sub_declaration(Ident(Some fq, name, pos), _perl_proto, body) ->
+	Hashtbl.replace global_vars_declared (I_func, fq, name) (pos, get_proto body)
 
     | List [ Call_op("=", [My_our("our", ours, pos); _], _) ]
     | List [ Call_op("=", [My_our("local", ([ I_scalar, "_" ] as ours), pos); _], _) ]
     | List [ My_our("our", ours, pos) ]
     | My_our("our", ours, pos) ->
-	List.iter (fun (context, name) -> Hashtbl.replace package.vars_declared (context, name) (pos, ref false)) ours
+	List.iter (fun (context, name) -> Hashtbl.replace package.vars_declared (context, name) (pos, ref false, None)) ours
 
     | Use(Ident(Some "MDK::Common", "Globals", pos), [ String _ ; ours ])
     | Use(Ident(None, "vars", pos), [ours]) -> 
-	List.iter (fun (context, name) -> Hashtbl.replace package.vars_declared (context, name) (pos, ref false)) (from_qw ours)
+	List.iter (fun (context, name) -> Hashtbl.replace package.vars_declared (context, name) (pos, ref false, None)) (from_qw ours)
     | Use(Ident(None, "vars", pos), _) -> 
 	die_with_pos pos "usage: use vars qw($var func)"
 

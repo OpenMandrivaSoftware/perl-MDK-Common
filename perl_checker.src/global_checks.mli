@@ -3,8 +3,8 @@ open Tree
 
 type state = {
     per_package : (string, per_package) Hashtbl.t;
-    methods : (string, (pos * bool ref) list) Hashtbl.t ;
-    global_vars_declared : (context * string * string, pos) Hashtbl.t;
+    methods : (string, (pos * bool ref * prototype option) list) Hashtbl.t ;
+    global_vars_declared : (context * string * string, pos * prototype option) Hashtbl.t;
     global_vars_used : ((context * string * string) * pos) list ref;
   } 
 

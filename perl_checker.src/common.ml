@@ -21,6 +21,10 @@ let sndfst ((_, e), _) = e
 let fstsnd (_, (e, _)) = e
 let sndsnd (_, (_, e)) = e
 
+let fst3 (e, _, _) = e
+let snd3 (_, e, _) = e
+let ter3 (_, _, e) = e
+let sndter3 (_, a, b) = (a, b)
 
 let o f g x = f (g x)
 let curry f x y = f (x,y)

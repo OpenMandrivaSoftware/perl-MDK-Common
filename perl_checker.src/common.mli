@@ -12,6 +12,10 @@ val fstfst : ('a * 'b) * 'c -> 'a
 val sndfst : ('a * 'b) * 'c -> 'b
 val fstsnd : 'a * ('b * 'c) -> 'b
 val sndsnd : 'a * ('b * 'c) -> 'c
+val fst3 : 'a * 'b * 'c -> 'a
+val snd3 : 'a * 'b * 'c -> 'b
+val ter3 : 'a * 'b * 'c -> 'c
+val sndter3 : 'a * 'b * 'c -> 'b * 'c
 val o : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b
 val curry : ('a * 'b -> 'c) -> 'a -> 'b -> 'c
 val uncurry : ('a -> 'b -> 'c) -> 'a * 'b -> 'c

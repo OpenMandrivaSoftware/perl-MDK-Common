@@ -12,11 +12,16 @@ type exports = {
 
 type uses = (string * ((context * string) list option * pos)) list
 
+type prototype = {
+    proto_nb_min : int ;
+    proto_nb_max : int option ;
+  }
+
 type per_package = {
     file_name : string ;
     package_name : string ; has_package_name : bool ;
-    vars_declared : (context * string, pos * bool ref) Hashtbl.t;
-    imported : ((context * string) * (string * bool ref)) list option ref;
+    vars_declared : (context * string, pos * bool ref * prototype option) Hashtbl.t;
+    imported : ((context * string) * (string * bool ref * prototype option)) list option ref;
     exports : exports ;
     uses : uses ;
     required_packages : (string * pos) list ;
@@ -34,7 +39,9 @@ val uses_external_package : string -> bool
 val findfile : string list -> string -> string
 
 val get_global_info_from_package : bool -> int -> fromparser list -> per_package list
-val get_vars_declaration : (context * string * string, pos) Hashtbl.t -> per_package -> unit
+
+val has_proto : fromparser -> ((context * string) list * pos * fromparser list) option
+val get_vars_declaration : (context * string * string, pos * prototype option) Hashtbl.t -> per_package -> unit
 
 val die_with_pos : string * int * int -> string -> 'a
 val warn_with_pos : string * int * int -> string -> unit

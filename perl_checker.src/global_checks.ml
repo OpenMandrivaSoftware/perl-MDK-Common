@@ -7,15 +7,15 @@ open Tree
 
 type state = {
     per_package : (string, per_package) Hashtbl.t ;
-    methods : (string, (pos * bool ref) list) Hashtbl.t ;
-    global_vars_declared : (context * string * string, pos) Hashtbl.t ;
+    methods : (string, (pos * bool ref * prototype option) list) Hashtbl.t ;
+    global_vars_declared : (context * string * string, pos * prototype option) Hashtbl.t ;
     global_vars_used : ((context * string * string) * pos) list ref ;
   }
 
 type vars = { 
-    my_vars : ((context * string) * (pos * bool ref)) list list ;
-    our_vars : ((context * string) * (pos * bool ref)) list list ;
-    locally_imported : ((context * string) * (string * bool ref)) list ;
+    my_vars : ((context * string) * (pos * bool ref * prototype option)) list list ;
+    our_vars : ((context * string) * (pos * bool ref * prototype option)) list list ;
+    locally_imported : ((context * string) * (string * bool ref * prototype option)) list ;
     required_vars : (context * string * string) list ;
     current_package : per_package ;
     state : state ;
@@ -27,16 +27,16 @@ let rec get_imported state current_package (package_name, (imports, pos)) =
     let package_used = Hashtbl.find state.per_package package_name in
     let exports = package_used.exports in
     let get_var_by_name var =
-      let b =
-	try snd (Hashtbl.find package_used.vars_declared var)
+      let (b, prototype) =
+	try sndter3 (Hashtbl.find package_used.vars_declared var)
 	with Not_found -> 
 	  try
-	    snd (List.assoc var (get_imports state package_used))
+	    sndter3 (List.assoc var (get_imports state package_used))
 	  with Not_found ->
 	    warn_with_pos pos (sprintf "name %s is not defined in package %s" (variable2s var) package_name) ;
-	    ref true
+	    ref true, None
       in
-      var, (package_name, b)
+      var, (package_name, b, prototype)
     in
     match imports with
     | None ->
@@ -46,7 +46,7 @@ let rec get_imported state current_package (package_name, (imports, pos)) =
 	    (* HACK: if package exporting-all is ignored, ignore package importing *)
 	    if List.mem package_name !ignored_packages then Tree.ignore_package current_package.package_name;
 	      
-	    Hashtbl.fold (fun var (_pos, b) l -> (var, (package_name, b)) :: l) package_used.vars_declared []
+	    Hashtbl.fold (fun var (_pos, b, proto) l -> (var, (package_name, b, proto)) :: l) package_used.vars_declared []
 	| _ -> [] in
 	let l = List.map get_var_by_name exports.export_auto in
 	re @ l
@@ -75,39 +75,57 @@ and get_imports state package =
       package.imported := Some l ;
       l
 
+let check_para_comply_with_prototype para proto =
+  match para, proto with
+  | Some(pos, para), Some proto -> 
+      (match para with
+      | [List [List paras]] 
+      | [List paras] -> 
+	  if not (List.exists is_not_a_scalar paras) then
+	    let len = List.length paras in
+	    if len < proto.proto_nb_min then
+	      warn_with_pos pos "not enough parameters"
+	    else (match proto.proto_nb_max with
+	    | Some max -> if len > max then warn_with_pos pos "too many parameters"
+	    | None -> ())
+      | _ -> ())
+  | _ -> ()
+
 let is_anonymous_variable_name s = String.length s > 1 && s.[0] = '_'
 
 let is_my_declared vars t = 
   List.exists (fun l ->
-    List.mem_assoc t l && (snd (List.assoc t l) := true ; true)
+    List.mem_assoc t l && (snd3 (List.assoc t l) := true ; true)
   ) vars.my_vars
 let is_our_declared vars t = 
   List.exists (fun l ->
-    List.mem_assoc t l && (snd (List.assoc t l) := true ; true)
+    List.mem_assoc t l && (snd3 (List.assoc t l) := true ; true)
   ) vars.our_vars
 
-let is_var_declared_and_set state package var =
+let is_var_declared_and_set state package var para =
   try
-    let (_pos, used) = Hashtbl.find package.vars_declared var in
+    let (_, used, proto) = Hashtbl.find package.vars_declared var in
+    check_para_comply_with_prototype para proto ;
     used := true ; 
     true
   with Not_found -> 
     try
-      let (_pos, used) = List.assoc var (get_imports state package) in
-      used := true ;
+      let (_, used, proto) = List.assoc var (get_imports state package) in
+      check_para_comply_with_prototype para proto ;
+      used := true ; 
       true
     with Not_found ->
       false
 
-let is_var_declared vars var = 
+let is_var_declared vars var para = 
   List.mem_assoc var vars.locally_imported ||
-  is_var_declared_and_set vars.state vars.current_package var
+  is_var_declared_and_set vars.state vars.current_package var para
 
-let is_global_var_declared vars (context, fq, name) =
+let is_global_var_declared vars (context, fq, name) para =
   Hashtbl.mem vars.state.global_vars_declared (context, fq, name) ||
   (try
     let package = Hashtbl.find vars.state.per_package fq in
-    is_var_declared_and_set vars.state package (context, name)
+    is_var_declared_and_set vars.state package (context, name) para
   with Not_found -> false)
  
 
@@ -153,17 +171,17 @@ let is_global_var context ident =
       | _ -> false)
   | _ -> false
 
-let check_variable (context, var) vars = 
+let check_variable (context, var) vars para = 
   match var with
   | Ident(_, s, pos) when context <> I_func && is_anonymous_variable_name s && s <> "__FILE__" && s <> "__LINE__" ->
       warn_with_pos pos (sprintf "variable %s must not be used\n  (variable with name _XXX are reserved for unused variables)" (variable2s(context, string_of_Ident var)))
   | Ident(Some pkg, _, _) when uses_external_package pkg || List.mem pkg !ignored_packages -> ()
   | Ident(None, ident, pos) ->
-      if is_my_declared vars (context, ident) || is_our_declared vars (context, ident) || is_var_declared vars (context, ident) || is_global_var context ident
+      if is_my_declared vars (context, ident) || is_our_declared vars (context, ident) || is_var_declared vars (context, ident) para || is_global_var context ident
       then () 
       else warn_with_pos pos (if context = I_func then "unknown function " ^ ident else "undeclared variable " ^ variable2s(context, ident))
   | Ident(Some fq, name, pos) -> 
-      if (fq = "CORE") && is_global_var context name || is_global_var_declared vars (context, fq, name)
+      if (fq = "CORE") && is_global_var context name || is_global_var_declared vars (context, fq, name) para
       then ()
       else 
 	if context = I_func then 
@@ -182,7 +200,7 @@ let declare_My vars (mys, pos) =
   List.iter (fun v ->
     if List.mem_assoc v l_pre then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
   ) l_new ;
-  { vars with my_vars = (List.map (fun v -> v, (pos, ref false)) l_new @ l_pre) :: List.tl vars.my_vars }
+  { vars with my_vars = (List.map (fun v -> v, (pos, ref false, None)) l_new @ l_pre) :: List.tl vars.my_vars }
 
 let declare_Our vars (ours, pos) =
   match vars.our_vars with
@@ -191,7 +209,7 @@ let declare_Our vars (ours, pos) =
       List.iter (fun v ->
 	if List.mem_assoc v l_pre && v <> (I_scalar, "_") then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
       ) ours ;
-      { vars with our_vars = (List.map (fun v -> v, (pos, ref false)) ours @ l_pre) :: other }
+      { vars with our_vars = (List.map (fun v -> v, (pos, ref false, None)) ours @ l_pre) :: other }
 
 let declare_My_our vars (my_or_our, l, pos) =
   match my_or_our with
@@ -201,7 +219,7 @@ let declare_My_our vars (my_or_our, l, pos) =
   | _ -> internal_error "declare_My_our"
 
 let check_unused_local_variables vars =
-  List.iter (fun ((_, s as v), (pos, used)) ->
+  List.iter (fun ((_, s as v), (pos, used, _proto)) ->
     if not !used && s.[0] != '_' && not (List.mem s [ "BEGIN"; "END"; "DESTROY" ]) then warn_with_pos pos (sprintf "unused variable %s" (variable2s v))
   ) (List.hd vars.my_vars)
   
@@ -217,7 +235,7 @@ let check_variables vars t =
 	Some vars
     | Call(Deref(I_func, Ident(None, "sort", _)), (Anonymous_sub(Block f, pos) :: l)) ->
 	let vars = List.fold_left check_variables_ vars l in
-	let vars' = { vars with my_vars = [ (I_scalar, "a"), (pos, ref true) ; (I_scalar, "b"), (pos, ref true) ] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
+	let vars' = { vars with my_vars = [ (I_scalar, "a"), (pos, ref true, None) ; (I_scalar, "b"), (pos, ref true, None) ] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' f in
 	check_unused_local_variables vars' ;
 	Some vars
@@ -225,23 +243,30 @@ let check_variables vars t =
     | Call(Deref(I_func, Ident(None, func, func_pos)), Anonymous_sub(Block f, pos) :: l) 
       when List.mem func [ "grep" ; "map" ; "substInFile" ; "map_index" ; "each_index" ; "partition" ; "find_index" ; "grep_index" ; "find" ; "any" ; "every" ] ->
 	let vars = List.fold_left check_variables_ vars l in
-	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true)] :: vars.our_vars } in
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true, None)] :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' f in
 	check_unused_local_variables vars' ;
-	check_variable (I_func, Ident(None, func, func_pos)) vars ;
+	check_variable (I_func, Ident(None, func, func_pos)) vars None ;
 	Some vars
 
     | Call(Deref(I_func, (Ident _ as ident)), [ List [ Deref(I_array, (Ident(None, "_", pos))) ] ]) ->
 	(* special warning if @_ is unbound *)
-	check_variable (I_func, ident) vars ;
+	check_variable (I_func, ident) vars None ;
 	if not (is_our_declared vars (I_array, "_")) then
 	  warn_with_pos pos (sprintf "replace %s(@_) with &%s" (string_of_Ident ident) (string_of_Ident ident)) ;
+	Some vars
+
+    | Call(Deref(I_func, Ident(None, "require", _)), [Ident _]) -> Some vars
+
+    | Call(Deref(context, (Ident(_, _, pos) as var)), para) -> 
+	check_variable (context, var) vars (Some(pos, para)) ;
+	let vars = List.fold_left check_variables_ vars para in
 	Some vars
 
     | Call_op("while infix", [ expr ; (List [ Call_op("<>", _, _) ] as l) ], pos)
     | Call_op("for infix", [ expr ; l ], pos) ->
 	let vars = check_variables_ vars l in
-	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true)] :: vars.our_vars } in
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true, None)] :: vars.our_vars } in
 	let vars' = check_variables_ vars' expr in
 	if List.hd(vars'.my_vars) <> [] then warn_with_pos pos "you can't declare variables in foreach infix";
 	Some vars
@@ -256,19 +281,18 @@ let check_variables vars t =
 	check_unused_local_variables vars' ;
 	Some vars
 
-    | Sub_declaration(Ident(fq, name, pos) as ident, _proto, Block l) ->
+    | Sub_declaration(Ident(fq, name, pos) as ident, _perl_proto, Block body) ->
 	let vars = declare_Our vars ([ I_func, string_of_Ident ident ], pos) in
 
 	let local_vars, l =
-	  match l with 
-	  | List [Call_op ("=", [My_our ("my", mys, mys_pos); Deref(I_array, Ident(None, "_", _))], _pos)] :: l ->
-	      (*warn_with_pos pos ("found declaration: " ^ String.concat " " (List.map variable2s mys));*)
-	      [], My_our ("my", mys, mys_pos) :: l
-	  | _ -> [(I_array, "_"), (pos, ref true)], l
+	  match has_proto (Block body) with
+	  | Some(mys, mys_pos, body) ->
+	      [], My_our ("my", mys, mys_pos) :: body
+	  | _ -> [(I_array, "_"), (pos, ref true, None)], body
 	in
 	let local_vars = 
 	  if fq = None && name = "AUTOLOAD" 
-	  then ((I_scalar, "AUTOLOAD"), (pos, ref true)) :: local_vars 
+	  then ((I_scalar, "AUTOLOAD"), (pos, ref true, None)) :: local_vars 
 	  else local_vars in
 
 	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = local_vars :: vars.our_vars } in
@@ -277,14 +301,14 @@ let check_variables vars t =
 	Some vars
 
     | Anonymous_sub(Block l, pos) ->
-	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_array, "_"), (pos, ref true)] :: vars.our_vars } in
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_array, "_"), (pos, ref true, None)] :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
 	Some vars
 
     | Call_op("foreach", [ expr ; Block l ], pos) ->
 	let vars = check_variables_ vars expr in
-	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true)] :: vars.our_vars } in
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true, None)] :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
 	Some vars
@@ -293,16 +317,16 @@ let check_variables vars t =
     | Sub_declaration _ -> internal_error "check_variables"
 
     | Ident _ as var ->
-	check_variable (I_star, var) vars ;
+	check_variable (I_star, var) vars None ;
 	Some vars
 
     | My_our(my_or_our, mys, pos) -> Some(declare_My_our vars (my_or_our, mys, pos))
     | Deref(context, (Ident _ as var)) -> 
-	check_variable (context, var) vars ;
+	check_variable (context, var) vars None ;
 	Some vars
     | Deref_with(context, _, (Ident _ as var), para) -> 
 	let vars = check_variables_ vars para in
-	check_variable (context, var) vars ;
+	check_variable (context, var) vars None ;
 	Some vars
 
     | Call_op("=", [My_our(my_or_our, mys, pos); e], _) ->
@@ -320,8 +344,6 @@ let check_variables vars t =
 	if op <> "=" then warn_with_pos pos (sprintf "applying %s on a new initialized variable is wrong" op);
 	None
 
-    | Call(Deref(I_func, Ident(None, "require", _)), [Ident _]) -> Some vars
-
     | Method_call(Raw_string(package_name, pos), Raw_string ("import", _), para) ->
 	let args =
 	  match para with
@@ -332,10 +354,10 @@ let check_variables vars t =
 	let vars = { vars with locally_imported = l @ vars.locally_imported } in
 	Some vars
 
-    | Method_call(Raw_string(pkg, _), Raw_string(method_, pos), para) ->
+    | Method_call(Raw_string(pkg, _) as class_, Raw_string(method_, pos), para) ->
 	let vars = List.fold_left check_variables_ vars para in	
 	let rec search pkg =
-	  if is_global_var_declared vars (I_func, pkg, method_) then true
+	  if is_global_var_declared vars (I_func, pkg, method_) (Some(pos, class_ :: para)) then true
 	  else
 	    let package = Hashtbl.find vars.state.per_package pkg in
 	    List.exists search (List.map fst (some_or package.isa []))
@@ -351,7 +373,7 @@ let check_variables vars t =
 	let vars = List.fold_left check_variables_ vars para in	
 	(try 
 	  let l = Hashtbl.find vars.state.methods method_ in
-	  List.iter (fun (_, used) -> used := true) l
+	  List.iter (fun (_, used, _) -> used := true) l
 	with Not_found -> 
 	  if not (List.mem method_ [ "isa" ]) then
 	    warn_with_pos pos ("unknown method " ^ method_)) ;
@@ -387,22 +409,22 @@ let add_package_to_state state package =
   Hashtbl.replace state.per_package package.package_name package
 
 let check_unused_vars package =
-  Hashtbl.iter (fun (context, name) (pos, is_used) ->
+  Hashtbl.iter (fun (context, name) (pos, is_used, _proto) ->
     if not (!is_used || List.mem name ["BEGIN"; "END"; "DESTROY"; "ISA"; "AUTOLOAD"; "EXPORT"; "EXPORT_OK"; "EXPORT_TAGS"]) then
       warn_with_pos pos (sprintf "unused %s%s::%s" (if context = I_func then "function " else "variable " ^ context2s context) package.package_name name)
   ) package.vars_declared
 
 let arrange_global_vars_declared state =
   let h = Hashtbl.create 16 in
-  Hashtbl.iter (fun (context, fq, name) pos ->
+  Hashtbl.iter (fun (context, fq, name) (pos, proto) ->
     try
       let package = Hashtbl.find state.per_package fq in
       if not (Hashtbl.mem package.vars_declared (context, name)) then
-	Hashtbl.add package.vars_declared (context, name) (pos, ref false)
+	Hashtbl.add package.vars_declared (context, name) (pos, ref false, proto)
       (* otherwise dropping this second declaration *)
     with Not_found ->
       (* keeping it in global_vars_declared *)
-      Hashtbl.add h (context, fq, name) pos
+      Hashtbl.add h (context, fq, name) (pos, proto)
   ) state.global_vars_declared ;
   { state with global_vars_declared = h }
 
@@ -422,10 +444,10 @@ let get_methods_available state =
     uniq l
   in
   List.iter (fun pkg ->
-    Hashtbl.iter (fun (context, v) (pos, is_used) ->
+    Hashtbl.iter (fun (context, v) (pos, is_used, proto) ->
       if context = I_func then
 	let l = try Hashtbl.find state.methods v with Not_found -> [] in
-	Hashtbl.replace state.methods v ((pos, is_used) :: l)
+	Hashtbl.replace state.methods v ((pos, is_used, proto) :: l)
     ) pkg.vars_declared
   ) (get_classes state) ;
   state

@@ -41,11 +41,12 @@ let is_var_number_match = function
 let non_scalar_context context = context = I_hash || context = I_array
 let is_scalar_context context = context = I_scalar
   
-let is_not_a_scalar = function
+let rec is_not_a_scalar = function
   | Deref_with(_, context, _, _)
   | Deref(context, _) -> non_scalar_context context
   | List []
   | List(_ :: _ :: _) -> true
+  | Call_op("?:", [ _cond ; a; b ], _) -> is_not_a_scalar a || is_not_a_scalar b
   | _ -> false
   
 let is_not_a_scalar_or_array = function
