@@ -690,17 +690,21 @@ let po_comments = ref []
 let po_comment esp = lpush po_comments esp.any
 
 let check_format_a_la_printf s pos =
-  let rec check_format_a_la_printf_ i =
+  let rec check_format_a_la_printf_ contexts i =
     try
       let i' = String.index_from s i '%' in
       try
-	(match s.[i' + 1] with
-	| '%' | 'd' | 's' | 'c' -> ()
-	| c -> warn (pos + i', pos + i') (sprintf "invalid command %%%c" c));
-	check_format_a_la_printf_ (i' + 2)
-      with Invalid_argument _ -> warn (pos + i', pos + i') "invalid command %"
-    with Not_found -> ()
-  in check_format_a_la_printf_ 0
+	let contexts = 
+	  match s.[i' + 1] with
+	  | '%' -> contexts
+	  | 'd' -> M_int :: contexts
+	  | 's' | 'c' -> M_string :: contexts
+	  | c -> warn (pos + i', pos + i') (sprintf "invalid command %%%c" c); contexts
+	in
+	check_format_a_la_printf_ contexts (i' + 2)
+      with Invalid_argument _ -> warn (pos + i', pos + i') "invalid command %" ; contexts
+    with Not_found -> contexts
+  in check_format_a_la_printf_ [] 0
   
 let generate_pot file = 
   let fd = open_out file in
@@ -763,13 +767,18 @@ let call_raw force_non_builtin_func (e, para) =
 
       | "N" | "N_" ->
 	  (match para with
-	  | [ List(String([ s, List [] ], (file, pos_a, _)) :: _) ] -> 
+	  | [ List(String([ s, List [] ], (file, pos_a, _)) :: para) ] -> 
 	      if !Flags.generate_pot then (
 		Hashtbl.replace pot_strings s ((try Hashtbl.find pot_strings s with Not_found -> []) @ !po_comments) ;
 		po_comments := [] ;
 		Hashtbl.add pot_strings_and_file s file ;
 	      ) ;
-	      check_format_a_la_printf s pos_a ;
+	      let contexts = check_format_a_la_printf s pos_a in
+	      if f = "N" then
+		if List.length para < List.length contexts then
+		  warn_rule "not enough parameters"
+		else if List.length para > List.length contexts then
+		  warn_rule "too many parameters" ;
 	      (*if String.contains s '\t' then warn_rule "tabulation in translated string must be written \\\\t";*)
 	      (*if count_matching_char s '\n' > 10 then warn_rule "long string";*)
 	      None

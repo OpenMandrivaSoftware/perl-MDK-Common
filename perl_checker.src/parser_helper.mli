@@ -182,7 +182,7 @@ val pot_strings : (string, string list) Hashtbl.t
 val pot_strings_and_file : (string, string) Hashtbl.t
 val po_comments : string list ref
 val po_comment : string Types.any_spaces_pos -> unit
-val check_format_a_la_printf : string -> int -> unit
+val check_format_a_la_printf : string -> int -> Types.maybe_context list
 val generate_pot : string -> unit
 val call_raw :
   bool -> Types.fromparser * Types.fromparser list -> Types.fromparser
