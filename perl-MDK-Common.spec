@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Jan  7 2004 Pixel <pixel@mandrakesoft.com> 1.1.10-1mdk
+- add whereis_binary()
+
 * Mon Jan  5 2004 Pixel <pixel@mandrakesoft.com> 1.1.9-1mdk
 - many perl_checker enhancements
 

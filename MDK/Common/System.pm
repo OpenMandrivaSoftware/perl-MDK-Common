@@ -88,6 +88,10 @@ returns the epoch in microseconds
 
 takes care of CR/LF translation
 
+=item whereis_binary(STRING)
+
+return the first absolute file in $PATH (similar to which(1) and whereis(1))
+
 =item getVarsFromSh(FILENAME)
 
 returns a hash associating shell variables to their value. useful for config
@@ -175,7 +179,7 @@ use MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_int $bitof_int); #);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch typeFromMagic list_passwd list_home list_skels list_users syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile read_gnomekderc update_gnomekderc fuzzy_pidofs); #);
+@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch typeFromMagic list_passwd list_home list_skels list_users syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos whereis_binary getVarsFromSh setVarsInSh setVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile read_gnomekderc update_gnomekderc fuzzy_pidofs); #);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -285,7 +289,13 @@ sub availableRamMB() { 4 * MDK::Common::Math::round((-s '/proc/kcore') / 1024 / 
 sub gettimeofday() { my $t = pack "LL"; syscall_('gettimeofday', $t, 0) or die "gettimeofday failed: $!\n"; unpack("LL", $t) }
 sub unix2dos { local $_ = $_[0]; s/\015$//mg; s/$/\015/mg; $_ }
 
-
+sub whereis_binary {
+    my ($prog) = @_;
+    foreach (split(':', $ENV{PATH})) {
+	my $f = "$_/$prog";
+	-x $f and return $f; 
+    }
+}
 
 sub getVarsFromSh {
     my %l;
