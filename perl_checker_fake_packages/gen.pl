@@ -16,27 +16,45 @@ sub gtk2 {
         each_index {
             if (/^\s*sub\s+(\w+)/) {
                 my $fun = $1;
+
+                #- obtain first statement of function
+                local $_ = $_;
+                if (/^\s*sub\s+\w+\s*{?\s*$/) {
+                    if ($contents[$::i+1] =~ /^\s*{\s*$/) {
+                        $_ .= $contents[$::i+1] . $contents[$::i+2];
+                    } else {
+                        $_ .= $contents[$::i+1];
+                    }
+                }
+
+                my $subroutine_decl = '^\s*sub\s+\w+\s*{\s*';
+
                 #- one liner constants
                 #-   sub EXPOSURE_MASK { 'exposure-mask' }
-                /^\s*sub\s+(\w+)\s*{\s*('[^']+')|("[^"]+")\s*}/ and $add->($fun, '() {}');
+                /$subroutine_decl('[^']+')|("[^"]+")\s*}/ and $add->($fun, '() {}');
                 #-   sub Sym_Hangul_J_Phieuf { 0xeed }
-                /^\s*sub\s+(\w+)\s*{\s*0\S+\s*}/                and $add->($fun, '() {}');
-
-                #- explore first line of subroutine definition
-                local $_ = $contents[$::i+1];
-                /^\s*{\s*$/ and $_ = $contents[$::i+2];
+                /$subroutine_decl\0\S+\s*}/                and $add->($fun, '() {}');
 
                 #- traditional form
                 #-   my ($class, $interval, $func, $data) = @_;
-                if (/^\s*my\s*\(([^\)]+)\)\s*=\s*\@_\s*;\s*$/) {
+                if (/$subroutine_decl\my\s*\(([^\)]+)\)\s*=\s*\@_\s*;\s*$/) {
                     my @args = map { /^\s*\$(.*)/ or goto skip_trad; '$_'.$1 } split /,/, $1;
                     $add->($fun, ' { my ('.join(', ', @args).') = @_ }');
                   skip_trad:
                 }
 
+                #- methods not naming arguments
+                #-   sub set_name { $_[0]->set_property('name', $_[1]) }
+                if (/$subroutine_decl([^}]+)\s*}\s*$/) {
+                    my $statement = $1;
+                    if ($statement !~ /\$[a-zA-Z]/ && $statement !~ /\@_/ && $statement =~ /.*\$_\[(\d+)\]/) {
+                        $add->($fun, ' { my ('.join(', ', map { '$_DUMMY'.$_ } 0..$1).') = @_ }');
+                    }
+                }
+
                 #- methods with no argument
                 #-   my $values = shift->_get_size_request;
-                if (/shift->\w+\s*;/) {
+                if (/$subroutine_decl\shift->\w+\s*;/) {
                     $add->($fun, ' { my ($_self) = @_ }');
                 }
 
