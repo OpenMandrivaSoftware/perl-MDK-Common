@@ -187,10 +187,6 @@ val generate_pot : string -> unit
 val call_raw :
   bool -> Types.fromparser * Types.fromparser list -> Types.fromparser
 val call : Types.fromparser * Types.fromparser list -> Types.fromparser
-val call_func :
-  Types.fromparser Types.any_spaces_pos ->
-  Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
-  Types.fromparser
 val check_return :
   Types.fromparser Types.any_spaces_pos ->
   Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos -> unit
@@ -204,9 +200,14 @@ val call_with_paren :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
 val call_and_context :
   Types.fromparser * Types.fromparser list ->
+  bool ->
   Types.priority ->
   'a Types.any_spaces_pos ->
   'b Types.any_spaces_pos ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
+val call_func :
+  Types.fromparser Types.any_spaces_pos ->
+  Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
 val call_one_scalar_para :
   string Types.any_spaces_pos ->

@@ -742,7 +742,7 @@ msgstr \"\"
   ) pot_strings ;      
   close_out fd
 
-let call_raw is_a_func (e, para) =
+let call_raw force_non_builtin_func (e, para) =
   match e with
   | Deref(I_func, Ident(None, f, _)) ->
       let para' = match f with
@@ -776,7 +776,7 @@ let call_raw is_a_func (e, para) =
 	  | [ Ident(None, s, pos) ] -> Some [ Raw_string(s, pos) ]
 	  | _ -> None)
 
-      | "last" | "next" | "redo" when not is_a_func ->
+      | "last" | "next" | "redo" when not force_non_builtin_func ->
 	  (match para with
 	  | [ Ident(None, s, pos) ] -> Some [ Raw_string(s, pos) ]
 	  | _ -> die_rule (sprintf "%s must be used with a raw string" f))
@@ -823,18 +823,13 @@ let call_raw is_a_func (e, para) =
 
 let call(e, para) = call_raw false (e, para)
 
-let call_func esp_func esp_para = call_raw true (esp_func.any, esp_para.any.expr)
-
 let check_return esp_func esp_para =
   match esp_func.any with
   | Ident(None, "return", _) -> 
       prio_lo_check P_call_no_paren esp_para.any.priority esp_para.pos (List esp_para.any.expr)
   | _ -> ()
 
-let call_no_paren   esp_func esp_para = check_return esp_func esp_para; new_pesp M_unknown P_call_no_paren (call(Deref(I_func, esp_func.any), esp_para.any.expr)) esp_func esp_para
-let call_with_paren esp_func esp_para = check_return esp_func esp_para; new_pesp M_unknown P_tok           (call(Deref(I_func, esp_func.any), esp_para.any.expr)) esp_func esp_para
-
-let call_and_context(e, para) priority esp_start esp_end =
+let call_and_context(e, para) force_non_builtin_func priority esp_start esp_end =
   let context = 
     match e with
     | Deref(I_func, Ident(None, f, _)) ->
@@ -847,7 +842,13 @@ let call_and_context(e, para) priority esp_start esp_end =
 	| _ -> M_unknown)
     | _ -> M_unknown
   in
-  new_pesp context priority (call(e, para)) esp_start esp_end
+  new_pesp context priority (call_raw force_non_builtin_func (e, para)) esp_start esp_end
+
+let call_no_paren   esp_func esp_para = check_return esp_func esp_para; call_and_context(Deref(I_func, esp_func.any), esp_para.any.expr) false P_call_no_paren esp_func esp_para
+let call_with_paren esp_func esp_para = check_return esp_func esp_para; call_and_context (Deref(I_func, esp_func.any), esp_para.any.expr) false P_tok esp_func esp_para
+
+let call_func esp_func esp_para = 
+  call_and_context(esp_func.any, esp_para.any.expr) true P_tok esp_func esp_para
 
 let call_one_scalar_para { any = e ; pos = pos } para esp_start esp_end =
   let para =
