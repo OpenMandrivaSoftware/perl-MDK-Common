@@ -4,12 +4,13 @@ use Glib;
 package Gtk2;
 our @ISA = qw();
 sub check_version { my ($_class, $_required_major, $_required_minor, $_required_micro) = @_ }
+sub croak_execeptions { my ($_class) = @_ }
 sub disable_setlocale { my ($_class) = @_ }
 sub events_pending { my ($_class) = @_ }
+sub exit { my ($_error_code) = @_ }
 sub get_current_event { my ($_class) = @_ }
 sub get_current_event_state { my ($_class) = @_ }
 sub get_current_event_time { my ($_class) = @_ }
-sub get_default_language { my ($_class) = @_ }
 sub get_event_widget { my ($_class, $_event) = @_ }
 sub get_version_info { my ($_class) = @_ }
 sub grab_add { my ($_class, $_widget) = @_ }
@@ -22,7 +23,6 @@ sub key_snooper_install { my ($_class, $_snooper, $_o_func_data) = @_ }
 sub key_snooper_remove { my ($_class, $_snooper_handler_id) = @_ }
 sub main { my ($_class) = @_ }
 sub main_iteration { my ($_class) = @_ }
-sub main_iteration_do { my ($_class, $_blocking) = @_ }
 sub main_level { my ($_class) = @_ }
 sub main_quit { my ($_class) = @_ }
 sub quit_add { my ($_class, $_main_level, $_function, $_o_data) = @_ }
@@ -36,14 +36,11 @@ sub connect { my ($_accel_group, $_accel_key, $_accel_mods, $_accel_flags, $_fun
 sub connect_by_path { my ($_accel_group, $_accel_path, $_func) = @_ }
 sub disconnect { my ($_accel_group, $_func) = @_ }
 sub disconnect_key { my ($_accel_group, $_accel_key, $_accel_mods) = @_ }
+sub gtk_accel_groups_activate { my ($_object, $_accel_key, $_accel_mods) = @_ }
+sub gtk_accel_groups_from_object { my ($_object) = @_ }
 sub lock { my ($_accel_group) = @_ }
 sub new { my ($_class) = @_ }
 sub unlock { my ($_accel_group) = @_ }
-
-package Gtk2::AccelGroups;
-our @ISA = qw();
-sub activate { my ($_class, $_object, $_accel_key, $_accel_mods) = @_ }
-sub from_object { my ($_class, $_object) = @_ }
 
 package Gtk2::AccelLabel;
 our @ISA = qw();
@@ -53,26 +50,13 @@ sub new { my ($_class, $_string) = @_ }
 sub refetch { my ($_accel_label) = @_ }
 sub set_accel_widget { my ($_accel_label, $_accel_widget) = @_ }
 
-package Gtk2::AccelMap;
-our @ISA = qw();
-sub add_entry { my ($_class, $_accel_path, $_accel_key, $_accel_mods) = @_ }
-sub add_filter { my ($_class, $_filter_pattern) = @_ }
-sub change_entry { my ($_class, $_accel_path, $_accel_key, $_accel_mods, $_replace) = @_ }
-sub Gtk2::AccelMap::foreach { my ($_class, $_data, $_foreach_func) = @_ }
-sub foreach_unfiltered { my ($_class, $_data, $_foreach_func) = @_ }
-sub load { my ($_class, $_file_name) = @_ }
-sub load_fd { my ($_class, $_fd) = @_ }
-sub lookup_entry { my ($_class, $_accel_path) = @_ }
-sub save { my ($_class, $_file_name) = @_ }
-sub save_fd { my ($_class, $_fd) = @_ }
-
 package Gtk2::Accelerator;
 our @ISA = qw();
 sub get_default_mod_mask { my ($_class) = @_ }
 sub name { my ($_class, $_accelerator_key, $_accelerator_mods) = @_ }
 sub parse { my ($_class, $_accelerator) = @_ }
 sub set_default_mod_mask { my ($_class, $_default_mod_mask) = @_ }
-sub valid { my ($_class, $_keyval, $_modifiers) = @_ }
+sub valid { my ($_keyval, $_modifiers) = @_ }
 
 package Gtk2::Adjustment;
 our @ISA = qw();
@@ -140,6 +124,7 @@ sub new { my ($_class, $_o_label) = @_ }
 sub new_from_stock { my ($_class, $_stock_id) = @_ }
 sub new_with_label { my ($_class, $_o_label) = @_ }
 sub new_with_mnemonic { my ($_class, $_o_label) = @_ }
+sub news { my ($_class, $_o_label) = @_ }
 sub pressed { my ($_button) = @_ }
 sub released { my ($_button) = @_ }
 sub set_label { my ($_button, $_label) = @_ }
@@ -161,6 +146,7 @@ sub freeze { my ($_calendar) = @_ }
 sub get_date { my ($_calendar) = @_ }
 sub mark_day { my ($_calendar, $_day) = @_ }
 sub marked_date { my ($_cal) = @_ }
+sub members { my ($_cal) = @_ }
 sub month { my ($_cal) = @_ }
 sub new { my ($_class) = @_ }
 sub num_marked_dates { my ($_cal) = @_ }
@@ -181,6 +167,7 @@ package Gtk2::CellRenderer;
 our @ISA = qw();
 sub _install_overrides { my ($_package) = @_ }
 sub activate { my ($_cell, $_event, $_widget, $_path, $_background_area, $_cell_area, $_flags) = @_ }
+sub call_parent { my ($_cell, @_more_paras) = @_ }
 sub get_fixed_size { my ($_cell) = @_ }
 sub get_size { my ($_cell, $_widget) = @_ }
 sub parent_activate { my ($_cell, @_more_paras) = @_ }
@@ -213,6 +200,7 @@ our @ISA = qw();
 sub new { my ($_class, $_o_label) = @_ }
 sub new_with_label { my ($_class, $_o_label) = @_ }
 sub new_with_mnemonic { my ($_class, $_o_label) = @_ }
+sub news { my ($_class, $_o_label) = @_ }
 
 package Gtk2::CheckMenuItem;
 our @ISA = qw();
@@ -221,6 +209,7 @@ sub get_inconsistent { my ($_check_menu_item) = @_ }
 sub new { my ($_class, $_o_label) = @_ }
 sub new_with_label { my ($_class, $_o_label) = @_ }
 sub new_with_mnemonic { my ($_class, $_o_label) = @_ }
+sub news { my ($_class, $_o_label) = @_ }
 sub set_active { my ($_check_menu_item, $_is_active) = @_ }
 sub set_inconsistent { my ($_check_menu_item, $_setting) = @_ }
 sub set_show_toggle { my ($_menu_item, $_always) = @_ }
@@ -263,17 +252,15 @@ sub set_previous_color { my ($_colorsel, $_color) = @_ }
 
 package Gtk2::ColorSelectionDialog;
 our @ISA = qw();
-sub cancel_button { my ($_dialog) = @_ }
 sub colorsel { my ($_dialog) = @_ }
-sub help_button { my ($_dialog) = @_ }
 sub new { my ($_class, $_title) = @_ }
-sub ok_button { my ($_dialog) = @_ }
 
 package Gtk2::Combo;
 our @ISA = qw();
 sub disable_activate { my ($_combo) = @_ }
 sub entry { my ($_combo) = @_ }
 sub list { my ($_combo) = @_ }
+sub members { my ($_combo) = @_ }
 sub new { my ($_class) = @_ }
 sub set_case_sensitive { my ($_combo, $_val) = @_ }
 sub set_item_string { my ($_combo, $_item, $_item_value) = @_ }
@@ -285,12 +272,7 @@ sub set_value_in_list { my ($_combo, $_val, $_ok_if_empty) = @_ }
 package Gtk2::Container;
 our @ISA = qw();
 sub add { my ($_container, $_widget) = @_ }
-sub add_with_properties { my ($_container, $_widget, @_more_paras) = @_ }
 sub check_resize { my ($_container) = @_ }
-sub child_get { my ($_container, $_child, @_more_paras) = @_ }
-sub child_get_property { my ($_container, $_child, @_more_paras) = @_ }
-sub child_set { my ($_container, $_child, @_more_paras) = @_ }
-sub child_set_property { my ($_container, $_child, @_more_paras) = @_ }
 sub child_type { my ($_container) = @_ }
 sub Gtk2::Container::foreach { my ($_container, $_callback, $_o_callback_data) = @_ }
 sub get_border_width { my ($_container) = @_ }
@@ -299,7 +281,6 @@ sub get_focus_chain { my ($_container) = @_ }
 sub get_focus_hadjustment { my ($_container) = @_ }
 sub get_focus_vadjustment { my ($_container) = @_ }
 sub get_resize_mode { my ($_container) = @_ }
-sub propagate_expose { my ($_container, $_child, $_event) = @_ }
 sub remove { my ($_container, $_widget) = @_ }
 sub resize_children { my ($_container) = @_ }
 sub set_border_width { my ($_container, $_border_width) = @_ }
@@ -336,6 +317,7 @@ sub set_default_response { my ($_dialog, $_response_id) = @_ }
 sub set_has_separator { my ($_dialog, $_setting) = @_ }
 sub set_response_sensitive { my ($_dialog, $_response_id, $_setting) = @_ }
 sub vbox { my ($_dialog) = @_ }
+sub widgets { my ($_dialog) = @_ }
 
 package Gtk2::Drag;
 our @ISA = qw();
@@ -394,26 +376,17 @@ sub new { my ($_class) = @_ }
 
 package Gtk2::FileSelection;
 our @ISA = qw();
-sub action_area { my ($_fs) = @_ }
-sub button_area { my ($_fs) = @_ }
 sub cancel_button { my ($_fs) = @_ }
 sub complete { my ($_filesel, $_pattern) = @_ }
 sub dir_list { my ($_fs) = @_ }
 sub file_list { my ($_fs) = @_ }
-sub fileop_c_dir { my ($_fs) = @_ }
-sub fileop_del_file { my ($_fs) = @_ }
-sub fileop_dialog { my ($_fs) = @_ }
-sub fileop_entry { my ($_fs) = @_ }
-sub fileop_file { my ($_fs) = @_ }
-sub fileop_ren_file { my ($_fs) = @_ }
 sub get_filename { my ($_filesel) = @_ }
 sub get_select_multiple { my ($_filesel) = @_ }
 sub get_selections { my ($_filesel) = @_ }
 sub help_button { my ($_fs) = @_ }
 sub hide_fileop_buttons { my ($_filesel) = @_ }
-sub history_menu { my ($_fs) = @_ }
-sub history_pulldown { my ($_fs) = @_ }
 sub main_vbox { my ($_fs) = @_ }
+sub member_widget { my ($_fs) = @_ }
 sub new { my ($_class, $_title) = @_ }
 sub ok_button { my ($_fs) = @_ }
 sub selection_entry { my ($_fs) = @_ }
@@ -446,6 +419,7 @@ sub cancel_button { my ($_fsd) = @_ }
 sub get_font { my ($_fsd) = @_ }
 sub get_font_name { my ($_fsd) = @_ }
 sub get_preview_text { my ($_fsd) = @_ }
+sub members_get { my ($_fsd) = @_ }
 sub new { my ($_class, $_title) = @_ }
 sub ok_button { my ($_fsd) = @_ }
 sub set_font_name { my ($_fsd, $_fontname) = @_ }
@@ -458,7 +432,7 @@ sub get_label_align { my ($_frame) = @_ }
 sub get_label_widget { my ($_frame) = @_ }
 sub get_shadow_type { my ($_frame) = @_ }
 sub new { my ($_class, $_o_label) = @_ }
-sub set_label { my ($_frame, $_o_label) = @_ }
+sub set_label { my ($_frame, $_label) = @_ }
 sub set_label_align { my ($_frame, $_xalign, $_yalign) = @_ }
 sub set_label_widget { my ($_frame, $_label_widget) = @_ }
 sub set_shadow_type { my ($_frame, $_type) = @_ }
@@ -501,10 +475,12 @@ sub notify_startup_complete { my ($_class) = @_ }
 sub pointer_grab { my ($_class, $_window, $_owner_events, $_event_mask, $_confine_to, $_cursor, $_time_) = @_ }
 sub pointer_is_grabbed { my ($_class) = @_ }
 sub pointer_ungrab { my ($_class, $_time_) = @_ }
+sub predefs { my ($_class) = @_ }
 sub screen_height { my ($_class) = @_ }
 sub screen_height_mm { my ($_class) = @_ }
 sub screen_width { my ($_class) = @_ }
 sub screen_width_mm { my ($_class) = @_ }
+sub screendims { my ($_class) = @_ }
 sub set_locale { my ($_class) = @_ }
 sub set_program_class { my ($_class, $_program_class) = @_ }
 sub set_show_events { my ($_class, $_show_events) = @_ }
@@ -538,10 +514,8 @@ our @ISA = qw();
 sub alloc_color { my ($_colormap, $_color, $_writeable, $_best_match) = @_ }
 sub alloc_colors { my ($_colormap, $_writeable, $_best_match, @_more_paras) = @_ }
 sub free_colors { my ($_colormap, @_more_paras) = @_ }
-sub get_screen { my ($_cmap) = @_ }
 sub get_system { my ($_class) = @_ }
-sub get_visual { my ($_colormap) = @_ }
-sub new { my ($_class, $_visual, $_allocate) = @_ }
+sub new { my ($_visual, $_allocate) = @_ }
 sub query_color { my ($_colormap, $_pixel) = @_ }
 sub rgb_find_color { my ($_colormap, $_color) = @_ }
 
@@ -602,6 +576,7 @@ sub get_protocol_for_display { my ($_class, $_display, $_xid) = @_ }
 sub get_selection { my ($_context) = @_ }
 sub get_source_widget { my ($_context) = @_ }
 sub is_source { my ($_dc) = @_ }
+sub members { my ($_dc) = @_ }
 sub motion { my ($_context, $_dest_window, $_protocol, $_x_root, $_y_root, $_suggested_action, $_possible_actions, $_time_) = @_ }
 sub new { my ($_class) = @_ }
 sub protocol { my ($_dc) = @_ }
@@ -619,6 +594,7 @@ sub targets { my ($_dc) = @_ }
 package Gtk2::Gdk::Drawable;
 our @ISA = qw();
 sub XID { my ($_drawable) = @_ }
+sub XSetInputFocus { my ($_drawable) = @_ }
 sub XWINDOW { my ($_drawable) = @_ }
 sub draw_arc { my ($_drawable, $_gc, $_filled, $_x, $_y, $_width, $_height, $_angle1, $_angle2) = @_ }
 sub draw_drawable { my ($_drawable, $_gc, $_src, $_xsrc, $_ysrc, $_xdest, $_ydest, $_width, $_height) = @_ }
@@ -689,6 +665,7 @@ sub DESTROY { my ($_sv) = @_ }
 package Gtk2::Gdk::Event::Configure;
 our @ISA = qw();
 sub DESTROY { my ($_sv) = @_ }
+sub dim { my ($_eventconfigure) = @_ }
 sub height { my ($_eventconfigure) = @_ }
 sub width { my ($_eventconfigure) = @_ }
 
@@ -709,7 +686,6 @@ our @ISA = qw();
 sub DESTROY { my ($_sv) = @_ }
 sub area { my ($_eventexpose) = @_ }
 sub count { my ($_eventexpose) = @_ }
-sub region { my ($_eventexpose) = @_ }
 
 package Gtk2::Gdk::Event::Focus;
 our @ISA = qw();
@@ -783,7 +759,6 @@ sub set_background { my ($_gc, $_color) = @_ }
 sub set_clip_mask { my ($_gc, $_mask) = @_ }
 sub set_clip_origin { my ($_gc, $_x, $_y) = @_ }
 sub set_clip_rectangle { my ($_gc, $_rectangle) = @_ }
-sub set_clip_region { my ($_gc, $_region) = @_ }
 sub set_colormap { my ($_gc, $_colormap) = @_ }
 sub set_dashes { my ($_gc, $_dash_offset, @_more_paras) = @_ }
 sub set_exposures { my ($_gc, $_exposures) = @_ }
@@ -803,20 +778,19 @@ sub set_ts_origin { my ($_gc, $_x, $_y) = @_ }
 
 package Gtk2::Gdk::Geometry;
 our @ISA = qw();
-sub base_height { my ($_object, $_o_newvalue) = @_ }
-sub base_width { my ($_object, $_o_newvalue) = @_ }
-sub constrain_size { my ($_geometry_ref, @_more_paras) = @_ }
-sub gravity { my ($_object, $_o_newvalue) = @_ }
-sub height_inc { my ($_object, $_o_newvalue) = @_ }
-sub max_aspect { my ($_object, $_o_newvalue) = @_ }
-sub max_height { my ($_object, $_o_newvalue) = @_ }
-sub max_width { my ($_object, $_o_newvalue) = @_ }
-sub min_aspect { my ($_object, $_o_newvalue) = @_ }
-sub min_height { my ($_object, $_o_newvalue) = @_ }
-sub min_width { my ($_object, $_o_newvalue) = @_ }
+sub base_height { my ($_geometry, $_o_newvalue) = @_ }
+sub base_width { my ($_geometry, $_o_newvalue) = @_ }
+sub constrain_size { my ($_geometry, $_flags, $_width, $_height) = @_ }
+sub gravity { my ($_geometry, $_o_newvalue) = @_ }
+sub height_inc { my ($_geometry, $_o_newvalue) = @_ }
+sub max_aspect { my ($_geometry, $_o_newvalue) = @_ }
+sub max_height { my ($_geometry, $_o_newvalue) = @_ }
+sub max_width { my ($_geometry, $_o_newvalue) = @_ }
+sub min_aspect { my ($_geometry, $_o_newvalue) = @_ }
+sub min_height { my ($_geometry, $_o_newvalue) = @_ }
+sub min_width { my ($_geometry, $_o_newvalue) = @_ }
 sub new { my ($_class) = @_ }
-sub width_inc { my ($_object, $_o_newvalue) = @_ }
-sub win_gravity { my ($_object, $_o_newvalue) = @_ }
+sub width_inc { my ($_geometry, $_o_newvalue) = @_ }
 
 package Gtk2::Gdk::Keymap;
 our @ISA = qw();
@@ -919,26 +893,6 @@ sub width { my ($_rectangle, $_o_newvalue) = @_ }
 sub Gtk2::Gdk::Rectangle::x { my ($_rectangle, $_o_newvalue) = @_ }
 sub Gtk2::Gdk::Rectangle::y { my ($_rectangle, $_o_newvalue) = @_ }
 
-package Gtk2::Gdk::Region;
-our @ISA = qw();
-sub empty { my ($_region) = @_ }
-sub equal { my ($_region1, $_region2) = @_ }
-sub get_clipbox { my ($_region) = @_ }
-sub get_rectangles { my ($_region) = @_ }
-sub intersect { my ($_source1, $_source2) = @_ }
-sub new { my ($_class) = @_ }
-sub offset { my ($_region, $_dx, $_dy) = @_ }
-sub point_in { my ($_region, $_x, $_y) = @_ }
-sub polygon { my ($_class, $_points_ref, $_fill_rule) = @_ }
-sub rect_in { my ($_region, $_rect) = @_ }
-sub rectangle { my ($_class, $_rectangle) = @_ }
-sub shrink { my ($_region, $_dx, $_dy) = @_ }
-sub spans_intersect_foreach { my ($_region, $_spans_ref, $_sorted, $_func, $_o_data) = @_ }
-sub subtract { my ($_source1, $_source2) = @_ }
-sub union { my ($_source1, $_source2) = @_ }
-sub union_with_rect { my ($_region, $_rect) = @_ }
-sub Gtk2::Gdk::Region::xor { my ($_source1, $_source2) = @_ }
-
 package Gtk2::Gdk::Rgb;
 our @ISA = qw();
 sub ditherable { my ($_class) = @_ }
@@ -994,7 +948,6 @@ our @ISA = qw();
 sub at_pointer { my ($_class) = @_ }
 sub begin_move_drag { my ($_window, $_button, $_root_x, $_root_y, $_timestamp) = @_ }
 sub begin_paint_rect { my ($_window, $_rectangle) = @_ }
-sub begin_paint_region { my ($_window, $_region) = @_ }
 sub begin_resize_drag { my ($_window, $_edge, $_button, $_root_x, $_root_y, $_timestamp) = @_ }
 sub clear { my ($_window) = @_ }
 sub clear_area { my ($_window, $_x, $_y, $_width, $_height) = @_ }
@@ -1008,39 +961,26 @@ sub foreign_new_for_display { my ($_class, $_display, $_anid) = @_ }
 sub freeze_updates { my ($_window) = @_ }
 sub fullscreen { my ($_window) = @_ }
 sub gdk_set_sm_client_id { my ($_sm_client_id) = @_ }
-sub get_children { my ($_window) = @_ }
-sub get_decorations { my ($_window) = @_ }
 sub get_events { my ($_window) = @_ }
-sub get_frame_extents { my ($_window) = @_ }
 sub get_geometry { my ($_window) = @_ }
-sub get_internal_paint_info { my ($_window) = @_ }
 sub get_origin { my ($_window) = @_ }
-sub get_parent { my ($_window) = @_ }
 sub get_pointer { my ($_window) = @_ }
 sub get_position { my ($_window) = @_ }
 sub get_root_origin { my ($_window) = @_ }
 sub get_state { my ($_window) = @_ }
 sub get_toplevel { my ($_window) = @_ }
-sub get_toplevels { my ($_class) = @_ }
-sub get_update_area { my ($_window) = @_ }
 sub get_user_data { my ($_window) = @_ }
 sub get_window_type { my ($_window) = @_ }
 sub hide { my ($_window) = @_ }
 sub iconify { my ($_window) = @_ }
-sub invalidate_maybe_recurse { my ($_window, $_region, $_func, $_o_data) = @_ }
 sub invalidate_rect { my ($_window, $_rectangle, $_invalidate_children) = @_ }
-sub invalidate_region { my ($_window, $_region, $_invalidate_children) = @_ }
 sub is_viewable { my ($_window) = @_ }
-sub is_visible { my ($_window) = @_ }
 sub lookup { my ($_class, $_anid) = @_ }
 sub lookup_for_display { my ($_class, $_display, $_anid) = @_ }
 sub lower { my ($_window) = @_ }
 sub maximize { my ($_window) = @_ }
-sub merge_child_shapes { my ($_window) = @_ }
 sub move { my ($_window, $_x, $_y) = @_ }
 sub move_resize { my ($_window, $_x, $_y, $_width, $_height) = @_ }
-sub new { my ($_class, $_parent, $_attributes_ref) = @_ }
-sub peek_children { my ($_window) = @_ }
 sub process_all_updates { my ($_class_or_instance) = @_ }
 sub process_updates { my ($_window, $_update_children) = @_ }
 sub property_change { my ($_window, $_property, $_type, $_format, $_mode, $_data, $_nelements) = @_ }
@@ -1053,29 +993,23 @@ sub resize { my ($_window, $_width, $_height) = @_ }
 sub scroll { my ($_window, $_dx, $_dy) = @_ }
 sub set_back_pixmap { my ($_window, $_pixmap, $_o_parent_relative) = @_ }
 sub set_background { my ($_window, $_color) = @_ }
-sub set_child_shapes { my ($_window) = @_ }
 sub set_cursor { my ($_window, $_cursor) = @_ }
 sub set_debug_updates { my ($_class_or_instance, $_enable) = @_ }
 sub set_decorations { my ($_window, $_decorations) = @_ }
 sub set_events { my ($_window, $_event_mask) = @_ }
 sub set_functions { my ($_window, $_functions) = @_ }
-sub set_geometry_hints { my ($_window, $_geometry_ref, $_o_geom_mask_sv) = @_ }
+sub set_geometry_hints { my ($_window, $_geometry, $_geom_mask) = @_ }
 sub set_group { my ($_window, $_leader) = @_ }
-sub set_icon { my ($_window, $_icon_window, $_pixmap, $_mask) = @_ }
-sub set_icon_list { my ($_window, @_more_paras) = @_ }
 sub set_icon_name { my ($_window, $_name) = @_ }
 sub set_modal_hint { my ($_window, $_modal) = @_ }
 sub set_override_redirect { my ($_window, $_override_redirect) = @_ }
 sub set_role { my ($_window, $_role) = @_ }
 sub set_skip_pager_hint { my ($_window, $_skips_pager) = @_ }
 sub set_skip_taskbar_hint { my ($_window, $_skips_taskbar) = @_ }
-sub set_static_gravities { my ($_window, $_use_static) = @_ }
 sub set_title { my ($_window, $_title) = @_ }
 sub set_transient_for { my ($_window, $_parent) = @_ }
 sub set_type_hint { my ($_window, $_hint) = @_ }
-sub set_user_data { my ($_window, $_user_data) = @_ }
 sub shape_combine_mask { my ($_window, $_mask, $_x, $_y) = @_ }
-sub shape_combine_region { my ($_window, $_shape_region, $_offset_x, $_offset_y) = @_ }
 sub show { my ($_window) = @_ }
 sub show_unraised { my ($_window) = @_ }
 sub stick { my ($_window) = @_ }
@@ -1124,7 +1058,6 @@ sub new { my ($_class) = @_ }
 
 package Gtk2::HandleBox;
 our @ISA = qw();
-sub get_child_detached { my ($_handle_box) = @_ }
 sub get_handle_position { my ($_handle_box) = @_ }
 sub get_shadow_type { my ($_handle_box) = @_ }
 sub get_snap_edge { my ($_handle_box) = @_ }
@@ -1140,7 +1073,6 @@ sub add_default { my ($_factory) = @_ }
 sub lookup { my ($_factory, $_stock_id) = @_ }
 sub lookup_default { my ($_class, $_stock_id) = @_ }
 sub new { my ($_class) = @_ }
-sub remove_default { my ($_factory) = @_ }
 
 package Gtk2::IconSet;
 our @ISA = qw();
@@ -1148,7 +1080,7 @@ sub add_source { my ($_icon_set, $_source) = @_ }
 sub get_sizes { my ($_icon_set) = @_ }
 sub new { my ($_class) = @_ }
 sub new_from_pixbuf { my ($_class, $_pixbuf) = @_ }
-sub render_icon { my ($_icon_set, $_style, $_direction, $_state, $_size, $_widget, $_o_detail) = @_ }
+sub render_icon { my ($_icon_set, $_style, $_direction, $_state, $_size, $_widget, $_detail) = @_ }
 
 package Gtk2::IconSize;
 our @ISA = qw();
@@ -1207,9 +1139,10 @@ package Gtk2::ImageMenuItem;
 our @ISA = qw();
 sub get_image { my ($_image_menu_item) = @_ }
 sub new { my ($_class, $_o_label) = @_ }
-sub new_from_stock { my ($_class, $_stock_id, $_o_accel_group) = @_ }
+sub new_from_stock { my ($_class, $_stock_id, $_accel_group) = @_ }
 sub new_with_label { my ($_class, $_o_label) = @_ }
 sub new_with_mnemonic { my ($_class, $_o_label) = @_ }
+sub news { my ($_class, $_o_label) = @_ }
 sub set_image { my ($_image_menu_item, $_image) = @_ }
 
 package Gtk2::InputDialog;
@@ -1220,7 +1153,7 @@ package Gtk2::Invisible;
 our @ISA = qw();
 sub get_screen { my ($_invisible) = @_ }
 sub new { my ($_class) = @_ }
-sub new_for_screen { my ($_class, $_screen) = @_ }
+sub new_for_screen { my ($_screen) = @_ }
 sub set_screen { my ($_invisible, $_screen) = @_ }
 
 package Gtk2::Item;
@@ -1231,10 +1164,7 @@ sub toggle { my ($_item) = @_ }
 
 package Gtk2::ItemFactory;
 our @ISA = qw();
-sub create_item { my ($_ifactory, $_entry_ref, $_o_callback_data) = @_ }
-sub create_items { my ($_ifactory, $_callback_data, @_more_paras) = @_ }
-sub delete_entries { my ($_ifactory, @_more_paras) = @_ }
-sub delete_entry { my ($_ifactory, $_entry_ref) = @_ }
+sub _create_item { my ($_ifactory, $_path, $_accelerator, $_callback_action, $_item_type, $_extra_data, $_clean_path, $_callback_sv, $_callback_data) = @_ }
 sub delete_item { my ($_ifactory, $_path) = @_ }
 sub from_widget { my ($_class, $_widget) = @_ }
 sub get_item { my ($_ifactory, $_path) = @_ }
@@ -1244,9 +1174,6 @@ sub get_widget_by_action { my ($_ifactory, $_action) = @_ }
 sub new { my ($_class, $_container_type_package, $_path, $_o_accel_group) = @_ }
 sub path_from_widget { my ($_class, $_widget) = @_ }
 sub popup { my ($_ifactory, $_x, $_y, $_mouse_button, $_time_, $_o_popup_data) = @_ }
-sub popup_data { my ($_ifactory) = @_ }
-sub popup_data_from_widget { my ($_class, $_widget) = @_ }
-sub set_translate_func { my ($_ifactory, $_func, $_o_data) = @_ }
 
 package Gtk2::Label;
 our @ISA = qw();
@@ -1287,7 +1214,7 @@ sub get_hadjustment { my ($_layout) = @_ }
 sub get_size { my ($_layout) = @_ }
 sub get_vadjustment { my ($_layout) = @_ }
 sub move { my ($_layout, $_child_widget, $_x, $_y) = @_ }
-sub new { my ($_class, $_o_hadjustment, $_o_vadjustment) = @_ }
+sub new { my ($_class, $_hadjustment, $_vadjustment) = @_ }
 sub put { my ($_layout, $_child_widget, $_x, $_y) = @_ }
 sub set_hadjustment { my ($_layout, $_adjustment) = @_ }
 sub set_size { my ($_layout, $_width, $_height) = @_ }
@@ -1325,7 +1252,6 @@ package Gtk2::ListItem;
 our @ISA = qw();
 sub deselect { my ($_list_item) = @_ }
 sub new { my ($_class, $_o_label) = @_ }
-sub new_with_label { my ($_class, $_o_label) = @_ }
 sub select { my ($_list_item) = @_ }
 
 package Gtk2::ListStore;
@@ -1344,12 +1270,10 @@ sub remove { my ($_list_store, $_iter) = @_ }
 sub reorder { my ($_store, @_more_paras) = @_ }
 sub set { my ($_list_store, $_iter, $_col1, $_val1, @_more_paras) = @_ }
 sub set_column_types { my ($_list_store, @_more_paras) = @_ }
-sub set_value { my ($_list_store, $_iter, $_col1, $_val1, @_more_paras) = @_ }
 sub swap { my ($_store, $_a, $_b) = @_ }
 
 package Gtk2::Menu;
 our @ISA = qw();
-sub attach_to_widget { my ($_menu, $_attach_widget, $_detacher) = @_ }
 sub detach { my ($_menu) = @_ }
 sub get_accel_group { my ($_menu) = @_ }
 sub get_active { my ($_menu) = @_ }
@@ -1381,9 +1305,9 @@ sub get_submenu { my ($_menu_item) = @_ }
 sub new { my ($_class, $_o_label) = @_ }
 sub new_with_label { my ($_class, $_o_label) = @_ }
 sub new_with_mnemonic { my ($_class, $_o_label) = @_ }
+sub news { my ($_class, $_o_label) = @_ }
 sub remove_submenu { my ($_menu_item) = @_ }
 sub select { my ($_menu_item) = @_ }
-sub set_accel_path { my ($_menu_item, $_accel_path) = @_ }
 sub set_right_justified { my ($_menu_item, $_right_justified) = @_ }
 sub set_submenu { my ($_menu_item, $_submenu) = @_ }
 
@@ -1395,7 +1319,6 @@ sub deactivate { my ($_menu_shell) = @_ }
 sub deselect { my ($_menu_shell) = @_ }
 sub insert { my ($_menu_shell, $_child, $_position) = @_ }
 sub prepend { my ($_menu_shell, $_child) = @_ }
-sub select_first { my ($_menu_shell, $_search_sensitive) = @_ }
 sub select_item { my ($_menu_shell, $_menu_item) = @_ }
 
 package Gtk2::MessageDialog;
@@ -1470,13 +1393,14 @@ our @ISA = qw();
 sub add1 { my ($_paned, $_child) = @_ }
 sub add2 { my ($_paned, $_child) = @_ }
 sub child1 { my ($_paned) = @_ }
-sub child1_resize { my ($_paned, $_o_newval) = @_ }
-sub child1_shrink { my ($_paned, $_o_newval) = @_ }
+sub child1_resize { my ($_paned) = @_ }
+sub child1_shrink { my ($_paned) = @_ }
 sub child2 { my ($_paned) = @_ }
-sub child2_resize { my ($_paned, $_o_newval) = @_ }
-sub child2_shrink { my ($_paned, $_o_newval) = @_ }
+sub child2_resize { my ($_paned) = @_ }
+sub child2_shrink { my ($_paned) = @_ }
 sub compute_position { my ($_paned, $_allocation, $_child1_req, $_child2_req) = @_ }
 sub get_position { my ($_paned) = @_ }
+sub member { my ($_paned) = @_ }
 sub pack1 { my ($_paned, $_child, $_resize, $_shrink) = @_ }
 sub pack2 { my ($_paned, $_child, $_resize, $_shrink) = @_ }
 sub set_position { my ($_paned, $_position) = @_ }
@@ -1484,6 +1408,7 @@ sub set_position { my ($_paned, $_position) = @_ }
 package Gtk2::Pango;
 our @ISA = qw();
 sub PANGO_PIXELS { my ($_class, $_d) = @_ }
+sub constant { my ($_class) = @_ }
 sub pixels { my ($_class, $_d) = @_ }
 sub scale { my ($_class) = @_ }
 sub scale_large { my ($_class) = @_ }
@@ -1563,6 +1488,8 @@ sub get_tabs { my ($_layout) = @_ }
 sub get_text { my ($_layout) = @_ }
 sub get_width { my ($_layout) = @_ }
 sub get_wrap { my ($_layout) = @_ }
+sub int_getters { my ($_layout) = @_ }
+sub int_setters { my ($_layout, $_newval) = @_ }
 sub move_cursor_visually { my ($_layout, $_strong, $_old_index, $_old_trailing, $_direction) = @_ }
 sub new { my ($_class, $_context) = @_ }
 sub set_alignment { my ($_layout, $_alignment) = @_ }
@@ -1629,6 +1556,7 @@ sub get_group { my ($_radio_menu_item) = @_ }
 sub new { my ($_class, $_o_member_or_listref, $_o_label) = @_ }
 sub new_with_label { my ($_class, $_o_member_or_listref, $_o_label) = @_ }
 sub new_with_mnemonic { my ($_class, $_o_member_or_listref, $_o_label) = @_ }
+sub news { my ($_class, $_o_member_or_listref, $_o_label) = @_ }
 sub set_group { my ($_radio_menu_item, $_member_or_listref) = @_ }
 
 package Gtk2::Range;
@@ -1646,34 +1574,39 @@ sub set_value { my ($_range, $_value) = @_ }
 
 package Gtk2::Rc;
 our @ISA = qw();
+sub add_class_style { my ($_rc_style, $_pattern) = @_ }
 sub add_default_file { my ($_class, $_filename) = @_ }
-sub get_default_files { my ($_class) = @_ }
+sub add_widget_class_style { my ($_rc_style, $_pattern) = @_ }
+sub add_widget_name_style { my ($_rc_style, $_pattern) = @_ }
+sub find_module_in_path { my ($_class, $_module_file) = @_ }
 sub get_im_module_file { my ($_class) = @_ }
 sub get_im_module_path { my ($_class) = @_ }
 sub get_module_dir { my ($_class) = @_ }
-sub get_style { my ($_class, $_widget) = @_ }
-sub get_style_by_paths { my ($_settings, $_widget_path, $_class_path, $_package) = @_ }
+sub get_style { my ($_widget) = @_ }
 sub get_theme_dir { my ($_class) = @_ }
 sub parse { my ($_class, $_filename) = @_ }
 sub parse_string { my ($_class, $_rc_string) = @_ }
 sub reparse_all { my ($_class) = @_ }
-sub reparse_all_for_settings { my ($_class, $_settings, $_force_load) = @_ }
+sub reparse_all_for_settings { my ($_settings, $_force_load) = @_ }
 sub set_default_files { my ($_class, @_more_paras) = @_ }
 
 package Gtk2::RcStyle;
 our @ISA = qw();
-sub base { my ($_style, $_state, $_o_new) = @_ }
-sub bg { my ($_style, $_state, $_o_new) = @_ }
-sub bg_pixmap_name { my ($_style, $_state, $_o_new) = @_ }
-sub color_flags { my ($_style, $_state, $_o_new) = @_ }
+sub base { my ($_style, $_state, $_o_newcolor) = @_ }
+sub bg { my ($_style, $_state, $_o_newcolor) = @_ }
+sub bg_pixmap_name { my ($_style, $_state) = @_ }
+sub color_flags { my ($_style, $_state, $_o_newval) = @_ }
+sub colors { my ($_style, $_state, $_o_newcolor) = @_ }
 sub copy { my ($_orig) = @_ }
-sub fg { my ($_style, $_state, $_o_new) = @_ }
-sub font_desc { my ($_style, $_o_new) = @_ }
-sub name { my ($_style, $_o_new) = @_ }
+sub fg { my ($_style, $_state, $_o_newcolor) = @_ }
+sub get_font_desc { my ($_rcstyle) = @_ }
+sub members { my ($_style) = @_ }
+sub name { my ($_style) = @_ }
 sub new { my ($_class) = @_ }
-sub text { my ($_style, $_state, $_o_new) = @_ }
-sub xthickness { my ($_style, $_o_new) = @_ }
-sub ythickness { my ($_style, $_o_new) = @_ }
+sub set_font_desc { my ($_rcstyle, $_fd) = @_ }
+sub text { my ($_style, $_state, $_o_newcolor) = @_ }
+sub xthickness { my ($_style) = @_ }
+sub ythickness { my ($_style) = @_ }
 
 package Gtk2::Requisition;
 our @ISA = qw();
@@ -1728,7 +1661,9 @@ sub get_row_drag_data { my ($_selection_data) = @_ }
 sub get_targets { my ($_selection_data) = @_ }
 sub get_text { my ($_selection_data) = @_ }
 sub gtk_selection_clear { my ($_widget, $_event) = @_ }
+sub gtk_selection_remove_all { my ($_widget) = @_ }
 sub Gtk2::SelectionData::length { my ($_d) = @_ }
+sub members { my ($_d) = @_ }
 sub selection { my ($_d) = @_ }
 sub set { my ($_selection_data, $_type, $_format, $_data) = @_ }
 sub set_row_drag_data { my ($_selection_data, $_tree_model, $_path) = @_ }
@@ -1845,6 +1780,9 @@ sub paint_tab { my ($_style, $_window, $_state_type, $_shadow_type, $_area, $_wi
 sub paint_vline { my ($_style, $_window, $_state_type, $_area, $_widget, $_detail, $_y1_, $_y2_, $_x) = @_ }
 sub render_icon { my ($_style, $_source, $_direction, $_state, $_size, $_widget, $_o_detail) = @_ }
 sub set_background { my ($_style, $_window, $_state_type) = @_ }
+sub state_color { my ($_style, $_state) = @_ }
+sub state_gc { my ($_style, $_state) = @_ }
+sub stateless_member { my ($_style) = @_ }
 sub text { my ($_style, $_state) = @_ }
 sub text_aa { my ($_style, $_state) = @_ }
 sub text_aa_gc { my ($_style, $_state) = @_ }
@@ -2114,6 +2052,7 @@ sub get_mode { my ($_toggle_button) = @_ }
 sub new { my ($_class, $_o_label) = @_ }
 sub new_with_label { my ($_class, $_o_label) = @_ }
 sub new_with_mnemonic { my ($_class, $_o_label) = @_ }
+sub news { my ($_class, $_o_label) = @_ }
 sub set_active { my ($_toggle_button, $_is_active) = @_ }
 sub set_inconsistent { my ($_toggle_button, $_setting) = @_ }
 sub set_mode { my ($_toggle_button, $_draw_indicator) = @_ }
@@ -2190,7 +2129,6 @@ sub row_changed { my ($_tree_model, $_path, $_iter) = @_ }
 sub row_deleted { my ($_tree_model, $_path) = @_ }
 sub row_has_child_toggled { my ($_tree_model, $_path, $_iter) = @_ }
 sub row_inserted { my ($_tree_model, $_path, $_iter) = @_ }
-sub rows_reordered { my ($_tree_model, $_path, $_iter, @_more_paras) = @_ }
 
 package Gtk2::TreeModelSort;
 our @ISA = qw();
@@ -2462,7 +2400,7 @@ sub drag_dest_set_target_list { my ($_widget, $_target_list) = @_ }
 sub drag_dest_unset { my ($_widget) = @_ }
 sub drag_get_data { my ($_widget, $_context, $_target, $_time_) = @_ }
 sub drag_highlight { my ($_widget) = @_ }
-sub drag_source_set { my ($_widget, $_start_button_mask, $_actions, @_more_paras) = @_ }
+sub drag_source_set { my ($_widget, $_start_button_mask, $_actions, $_target1, @_more_paras) = @_ }
 sub drag_source_set_icon { my ($_widget, $_colormap, $_pixmap, $_mask) = @_ }
 sub drag_source_set_icon_pixbuf { my ($_widget, $_pixbuf) = @_ }
 sub drag_source_set_icon_stock { my ($_widget, $_stock_id) = @_ }
@@ -2472,11 +2410,11 @@ sub drawable { my ($_widget, @_more_paras) = @_ }
 sub ensure_style { my ($_widget) = @_ }
 sub event { my ($_widget, $_event) = @_ }
 sub flags { my ($_widget) = @_ }
+sub flags_handler { my ($_widget, @_more_paras) = @_ }
 sub freeze_child_notify { my ($_widget) = @_ }
 sub get_accessible { my ($_widget) = @_ }
 sub get_ancestor { my ($_widget, $_ancestor_package) = @_ }
 sub get_child_requisition { my ($_widget) = @_ }
-sub get_child_visible { my ($_widget) = @_ }
 sub get_clipboard { my ($_widget, $_o_selection) = @_ }
 sub get_colormap { my ($_widget) = @_ }
 sub get_composite_name { my ($_widget) = @_ }
@@ -2529,7 +2467,6 @@ sub parent_sensitive { my ($_widget, @_more_paras) = @_ }
 sub path { my ($_widget) = @_ }
 sub pop_colormap { my ($_class_or_widget) = @_ }
 sub pop_composite_child { my ($_class_or_widget) = @_ }
-sub propagate_event { my ($_widget, $_event) = @_ }
 sub push_colormap { my ($_class_or_widget, $_cmap) = @_ }
 sub push_composite_child { my ($_class_or_widget) = @_ }
 sub queue_draw { my ($_widget) = @_ }
@@ -2548,11 +2485,9 @@ sub selection_add_target { my ($_widget, $_selection, $_target, $_info) = @_ }
 sub selection_add_targets { my ($_widget, $_selection, @_more_paras) = @_ }
 sub selection_clear_targets { my ($_widget, $_selection) = @_ }
 sub selection_convert { my ($_widget, $_selection, $_target, $_time_) = @_ }
-sub selection_remove_all { my ($_widget) = @_ }
 sub sensitive { my ($_widget, @_more_paras) = @_ }
 sub set_accel_path { my ($_widget, $_accel_path, $_accel_group) = @_ }
 sub set_app_paintable { my ($_widget, $_app_paintable) = @_ }
-sub set_child_visible { my ($_widget, $_is_visible) = @_ }
 sub set_colormap { my ($_widget, $_colormap) = @_ }
 sub set_composite_name { my ($_widget, $_name) = @_ }
 sub set_default_colormap { my ($_class_or_widget, $_colormap) = @_ }
@@ -2563,13 +2498,10 @@ sub set_events { my ($_widget, $_events) = @_ }
 sub set_extension_events { my ($_widget, $_mode) = @_ }
 sub set_flags { my ($_widget, $_flags) = @_ }
 sub set_name { my ($_widget, $_name) = @_ }
-sub set_parent { my ($_widget, $_parent) = @_ }
-sub set_parent_window { my ($_widget, $_parent_window) = @_ }
 sub set_redraw_on_allocate { my ($_widget, $_redraw_on_allocate) = @_ }
 sub set_scroll_adjustments { my ($_widget, $_hadjustment, $_vadjustment) = @_ }
 sub set_sensitive { my ($_widget, $_sensitive) = @_ }
 sub set_size_request { my ($_widget, $_o_width, $_o_height) = @_ }
-sub set_state { my ($_widget, $_state) = @_ }
 sub set_style { my ($_widget, $_style) = @_ }
 sub set_uposition { my ($_widget, $_x, $_y) = @_ }
 sub shape_combine_mask { my ($_widget, $_shape_mask, $_offset_x, $_offset_y) = @_ }
@@ -2579,8 +2511,6 @@ sub show_now { my ($_widget) = @_ }
 sub size_request { my ($_widget) = @_ }
 sub state { my ($_widget) = @_ }
 sub style { my ($_widget) = @_ }
-sub style_get { my ($_widget, $_first_property_name, @_more_paras) = @_ }
-sub style_get_property { my ($_widget, $_first_property_name, @_more_paras) = @_ }
 sub thaw_child_notify { my ($_widget) = @_ }
 sub toplevel { my ($_widget, @_more_paras) = @_ }
 sub translate_coordinates { my ($_src_widget, $_dest_widget, $_src_x, $_src_y) = @_ }
@@ -2589,6 +2519,7 @@ sub unparent { my ($_widget) = @_ }
 sub unrealize { my ($_widget) = @_ }
 sub unset_flags { my ($_widget, $_flags) = @_ }
 sub visible { my ($_widget, @_more_paras) = @_ }
+sub void_methods { my ($_widget) = @_ }
 sub window { my ($_widget) = @_ }
 
 package Gtk2::Window;
@@ -2624,6 +2555,9 @@ sub get_skip_taskbar_hint { my ($_window) = @_ }
 sub get_title { my ($_window) = @_ }
 sub get_transient_for { my ($_window) = @_ }
 sub get_type_hint { my ($_window) = @_ }
+sub group_add_window { my ($_window_group, $_window) = @_ }
+sub group_new { my ($_class) = @_ }
+sub group_remove_window { my ($_window_group, $_window) = @_ }
 sub iconify { my ($_window) = @_ }
 sub list_toplevels { my ($_class) = @_ }
 sub maximize { my ($_window) = @_ }
@@ -2637,16 +2571,16 @@ sub remove_embedded_xid { my ($_window, $_xid) = @_ }
 sub remove_mnemonic { my ($_window, $_keyval, $_target) = @_ }
 sub reshow_with_initial_size { my ($_window) = @_ }
 sub resize { my ($_window, $_width, $_height) = @_ }
-sub set_auto_startup_notification { my ($_class, $_setting) = @_ }
+sub set_auto_startup_notification { my ($_setting) = @_ }
 sub set_decorated { my ($_window, $_setting) = @_ }
 sub set_default { my ($_window, $_default_widget) = @_ }
 sub set_default_icon_from_file { my ($_class_or_instance, $_filename) = @_ }
 sub set_default_icon_list { my ($_class, $_pixbuf, @_more_paras) = @_ }
 sub set_default_size { my ($_window, $_width, $_height) = @_ }
 sub set_destroy_with_parent { my ($_window, $_setting) = @_ }
-sub set_focus { my ($_window, $_o_focus) = @_ }
+sub set_focus { my ($_window, $_focus) = @_ }
 sub set_frame_dimensions { my ($_window, $_left, $_top, $_right, $_bottom) = @_ }
-sub set_geometry_hints { my ($_window, $_geometry_widget, $_geometry_ref, $_o_geom_mask_sv) = @_ }
+sub set_geometry_hints { my ($_window, $_geometry_widget, $_geometry, $_geom_mask) = @_ }
 sub set_gravity { my ($_window, $_gravity) = @_ }
 sub set_has_frame { my ($_window, $_setting) = @_ }
 sub set_icon { my ($_window, $_icon) = @_ }
@@ -2668,9 +2602,3 @@ sub stick { my ($_window) = @_ }
 sub unfullscreen { my ($_window) = @_ }
 sub unmaximize { my ($_window) = @_ }
 sub unstick { my ($_window) = @_ }
-
-package Gtk2::WindowGroup;
-our @ISA = qw();
-sub add_window { my ($_window_group, $_window) = @_ }
-sub new { my ($_class) = @_ }
-sub remove_window { my ($_window_group, $_window) = @_ }
