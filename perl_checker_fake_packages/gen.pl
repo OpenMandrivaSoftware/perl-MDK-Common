@@ -127,7 +127,7 @@ sub gtk2 {
                 
                 my ($trimlast) = $file =~ /([A-Z]\w+)\.c$/;
                 while ($trimlast =~ s/([a-z])([A-Z])/$1_$2/) {}
-                $trimlast =~ s/^G([A-Z])/$1/; #- glib case
+                $file =~ /\bGC\b/ or $trimlast =~ s/^G([A-Z])/$1/; #- glib case
                 $file =~ m|Gdk/Event/src| and $trimlast = "event_$trimlast"; #- gdkevent case
                 $trimlast = lc($trimlast);
                 #- skip functions that will not be exported anyway because don't follow the naming scheme
