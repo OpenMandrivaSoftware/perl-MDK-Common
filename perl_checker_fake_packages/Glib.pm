@@ -1,20 +1,49 @@
 
 package Glib;
 our @ISA = qw();
+sub CHECK_VERSION { my ($_class, $_required_major, $_required_minor, $_required_micro) = @_ }
+sub GET_VERSION_INFO { my ($_class) = @_ }
+sub MAJOR_VERSION() {}
+sub MICRO_VERSION() {}
+sub MINOR_VERSION() {}
 sub critical { my ($_class, $_domain, $_message) = @_ }
 sub error { my ($_class, $_domain, $_message) = @_ }
-sub filename_from_unicode { my ($_filename) = @_ }
-sub filename_to_unicode { my ($_filename) = @_ }
+sub filename_from_unicode { my ($_class_or_filename, $_o_filename) = @_ }
+sub filename_from_uri { my (@_more_paras) = @_ }
+sub filename_to_unicode { my ($_class_or_filename, $_o_filename) = @_ }
+sub filename_to_uri { my (@_more_paras) = @_ }
+sub get_application_name() {}
+sub get_home_dir() {}
+sub get_real_name() {}
+sub get_tmp_dir() {}
+sub get_user_name() {}
 sub install_exception_handler { my ($_class, $_func, $_o_data) = @_ }
 sub log { my ($_class, $_log_domain, $_log_level, $_message) = @_ }
+sub main_depth() {}
+sub major_version() {}
 sub message { my ($_class, $_domain, $_message) = @_ }
+sub micro_version() {}
+sub minor_version() {}
 sub remove_exception_handler { my ($_class, $_tag) = @_ }
+sub set_application_name { my ($_application_name) = @_ }
 sub warning { my ($_class, $_domain, $_message) = @_ }
 
 package Glib::Boxed;
 our @ISA = qw();
 sub DESTROY { my ($_sv) = @_ }
 sub copy { my ($_sv) = @_ }
+
+package Glib::Error;
+our @ISA = qw();
+sub code { my ($_error) = @_ }
+sub domain { my ($_error) = @_ }
+sub location { my ($_error) = @_ }
+sub matches { my ($_error, $_domain, $_code) = @_ }
+sub message { my ($_error) = @_ }
+sub new { my ($_class, $_code, $_message) = @_ }
+sub register { my ($_package, $_enum_package) = @_ }
+sub throw { my ($_class, $_code, $_message) = @_ }
+sub value { my ($_error) = @_ }
 
 package Glib::Flags;
 our @ISA = qw();
@@ -64,6 +93,7 @@ package Glib::Object;
 our @ISA = qw();
 sub DESTROY { my ($_sv) = @_ }
 sub do_stuff_by_func { my ($_instance, $_func, $_o_data) = @_ }
+sub freeze_notify { my ($_object) = @_ }
 sub get { my ($_object, @_more_paras) = @_ }
 sub get_data { my ($_object, $_key) = @_ }
 sub get_pointer { my ($_object) = @_ }
@@ -87,6 +117,8 @@ sub signal_handlers_block_by_func { my ($_instance, $_func, $_o_data) = @_ }
 sub signal_handlers_disconnect_by_func { my ($_instance, $_func, $_o_data) = @_ }
 sub signal_handlers_unblock_by_func { my ($_instance, $_func, $_o_data) = @_ }
 sub signal_stop_emission_by_name { my ($_instance, $_detailed_signal) = @_ }
+sub thaw_notify { my ($_object) = @_ }
+sub tie_properties { my ($_object, $_o_all) = @_ }
 
 package Glib::ParamSpec;
 our @ISA = qw();
@@ -107,8 +139,8 @@ sub int64 { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_defaul
 sub long { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
 sub object { my ($_class, $_name, $_nick, $_blurb, $_package, $_flags) = @_ }
 sub param_spec { my ($_class, $_name, $_nick, $_blurb, $_package, $_flags) = @_ }
+sub scalar { my ($_class, $_name, $_nick, $_blurb, $_flags) = @_ }
 sub string { my ($_class, $_name, $_nick, $_blurb, $_default_value, $_flags) = @_ }
-sub typed { my ($_class, $_name, $_nick, $_blurb, $_package, $_flags) = @_ }
 sub uchar { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
 sub uint { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
 sub uint64 { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
@@ -130,4 +162,7 @@ sub list_interfaces { my ($_class, $_package) = @_ }
 sub list_signals { my ($_class, $_package) = @_ }
 sub list_values { my ($_class, $_package) = @_ }
 sub package_from_cname { my ($_class, $_cname) = @_ }
-sub register { my ($_class, $_parent_package, $_new_package, @_more_paras) = @_ }
+sub register { my ($_class, $_parent_class, $_new_class, @_more_paras) = @_ }
+sub register_enum { my ($_class, $_name, @_more_paras) = @_ }
+sub register_flags { my ($_class, $_name, @_more_paras) = @_ }
+sub register_object { my ($_class, $_parent_package, $_new_package, @_more_paras) = @_ }
