@@ -142,6 +142,7 @@ val map3 : ('a -> 'b -> 'c -> 'd) -> 'a list -> 'b list -> 'c list -> 'd list
 val filter2 : ('a * 'b -> bool) -> 'a list -> 'b list -> 'a list * 'b list
 val break_at : ('a -> bool) -> 'a list -> 'a list * 'a list
 val break : 'a -> 'a list -> 'a list * 'a list
+val drop_while : ('a -> bool) -> 'a list -> 'a list
 val break_at_indice : int -> 'a list -> 'a list * 'a list
 val rev_nth : 'a -> 'a list -> int
 val getset_nth : 'a list -> int -> ('a -> 'a) -> 'a list

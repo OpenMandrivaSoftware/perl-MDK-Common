@@ -475,6 +475,8 @@ let break_at f l =
   in b [] l
 let break v l = break_at ((=) v) l
 
+let drop_while f l = snd (break_at (fun e -> not (f e)) l)
+
 (* break_at_indice 0 [1;2] gives [], [1;2]
    break_at_indice 1 [1;2] gives [1], [2]
  *)

@@ -58,14 +58,34 @@ and raw_interpolated_string = (string * raw_token list) list
 
 let new_any mcontext any spaces pos = { mcontext = mcontext ; any = any ; spaces = spaces ; pos = pos }
 
+let pos lexbuf = lexeme_start lexbuf, lexeme_end lexbuf
+let pos2sfull_with start end_ = Info.pos2sfull (!current_file, start, end_)
+let pos2sfull lexbuf = pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf)
+
+let warn_with_pos (start, end_) err = print_endline_flush (pos2sfull_with start end_ ^ err)
+let warn lexbuf err = warn_with_pos (pos lexbuf) err
+let die lexbuf err = failwith (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
+
 let rec concat_bareword_paren accu = function
   | PRINT(s, pos1) :: PAREN(pos2) :: l
   | BAREWORD(s, pos1) :: PAREN(pos2) :: l ->
       concat_bareword_paren (PAREN(pos2) :: BAREWORD_PAREN(s, pos1) :: accu) l
   | RAW_IDENT(kind, ident, pos1) :: PAREN(pos2) :: l -> 
-      concat_bareword_paren (PAREN(pos2) :: RAW_IDENT_PAREN(kind, ident, pos1) :: accu) l
+      concat_bareword_paren (PAREN(pos2) :: RAW_IDENT_PAREN(kind, ident, pos1) :: accu) l	
+  | PO_COMMENT(_, pos) as e :: l ->
+      let l = drop_while (function CR | SPACE _ -> true | _ -> false) l in
+      (match l with
+      | PO_COMMENT _ :: _
+	  (* the check will be done on this PO_COMMENT *)
+      | BAREWORD("N", _) :: PAREN(_) :: _
+      | BAREWORD("N_", _) :: PAREN(_) :: _ ->
+	  concat_bareword_paren (e :: accu) l
+      | _ -> 
+	  warn_with_pos pos "N(...) must follow the #-PO: comment, with nothing in between" ;
+	  concat_bareword_paren accu l)
   | [] -> List.rev accu
-  | e :: l -> concat_bareword_paren (e :: accu) l
+  | e :: l -> 
+      concat_bareword_paren (e :: accu) l
 
 let rec raw_token_to_pos_and_token spaces = function
   | INT(s, pos) -> pos, Parser.NUM(new_any M_int s spaces pos)
@@ -210,9 +230,6 @@ let get_token token lexbuf =
 let next_rule = Stack.create()
 
 
-let pos lexbuf = lexeme_start lexbuf, lexeme_end lexbuf
-let pos2sfull_with start end_ = Info.pos2sfull (!current_file, start, end_)
-let pos2sfull lexbuf = pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf)
 let putback lexbuf nb = lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_curr_pos - nb
 
 let add_a_new_line raw_pos = 
@@ -245,11 +262,8 @@ let building_current_interpolated_string = Stack.create()
 let building_current_string = Stack.create()
 let current_string_start_pos = ref 0
 let current_string_start_line = ref 0
-let warn_with_pos (start, end_) err = print_endline_flush (pos2sfull_with start end_ ^ err)
-let warn lexbuf err = warn_with_pos (pos lexbuf) err
-let die lexbuf err = failwith (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
-let die_in_string lexbuf err = failwith (pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ err)
 
+let die_in_string lexbuf err = failwith (pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ err)
 let warn_escape_unneeded lexbuf c = warn lexbuf ("you can replace \\" ^ c ^ " with " ^ c)
 let next_interpolated toks =
   let r = Stack.top building_current_string in
