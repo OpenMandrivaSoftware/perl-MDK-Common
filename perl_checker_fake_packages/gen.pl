@@ -27,7 +27,9 @@ sub parse_xs {
     my $state = 'waiting_for_type';
     ($current_package, $current_prefix) = ('', '');
     my $multi_line;
+    my $c;
     foreach (cat_($file)) {
+	$c++;
 	chomp;
 	my $orig_line = $_;
 
@@ -58,7 +60,7 @@ sub parse_xs {
 		my $pkg = $f =~ s/(.*)::// ? $1 : $current_package;
 		$l{$pkg}{$f} ||= $l{$current_package}{$current_name};
 	    } else {
-		warn "bad line $orig_line (state: $state)\n" if !/^\s*\w+:\s*$/ && !/^\s*$/;
+		warn "bad line #$c $orig_line (state: $state)\n" if !/^\s*\w+:\s*$/ && !/^\s*$/;
 		$state = 'waiting_for_end';
 	    }
 	} elsif ($state eq 'waiting_for_type' && s/^(const\s*)?\w+\s*(\*\s*)?// || 
@@ -71,10 +73,10 @@ sub parse_xs {
 		$current_name = $name;
 		$state = 'multi_line';
 	    } else {
-		warn "bad line $orig_line (state: $state)\n";
+		warn "bad line #$c $orig_line (state: $state)\n";
 	    }
 	} else {
-	    warn "bad line $orig_line (state: $state)\n" if 
+	    warn "bad line #$c $orig_line (state: $state)\n" if 
 	      !(($state eq 'waiting_for_end' || $state eq 'waiting_for_type') && 
 		(/^\s/ || /^[{}]\s*$/ || /^(CODE|OUTPUT):\s*$/));
 	}
