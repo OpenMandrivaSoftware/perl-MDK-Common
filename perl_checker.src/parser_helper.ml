@@ -797,16 +797,25 @@ msgstr \"\"
 let call_raw force_non_builtin_func (e, para) =
   match e with
   | Deref(I_func, Ident(None, f, _)) ->
-      let para' = match f with
-      | "no" ->
+      (match f with
+      | "join" ->
+	  (match un_parenthesize_full_l para with
+	  | e :: _ when not (is_a_scalar e) -> warn_rule "first argument of join() must be a scalar";
+	  | [_] -> warn_rule "not enough parameters"
+	  | [_; e] when is_a_scalar e -> warn_rule "join('...', $foo) is the same as $foo"
+	  | _ -> ())
+
+      | "length" ->
+	  if para = [] then warn_rule "length() with no parameter !?" else
+	  if is_not_a_scalar (List.hd para) then warn_rule "never use \"length @l\", it returns the length of the string int(@l)" ;
+
+      | "open" ->
 	  (match para with
-	  | [ Ident(_, _, pos) as s ] -> Some [ Raw_string(string_of_Ident s, pos) ]
-	  | [ Call(Deref(I_func, (Ident(_, _, pos) as s)), l) ] -> Some(Raw_string(string_of_Ident s, pos) :: l)
-	  | _ -> die_rule "use \"no PACKAGE <para>\"")
-      | "undef" ->
-	  (match para with
-	  | [ Deref(I_star, ident) ] -> Some [ Deref(I_func, ident) ]
-	  | _ -> None)
+	  | [ List(Ident(None, name, _) :: _) ]
+	  | Ident(None, name, _) :: _ ->
+	      if not (List.mem name [ "STDIN" ; "STDOUT" ; "STDERR" ]) then
+		warn_rule (sprintf "use a scalar instead of a bareword (eg: occurrences of %s with $%s)" name name)
+	  | _ -> ())
 
       | "N" | "N_" ->
 	  (match para with
@@ -823,49 +832,8 @@ let call_raw force_non_builtin_func (e, para) =
 		  warn_rule "too many parameters" ;
 	      (*if String.contains s '\t' then warn_rule "tabulation in translated string must be written \\\\t";*)
 	      (*if count_matching_char s '\n' > 10 then warn_rule "long string";*)
-	      None
 	  | [ List(String _ :: _) ] -> die_rule "don't use interpolated translated string, use %s or %d instead"
 	  |  _ -> die_rule (sprintf "%s() must be used with a string" f))
-
-      | "goto" ->
-	  (match para with
-	  | [ Ident(None, s, pos) ] -> Some [ Raw_string(s, pos) ]
-	  | _ -> None)
-
-
-      | "join" ->
-	  (match un_parenthesize_full_l para with
-	  | e :: _ when not (is_a_scalar e) -> warn_rule "first argument of join() must be a scalar";
-	  | [_] -> warn_rule "not enough parameters"
-	  | [_; e] when is_a_scalar e -> warn_rule "join('...', $foo) is the same as $foo"
-	  | _ -> ());
-	  None
-
-      | "last" | "next" | "redo" when not force_non_builtin_func ->
-	  (match para with
-	  | [ Ident(None, s, pos) ] -> Some [ Raw_string(s, pos) ]
-	  | _ -> die_rule (sprintf "%s must be used with a raw string" f))
-
-      | "length" ->
-	  if para = [] then warn_rule "length() with no parameter !?" else
-	  if is_not_a_scalar (List.hd para) then warn_rule "never use \"length @l\", it returns the length of the string int(@l)" ;
-	  None
-
-      | "open" ->
-	  (match para with
-	  | [ List(Ident(None, name, _) :: _) ]
-	  | Ident(None, name, _) :: _ ->
-	      if not (List.mem name [ "STDIN" ; "STDOUT" ; "STDERR" ]) then
-		warn_rule (sprintf "use a scalar instead of a bareword (eg: occurrences of %s with $%s)" name name)
-	  | _ -> ());
-	  None
-
-      | "split" ->
-	  (match para with
-	  | [ List(Call_op("m//", Deref(I_scalar, Ident(None, "_", _)) :: pattern, pos) :: l) ]
-	  | Call_op("m//", Deref(I_scalar, Ident(None, "_", _)) :: pattern, pos) :: l ->
-	      Some(Call_op("qr//", pattern, pos) :: l)
-	  | _ -> None)
 
       | "map" | "grep" | "grep_index" | "map_index" | "partition"
       | "find"
@@ -881,22 +849,50 @@ let call_raw force_non_builtin_func (e, para) =
 	      warn_rule ("a hash is not a valid parameter to function " ^ f)
 
 	  | Anonymous_sub _ :: _ -> ()
-	  | _ -> warn_rule (sprintf "always use \"%s\" with a block (eg: %s { ... } @list)" f f));
-	  None
+	  | _ -> warn_rule (sprintf "always use \"%s\" with a block (eg: %s { ... } @list)" f f))
 
       | "member" ->
 	  (match para with
 	    [ List [ _; Call(Deref(I_func, Ident(None, "keys", _)), _) ] ] ->
 	      warn_rule "you can replace \"member($xxx, keys %yyy)\" with \"exists $yyy{$xxx}\""
-	  | _ -> ());
-	  None
+	  | _ -> ())
 
       | "pop" | "shift" ->
 	  (match para with
 	  | [] 
 	  | [ Deref(I_array, _) ] 
 	  | [ List [ Deref(I_array, _) ] ] -> ()
-	  | _ -> warn_rule (f ^ " is expecting an array and nothing else")) ; None
+	  | _ -> warn_rule (f ^ " is expecting an array and nothing else"))
+
+      );
+
+      let para' = match f with
+      | "no" ->
+	  (match para with
+	  | [ Ident(_, _, pos) as s ] -> Some [ Raw_string(string_of_Ident s, pos) ]
+	  | [ Call(Deref(I_func, (Ident(_, _, pos) as s)), l) ] -> Some(Raw_string(string_of_Ident s, pos) :: l)
+	  | _ -> die_rule "use \"no PACKAGE <para>\"")
+      | "undef" ->
+	  (match para with
+	  | [ Deref(I_star, ident) ] -> Some [ Deref(I_func, ident) ]
+	  | _ -> None)
+
+      | "goto" ->
+	  (match para with
+	  | [ Ident(None, s, pos) ] -> Some [ Raw_string(s, pos) ]
+	  | _ -> None)
+
+      | "last" | "next" | "redo" when not force_non_builtin_func ->
+	  (match para with
+	  | [ Ident(None, s, pos) ] -> Some [ Raw_string(s, pos) ]
+	  | _ -> die_rule (sprintf "%s must be used with a raw string" f))
+
+      | "split" ->
+	  (match para with
+	  | [ List(Call_op("m//", Deref(I_scalar, Ident(None, "_", _)) :: pattern, pos) :: l) ]
+	  | Call_op("m//", Deref(I_scalar, Ident(None, "_", _)) :: pattern, pos) :: l ->
+	      Some(Call_op("qr//", pattern, pos) :: l)
+	  | _ -> None)
 	    
       | _ -> None
       in Call(e, some_or para' para)
