@@ -18,6 +18,7 @@ EOF
 
 my $header = <<'EOF';
 package pkg;
+use lib "../..";
 sub new {}
 sub m0 { my ($_o) = @_; 0 }
 sub m1 { my ($_o, $a) = @_; $a }
