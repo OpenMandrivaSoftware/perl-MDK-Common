@@ -4,7 +4,6 @@ open Tree
 
 let inc =
   let inc_ref = ref [] in
-  let ignored_packages = ref [] in
   let rec updir dir nb =
     if nb = 0 then dir else
     match dir with
@@ -21,7 +20,7 @@ let inc =
 	ignored_packages := readlines (open_in (reldir ^ "/.perl_checker"))
       with Sys_error _ -> ()
     );
-    !inc_ref, !ignored_packages
+    !inc_ref
 
 let findfile dirs f = List.find Sys.file_exists (List.map (fun dir -> dir ^ "/" ^ f) dirs)
 
@@ -48,8 +47,8 @@ and parse_package_if_needed state (package_name, (_, pos)) =
   if List.mem_assoc package_name state.per_package then state else
   try
     let package = snd (List.hd state.per_package) in
-    let inc, ignored_packages = inc package.file_name package.package_name package.has_package_name in
-    if List.mem package_name ignored_packages then state 
+    let inc = inc package.file_name package.package_name package.has_package_name in
+    if List.mem package_name !ignored_packages then state 
     else
       let file = String.concat "/" (split_at2 ':'':' package_name) ^ ".pm" in
       parse_file state (findfile inc file)

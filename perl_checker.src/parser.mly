@@ -296,7 +296,7 @@ term:
 | term ARROW MULT {check_MULT_is_x $3; sp_0($2); sp_0($3); (P_tok, to_Method_callP(sndfst $1, Ident(None, "x", get_pos $3), [])), sp_pos_range $1 $3} /* $foo->bar */
 
 | NEW word { sp_n($2); (P_call_no_paren, to_Method_call(fst $2, Ident(None, "new", get_pos $1), [])), sp_pos_range $1 $2} /* new Class */
-| NEW word parenthesized { sp_n($2); sp_0($3); (P_call_no_paren, to_Method_call(fst $2, Ident(None, "new", get_pos $1), sndfst $3)), sp_pos_range $1 $3} /* new Class(...) */
+| NEW word_paren parenthesized { sp_n($2); sp_0($3); (P_call_no_paren, to_Method_call(fst $2, Ident(None, "new", get_pos $1), sndfst $3)), sp_pos_range $1 $3} /* new Class(...) */
 | NEW word terminal { die_rule "you must parenthesize parameters: \"new Class(...)\" instead of \"new Class ...\"" }
 | NEW word variable { die_rule "you must parenthesize parameters: \"new Class(...)\" instead of \"new Class ...\"" }
 

@@ -35,7 +35,7 @@ type vars = {
 let anonymous_package_count = ref 0
 let default_state = { per_package = []; global_vars_declared = Hashtbl.create 256; global_vars_used = ref [] }
 let empty_exports = { export_ok = []; export_auto = []; export_tags = []; re_export_all = false }
-
+let ignored_packages = ref []
 
 let die_with_pos pos msg = failwith (Info.pos2sfull pos ^ msg)
 let warn_with_pos pos msg = prerr_endline (Info.pos2sfull pos ^ msg)
@@ -190,15 +190,13 @@ let get_imports state package =
     try
       let package_used = List.assoc package_name state.per_package in
       let exports = package_used.exports in
-      let imports_vars =
-	match imports with
-	| None ->
-	    let re = 
-	      if exports.re_export_all 
-	      then collect (fun (package_name, _) -> (List.assoc package_name state.per_package).exports.export_ok) package_used.uses
-	      else [] in
-	    exports.export_auto @ re
-	| Some l -> 
+      match imports with
+      | None ->
+	  let re = if exports.re_export_all then collect get_one package_used.uses else [] in
+	  let l = List.map (fun (context, name) -> (context, name), package_name) exports.export_auto in
+	  re @ l
+      | Some l -> 
+	  let imports_vars = 
 	    collect (function
 	      | I_raw, tag -> 
 		  (try 
@@ -210,8 +208,8 @@ let get_imports state package =
 		  else
 		    die_with_pos pos (sprintf "package %s doesn't export %s" package_name (variable2s variable))
 		    ) l
-      in
-      List.map (fun (context, name) -> (context, name), package_name) imports_vars
+	  in
+	  List.map (fun (context, name) -> (context, name), package_name) imports_vars
     with Not_found -> []
   in
   collect get_one package.uses
@@ -275,8 +273,11 @@ and fold_tree_option f env = function
 let is_my_declared vars t = List.exists (List.exists ((=) t)) vars.my_vars
 let is_our_declared vars t = List.exists (List.exists ((=) t)) vars.our_vars
 let is_global_var_declared vars (context, fq, name) =
-  let fq = some_or fq vars.current_package in
-  Hashtbl.mem vars.state.global_vars_declared (context, fq, name)
+  fq = None && List.mem_assoc (context, name) vars.imported ||
+  (let fq = some_or fq vars.current_package in
+  Hashtbl.mem vars.state.global_vars_declared (context, fq, name))
+
+ 
 
 let is_global_var context ident = 
   match context with
@@ -300,18 +301,21 @@ let is_global_var context ident =
       | _ -> false)
   | I_func ->
       (match ident with
+      | "-b" | "-d" | "-e" | "-f" | "-l" | "-r" | "-s" | "-w" | "-x"
       | "abs" | "alarm" | "basename" | "bless" 
-      | "caller" | "chdir" | "chmod" | "chomp" | "chop" | "chown" | "chr" | "chroot" | "close" | "closedir" | "crypt" | "delete" | "die"
-      | "each" | "eval" | "exec" | "exists" | "exit" | "fcntl" | "fileno" | "fork"
-      | "gethostbyaddr" | "gethostbyname" | "getgrnam" | "getgrgid" | "getpwent" | "getpwnam" | "getpwuid" | "gmtime" | "goto" | "grep" | "hex"
+      | "caller" | "chdir" | "chmod" | "chomp" | "chop" | "chown" | "chr" | "chroot" | "close" | "closedir" | "crypt"
+      | "defined" | "delete" | "die"
+      | "each" | "endpwent" | "eof" | "eval" | "exec" | "exists" | "exit"
+      | "fcntl" | "fileno" | "formline" | "fork"
+      | "gethostbyaddr" | "gethostbyname" | "getgrnam" | "getgrgid" | "getppid" | "getpwent" | "getpwnam" | "getpwuid" | "gmtime" | "goto" | "grep" | "hex"
       | "index" | "int" | "ioctl" | "join" | "keys" | "kill"
       | "last" | "lc" | "length" | "link" | "localtime" | "log" | "lstat"
-      | "map" | "mkdir" | "next" | "oct" | "open" | "opendir" | "ord"
+      | "map" | "mkdir" | "next" | "no" | "oct" | "open" | "opendir" | "ord"
       | "pack" | "pipe" | "pop" | "print" | "printf" | "push" | "quotemeta" 
       | "rand" | "read" | "readdir" | "readlink" | "redo" | "ref" | "rename" | "require" | "return" | "reverse" | "rmdir"
       | "scalar" | "select" | "setpwent" | "shift" | "sleep" | "sort" | "splice" | "split" | "sprintf" | "stat" | "substr"
-      | "symlink" | "sysopen" | "sysread" | "sysseek" | "system" | "syswrite" | "time" | "uc" | "umask" | "unpack" | "unshift"
-      | "unlink" | "utime" | "values" | "vec" | "waitpid" | "wantarray" | "warn" | "write"
+      | "symlink" | "syscall" | "sysopen" | "sysread" | "sysseek" | "system" | "syswrite" | "time"
+      | "uc" | "umask" | "undef" | "unlink" | "unpack" | "unshift" | "utime" | "values" | "vec" | "waitpid" | "wantarray" | "warn" | "write"
 	  -> true
 
       | _ -> false)
@@ -319,16 +323,23 @@ let is_global_var context ident =
 
 let check_variable (context, var) vars = 
   match var with
-  | Ident(None, ident, pos) when context <> I_func ->
-      if is_my_declared vars (context, ident) || is_our_declared vars (context, ident) || 
-         List.mem_assoc (context, ident) vars.imported || is_global_var context ident || is_global_var_declared vars (context, None, ident)
+  | Ident(Some pkg, _, _) when uses_external_package pkg || List.mem pkg !ignored_packages -> ()
+  | Ident(None, ident, pos) ->
+      if is_my_declared vars (context, ident) || is_our_declared vars (context, ident) || is_global_var context ident || is_global_var_declared vars (context, None, ident)
       then () 
-      else warn_with_pos pos (sprintf "undeclared variable %s" (variable2s(context, ident)))
-  | Ident(fq, name, pos) -> 
-      if context = I_func && fq = None && is_global_var context name || 
-         is_global_var_declared vars (context, fq, name)
+      else warn_with_pos pos (if context = I_func then "unknown function " ^ ident else "undeclared variable " ^ variable2s(context, ident))
+  | Ident(Some fq, name, pos) when context = I_func -> 
+      if (fq = "CORE") && is_global_var context name || is_global_var_declared vars (context, Some fq, name)
       then ()
-      else lpush vars.state.global_vars_used ((context, some_or fq vars.current_package, name), pos) 
+      else (
+	warn_with_pos pos ("unknown function " ^ Parser_helper.string_of_Ident var)
+      )
+  | Ident(Some fq, name, pos) -> 
+      if is_global_var_declared vars (context, Some fq, name)
+      then ()
+      else (
+	lpush vars.state.global_vars_used ((context, fq, name), pos)
+      )
   | _ -> ()
 
 let declare_My vars (mys, pos) =
@@ -387,8 +398,8 @@ let check_variables vars t =
 	let vars = List.fold_left check_variables_ vars other in
 	Some vars
 
-    | Sub_declaration(Ident(fq, name, pos), _proto, body) ->
-	let vars = declare_Our vars ([ I_func, (some_or fq vars.current_package) ^ "::" ^ name ], pos) in
+    | Sub_declaration(Ident(_, _, pos) as ident, _proto, body) ->
+	let vars = declare_Our vars ([ I_func, Parser_helper.string_of_Ident ident ], pos) in
 	let vars = check_variables_ vars body in
 	Some vars
 
@@ -417,15 +428,6 @@ let check_variables vars t =
   in
   let vars = List.fold_left check_variables_ { vars with my_vars = [[]] } t in
   vars
-
-(*
-let check_vars vars =
-  List.iter (function 
-    | I_func, (f, pos) -> 
-	if not (is_our_declared vars (I_func, f)) then warn_with_pos pos ("unknown function " ^ f)
-    | _ -> ()
-  ) vars.global_vars_used
-*)
 
 let check_tree state package =
   let imports = get_imports state package in

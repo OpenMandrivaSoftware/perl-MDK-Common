@@ -418,11 +418,11 @@ rule token = parse
 | "split"
 | "grep"  { (* ok_for_match! *) BAREWORD(lexeme lexbuf, pos lexbuf) }
 
-| "print " ['A'-'Z'] ['A'-'Z' '0'-'9']* ' ' { 
+| "print " ['A'-'Z'] ['A'-'Z' '0'-'9']* ['\n' ' '] { 
     putback lexbuf 1;
     PRINT_TO_STAR(skip_n_char 6 (lexeme lexbuf), pos lexbuf)
   }
-| "print $" ident ' ' { 
+| "print $" ident ['\n' ' '] { 
     putback lexbuf 1; 
     PRINT_TO_SCALAR(skip_n_char 7 (lexeme lexbuf), pos lexbuf);
   }

@@ -23,6 +23,8 @@ type state = {
     global_vars_used : ((context * string * string) * pos) list ref;
   } 
 
+val ignored_packages : string list ref
+
 val default_state : state
 val get_global_info_from_package : fromparser list -> per_package
 val get_global_vars_declaration : state -> per_package -> unit
