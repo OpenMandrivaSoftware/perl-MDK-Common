@@ -910,6 +910,13 @@ let call_raw force_non_builtin_func (e, para) =
 	  | [ List [ Deref(I_array, _) ] ] -> ()
 	  | _ -> warn_rule (f ^ " is expecting an array and nothing else"))
 
+      | "push" | "unshift" ->
+	  (match para with
+	  | Deref(I_array, _) :: l 
+	  | [ List (Deref(I_array, _) :: l) ] -> 
+	      if l = [] then warn_rule ("you must give some arguments to " ^ f)
+	  | _ -> warn_rule (f ^ " is expecting an array"))
+
       | "system" ->
 	  (match un_parenthesize_full_l para with
 	  | [ String(l, _) ] -> 
