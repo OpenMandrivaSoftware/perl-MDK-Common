@@ -812,7 +812,7 @@ let call_raw force_non_builtin_func (e, para) =
 	  (match para with
 	  | [ List(Ident(None, name, _) :: _) ]
 	  | Ident(None, name, _) :: _ ->
-	      if not (List.member [ "STDIN" ; "STDOUT" ; "STDERR" ]) then
+	      if not (List.mem name [ "STDIN" ; "STDOUT" ; "STDERR" ]) then
 		warn_rule (sprintf "use a scalar instead of a bareword (eg: occurrences of %s with $%s)" name name)
 	  | _ -> ());
 	  None
