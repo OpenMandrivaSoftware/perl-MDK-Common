@@ -31,6 +31,16 @@ sub gtk2 {
       [ 'append_item',                  ' { my ($_self, $_text, $_tooltip, $_private, $_icon, $_callback, $o_user_data) = @_ }' ],
       [ 'toggle_expansion',             ' { my ($_self, $_path, $o_open_all) = @_ }' ],
       [ 'get_path_at_pos',              ' { my ($_self, $_x, $_y) = @_ }' ],
+      [ 'allow_grow',                   ' { my ($_window, $o_bool) = @_ }' ],
+      [ 'allow_shrink',                 ' { my ($_window, $o_bool) = @_ }' ],
+      [ 'default_height',               ' { my ($_window, $o_bool) = @_ }' ],
+      [ 'default_width',                ' { my ($_window, $o_bool) = @_ }' ],
+      [ 'destroy_with_parent',          ' { my ($_window, $o_bool) = @_ }' ],
+      [ 'has_top_level_focus',          ' { my ($_window, $o_bool) = @_ }' ],
+      [ 'is_active',                    ' { my ($_window, $o_bool) = @_ }' ],
+      [ 'modal',                        ' { my ($_window, $o_bool) = @_ }' ],
+      [ 'resizable',                    ' { my ($_window, $o_bool) = @_ }' ],
+      [ 'window_position',              ' { my ($_window, $o_pos) = @_ }' ],
                       );
     my @added_subroutines;
     my $add = sub {
