@@ -674,23 +674,35 @@ let cook_call_op op para pos =
 	  warn_rule "are you sure you did not mean \"==\" instead of \"=\"?"
       | _ -> ())
   | _ -> ());
-  let call = Call_op(op, para, raw_pos2pos pos) in
-  match op, para with
+
+  (match op, para with
   | "=", [My_our _; Ident(None, "undef", _)] -> 
-      warn pos "no need to initialize variable, it's done by default" ;
-      call
+      warn pos "no need to initialize variable, it's done by default"
   | "=", [My_our _; List[]] -> 
-      if Info.is_on_same_line_current pos then warn pos "no need to initialize variables, it's done by default" ;
-      call
+      if Info.is_on_same_line_current pos then warn pos "no need to initialize variables, it's done by default"
 
   | "=", [ Deref_with(I_array, I_scalar, id, Deref(I_array, id_)); _ ] when is_same_fromparser id id_ ->
-      warn_rule "\"$a[@a] = ...\" is better written \"push @a, ...\"" ;
-      call
+      warn_rule "\"$a[@a] = ...\" is better written \"push @a, ...\""
 
   | "=", [ Deref(I_star, String ([(sf1, List [])], _)); _ ] ->
-      warn_rule (sprintf "write *{'%s'} instead of *{\"%s\"}" sf1 sf1) ;
-      call
+      warn_rule (sprintf "write *{'%s'} instead of *{\"%s\"}" sf1 sf1)
 
+  | "==", [Call_op("last_array_index", _, _); Num("0", _)] ->
+      warn_rule "$#x == 0 is better written @x == 1"
+
+  | "||", e :: _ when is_always_true  e -> warn_rule "<constant> || ... is the same as <constant>"
+  | "&&", e :: _ when is_always_false e -> warn_rule "<constant> && ... is the same as <constant>"
+  | "||", e :: _ when is_always_false e -> warn_rule "<constant> || ... is the same as ..."
+  | "&&", e :: _ when is_always_true  e -> warn_rule "<constant> && ... is the same as ..."
+
+  | "or",  e :: _ when is_always_true  (un_parenthesize_full e) -> warn_rule "<constant> or ... is the same as <constant>"
+  | "and", e :: _ when is_always_false (un_parenthesize_full e) -> warn_rule "<constant> and ... is the same as <constant>"
+  | "or",  e :: _ when is_always_false (un_parenthesize_full e) -> warn_rule "<constant> or ... is the same as ..."
+  | "and", e :: _ when is_always_true  (un_parenthesize_full e) -> warn_rule "<constant> and ... is the same as ..."
+
+  | _ -> ());
+
+  match op, para with
   | "=", [ Deref(I_star, (Ident _ as f1)); Deref(I_star, (Ident _ as f2)) ] ->
       let s1, s2 = string_of_Ident f1, string_of_Ident f2 in
       warn pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
@@ -708,22 +720,7 @@ let cook_call_op op para pos =
   | "=", [ Deref(I_star, (Ident _ as f1)); (Anonymous_sub(proto, sub, _)) ] ->
       sub_declaration (f1, proto) [ sub ] Glob_assign
 
-  | "==", [Call_op("last_array_index", _, _); Num("0", _)] ->
-      warn_rule "$#x == 0 is better written @x == 1";
-      call
-
-  | "||", e :: _ when is_always_true  e -> warn_rule "<constant> || ... is the same as <constant>"; call
-  | "&&", e :: _ when is_always_false e -> warn_rule "<constant> && ... is the same as <constant>"; call
-  | "||", e :: _ when is_always_false e -> warn_rule "<constant> || ... is the same as ..."; call
-  | "&&", e :: _ when is_always_true  e -> warn_rule "<constant> && ... is the same as ..."; call
-
-  | "or",  e :: _ when is_always_true  (un_parenthesize_full e) -> warn_rule "<constant> or ... is the same as <constant>"; call
-  | "and", e :: _ when is_always_false (un_parenthesize_full e) -> warn_rule "<constant> and ... is the same as <constant>"; call
-  | "or",  e :: _ when is_always_false (un_parenthesize_full e) -> warn_rule "<constant> or ... is the same as ..."; call
-  | "and", e :: _ when is_always_true  (un_parenthesize_full e) -> warn_rule "<constant> and ... is the same as ..."; call
-
-  | _ -> 
-      call
+  | _ -> Call_op(op, para, raw_pos2pos pos)
 
 let to_Call_op mcontext op para esp_start esp_end = 
   let pos = raw_pos_range esp_start esp_end in
