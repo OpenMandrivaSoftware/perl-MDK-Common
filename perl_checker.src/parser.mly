@@ -205,9 +205,9 @@ term:
 | term GT         term {let pri = P_cmp       in call_op_(op_p pri ">"      $2, $3, [prio_lo pri $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
 | term EQ_OP      term {let pri = P_eq        in call_op_(op_p pri (fst $2) $2, $3, [prio_lo pri $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
 | term POWER      term {let pri = P_tight     in call_op_(op   pri "**"     $2, $3, [prio_lo pri $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
-| term BIT_AND    term {let pri = P_expr      in call_op_(op_p pri "&"      $2, $3, [prio_lo pri $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
-| term BIT_OR     term {let pri = P_expr      in call_op_(op   pri "|"      $2, $3, [prio_lo pri $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
-| term BIT_XOR    term {let pri = P_expr      in call_op_(op_p pri "^"      $2, $3, [prio_lo pri $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
+| term BIT_AND    term {let pri = P_bit       in call_op_(op_p pri "&"      $2, $3, [prio_lo pri $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
+| term BIT_OR     term {let pri = P_bit       in call_op_(op   pri "|"      $2, $3, [prio_lo pri $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
+| term BIT_XOR    term {let pri = P_bit       in call_op_(op_p pri "^"      $2, $3, [prio_lo pri $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
 | term AND_TIGHT  term {let pri = P_tight_and in call_op_(op_p pri "&&"     $2, $3, [prio_lo pri $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
 | term OR_TIGHT   term {let pri = P_tight_or  in call_op_(op_p pri "||"     $2, $3, [prio_lo pri $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
 | term MULT       term {let pri = P_mul       in call_op_(op   pri (fst $2) $2, $3, [prio_lo_concat $1; prio_lo_after pri $3]) (sp_pos_range $1 $3)}
@@ -253,13 +253,13 @@ term:
 	to_Call_op_(P_tight, "- unary", [sndfst $2]) (sp_pos_range $1 $2)
     | _ -> die_rule "syntax error"
 }
-| TIGHT_NOT term {to_Call_op_(P_tight, "not", [sndfst $2]) (sp_pos_range $1 $2)}
+| TIGHT_NOT term {check_negatable_expr $2; to_Call_op_(P_tight, "not", [sndfst $2]) (sp_pos_range $1 $2)}
 | BIT_NEG term {to_Call_op_(P_expr, "~", [sndfst $2]) (sp_pos_range $1 $2)}
 | INCR term    {sp_0($2); to_Call_op_(P_tight, "++", [sndfst $2]) (sp_pos_range $1 $2)}
 | DECR term    {sp_0($2); to_Call_op_(P_tight, "--", [sndfst $2]) (sp_pos_range $1 $2)}
 | term INCR    {sp_0($2); to_Call_op_(P_tight, "++ post", [sndfst $1]) (sp_pos_range $1 $2)}
 | term DECR    {sp_0($2); to_Call_op_(P_tight, "-- post", [sndfst $1]) (sp_pos_range $1 $2)}
-| NOT argexpr  {to_Call_op_(P_and, "not", sndfst $2) (sp_pos_range $1 $2)}
+| NOT argexpr  {warn_rule "don't use \"not\", use \"!\" instead"; to_Call_op_(P_and, "not", sndfst $2) (sp_pos_range $1 $2)}
 
 | ONE_SCALAR_PARA RAW_STRING               {call_one_scalar_para $1 [to_Raw_string $2], sp_pos_range $1 $2}
 | ONE_SCALAR_PARA STRING                   {call_one_scalar_para $1 [to_String true $2], sp_pos_range $1 $2}

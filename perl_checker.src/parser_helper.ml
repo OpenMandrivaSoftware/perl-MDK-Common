@@ -69,6 +69,7 @@ let is_always_false = function
   | Num(n, _) -> float_of_string n = 0.
   | Raw_string(s, _) -> s = ""
   | String(l, _) -> l = []
+  | List [] -> true
   | _ -> false
 
 let not_complex e =
@@ -175,6 +176,9 @@ let rec prio_less = function
   | P_tight_or, _ -> false
   | _, P_tight_and -> true
   | P_tight_and, _ -> false
+
+  | P_bit, P_bit -> true
+  | P_bit, _ -> false
 
   | _, P_expr -> true
   | P_expr, _ -> false
@@ -334,6 +338,14 @@ let check_arrow_needed ((_, e), _) ter =
 let check_scalar_subscripted (e, _) =
   match e with
   | Deref(I_scalar, Deref _) -> warn_rule "for complex dereferencing, use \"->\""
+  | _ -> ()
+
+let check_negatable_expr ((_, e), _) =
+  match un_parenthesize_full e with
+  | Call_op("m//", var :: _, _) when not (is_var_dollar_ var) ->
+      warn_rule "!($var =~ /.../) is better written $var !~ /.../"
+  | Call_op("!m//", var :: _, _) when not (is_var_dollar_ var) ->
+      warn_rule "!($var !~ /.../) is better written $var =~ /.../"
   | _ -> ()
 
 let check_ternary_paras(cond, a, b) =

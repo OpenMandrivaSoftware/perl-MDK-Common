@@ -72,6 +72,7 @@ val check_hash_subscript :
 val check_arrow_needed :
   ('a * Types.fromparser) * 'b -> 'c * ('d * (int * int)) -> unit
 val check_scalar_subscripted : Types.fromparser * 'a -> unit
+val check_negatable_expr : ('a * Types.fromparser) * 'b -> unit
 val check_ternary_paras :
   Types.fromparser * Types.fromparser * Types.fromparser ->
   Types.fromparser list

@@ -52,6 +52,7 @@ type priority =
 | P_cmp
 | P_eq
 | P_expr
+| P_bit
 | P_tight_and
 | P_tight_or
 | P_ternary
