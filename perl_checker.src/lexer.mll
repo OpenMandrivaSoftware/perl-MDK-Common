@@ -236,6 +236,7 @@ type string_escape_kinds = Double_quote | Qq | Delimited | Here_doc
 let string_escape_kind = ref Double_quote
 let not_ok_for_match = ref (-1)
 let string_nestness = ref 0
+let string_is_i18n = ref false
 
 let building_current_interpolated_string = Stack.create()
 let building_current_string = Stack.create()
@@ -273,6 +274,7 @@ let raw_ins_to_string t lexbuf =
   RAW_STRING(s, pos)
 let ins_to_string t lexbuf =
   let s, pos = ins t lexbuf in
+  string_is_i18n := false ;
   not_ok_for_match := lexeme_end lexbuf; 
   STRING(s, pos)
 
@@ -682,6 +684,8 @@ rule token = parse
     INT(lexeme lexbuf, pos lexbuf)
   }
 
+| 'N' '_'? "(\"" { string_is_i18n := true ; putback lexbuf 2 ; BAREWORD(lexeme lexbuf, pos lexbuf) }
+
 | '"'   { ins_to_string string lexbuf }
 | "'"   { raw_ins_to_string rawstring lexbuf }
 | '`'   { delimit_char := '`'; 
@@ -818,11 +822,10 @@ and string_escape = parse
     let c = lexeme lexbuf in
     (match !string_escape_kind with
     | Double_quote -> 
-	if c = "\"" then
-	  (* don't warn since it's used a lot, esp. in N("xxx \"xxx\" xxx") *)
-	  (*warn lexbuf "you can replace \"xxx\\\"xxx\" with qq(xxx\"xxx), that way you don't need to escape <\">"*)
-	  ()
-	else warn_escape_unneeded lexbuf c
+	if c <> "\"" then
+	  warn_escape_unneeded lexbuf c
+	else if not !string_is_i18n then
+	  warn lexbuf "you can replace \"xxx\\\"xxx\" with qq(xxx\"xxx), that way you don't need to escape <\">"
     | Qq -> if c <> "(" && c <> ")" then warn_escape_unneeded lexbuf c
     | Here_doc -> warn_escape_unneeded lexbuf c
     | Delimited -> if c = String.make 1 !delimit_char then 
