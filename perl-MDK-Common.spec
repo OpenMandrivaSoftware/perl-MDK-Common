@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 23mdk
+%define release 1mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -51,6 +51,23 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Apr 11 2003 Pixel <pixel@mandrakesoft.com> 1.0.5-1mdk
+- many perl_checker enhancements:
+  - allow 333 * `xxx` with no warning
+  - warn non-useful or non-readable escaped sequences in strings and regexps
+    (eg: /^\// should be m|^/|, /xxx\=xxx/ should be /xxx=xxx/ ...)
+  - warn things like: ($foo) ||= ...
+  - enhance non_scalar case for some operators using is_not_a_scalar
+  - handle "keys %pkg::" (twas broken because keys() is now a ONE_SCALAR_PARA)
+  - keys() is a ONE_SCALAR_PARA
+  - correctly (in Perl way) handle priority for some special unary functions (length, exists, ref)
+  - warn xxx == "ia64", xxx eq 2
+  - 0.2 is a NUM, not a REVISION (otherwise it gets into a Raw_string)
+  - better error message ("please remove the space before the function call"
+    instead of "can't handle this nicely")
+  - warn when using a regexp terminated with .* or .*$ (which is useless) 
+  - allow to selectively import from @EXPORT instead of only accepting @EXPORT_OK
+
 * Mon Feb 24 2003 Pixel <pixel@mandrakesoft.com> 1.0.4-23mdk
 - have the POT-Creation-Date set to the current date (when --generate-pot)
 - various fixes
