@@ -396,7 +396,7 @@ let check_variables vars t =
 	(try
 	  if not (uses_external_package pkg || List.mem pkg !ignored_packages || search pkg || method_ = "bootstrap") then 
 	    warn_with_pos pos (sprintf "unknown method %s starting in package %s" method_ pkg);
-	with Not_found -> (* no warning, "can't find package" is already warned *)());
+	with Not_found -> warn_with_pos pos (sprintf "unknown package %s" pkg));
 	Some vars
 
     | Method_call(o, Raw_string(method_, pos), para) ->
