@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Feb 13 2004 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.10-2mdk
+- update gtk2-perl binding fake package
+
 * Tue Jan 13 2004 Pixel <pixel@mandrakesoft.com> 1.1.11-1mdk
 - sync perl_checker_fake_packages/{Glib,Gtk2}.pm
 - perl_checker: fix build time overflow in cache
