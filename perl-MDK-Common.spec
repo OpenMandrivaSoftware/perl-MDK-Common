@@ -64,7 +64,7 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
-* Fri Aug 13 2004 Pixel <pixel@mandrakesoft.com> 1.1.18-3mdk
+* Fri Aug 13 2004 Pixel <pixel@mandrakesoft.com> 1.1.17-3mdk
 - use DESTDIR
 - add perl_checker-vim
 - add Ctrl-return in perl and cperl emacs mode
