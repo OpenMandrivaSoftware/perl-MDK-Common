@@ -255,7 +255,7 @@ sub list_skels {
 }
 
 sub list_users() {
-    map { 500 < $_->[2] && $_->[0] ne "nobody" ? $_->[0] : () } list_passwd();
+    map { 500 <= $_->[2] && $_->[0] ne "nobody" ? $_->[0] : () } list_passwd();
 }
 
 

@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 2mdk
+%define release 3mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Sep  1 2003 Pixel <pixel@mandrakesoft.com> 1.1.6-3mdk
+- MDK::Common::System::list_users() should list user 500 if it exists
+
 * Thu Aug 28 2003 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.6-2mdk
 - resync perl_checker with to perl-Gtk2-0.95-5mdk
 
