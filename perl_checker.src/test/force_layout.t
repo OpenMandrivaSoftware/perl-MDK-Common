@@ -18,3 +18,6 @@ if ($xxx) {                              missing ";"
    xxx()                                 
 }                                        
 
+if ($xxx) {                              unneeded ";"
+   xxx();                                
+};                                       

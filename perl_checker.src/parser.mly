@@ -112,7 +112,7 @@ line:
 | loop { new_1esp [$1.any] $1 }
 | LABEL { sp_cr($1); new_1esp [Label $1.any] $1 }
 | PERL_CHECKER_COMMENT {sp_p($1); new_1esp [Perl_checker_comment($1.any, get_pos $1)] $1 }
-| semi_colon {new_1esp [Semi_colon] $1 }
+| semi_colon {warn_rule [Warn_white_space] "unneeded \";\""; new_1esp [Semi_colon] $1 }
 | sideff semi_colon {new_1esp [$1.any ; Semi_colon] $1 }
 | BRACKET lines BRACKET_END            {new_esp $2.mcontext [lines_to_Block $2 $3] $1 $3}
 | BRACKET lines BRACKET_END semi_colon {new_esp $2.mcontext [lines_to_Block $2 $3] $1 $4}
