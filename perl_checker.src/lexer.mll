@@ -234,6 +234,7 @@ let raw_here_doc_next_line mark =
 let delimit_char = ref '/'
 type string_escape_kinds = Double_quote | Qq | Delimited | Here_doc
 let string_escape_kind = ref Double_quote
+let string_escape_useful = ref (Left false)
 let not_ok_for_match = ref (-1)
 let string_nestness = ref 0
 let string_is_i18n = ref false
@@ -273,9 +274,21 @@ let raw_ins_to_string t lexbuf =
   not_ok_for_match := lexeme_end lexbuf; 
   RAW_STRING(s, pos)
 let ins_to_string t lexbuf =
+  string_escape_useful := Left false ;
   let s, pos = ins t lexbuf in
-  string_is_i18n := false ;
+
+  (match !string_escape_useful, s with
+    | Right c, [ _, [] ] ->
+	let msg = 
+	  if c = "\"" then
+	    "or you can replace \"xxx\\" ^ c ^ "xxx\" with 'xxx" ^ c ^ "xxx'"
+	  else
+	    "you can replace \"xxx\\" ^ c ^ "xxx\" with 'xxx" ^ c ^ "xxx'" in
+	warn_with_pos pos msg
+    | _ -> ());
+
   not_ok_for_match := lexeme_end lexbuf; 
+  string_is_i18n := false ;
   STRING(s, pos)
 
 let next_s s t lexbuf =
@@ -710,6 +723,7 @@ and string = parse
     add_a_new_line(lexeme_end lexbuf);
     next string lexbuf
   }
+| "'" { string_escape_useful := Left true ; next string lexbuf }
 | [^ '\n' '\\' '"' '$' '@']+ { next string lexbuf }
 | eof { die_in_string lexbuf "Unterminated_string" }
 
@@ -810,22 +824,27 @@ and raw_here_doc = parse
 
 
 and string_escape = parse
-| ['0'-'9'] { next_s (String.make 1 (Char.chr (int_of_string (lexeme lexbuf)))) (Stack.pop next_rule) lexbuf }
-| '\\'{ next_s "\\" (Stack.pop next_rule) lexbuf }
-| 'n' { next_s "\n" (Stack.pop next_rule) lexbuf }
-| 't' { next_s "\t" (Stack.pop next_rule) lexbuf }
-| "x{" [^ '}']* '}' { hex_in_string lexbuf next_rule (skip_n_char_ 2 1 (lexeme lexbuf)) }
-| 'x' [^ '{'] _ { hex_in_string lexbuf next_rule (skip_n_char 1 (lexeme lexbuf)) }
+| ['0'-'9']         { string_escape_useful := Left true; next_s (String.make 1 (Char.chr (int_of_string (lexeme lexbuf)))) (Stack.pop next_rule) lexbuf }
+| 'n'               { string_escape_useful := Left true; next_s "\n" (Stack.pop next_rule) lexbuf }
+| 't'               { string_escape_useful := Left true; next_s "\t" (Stack.pop next_rule) lexbuf }
+| "x{" [^ '}']* '}' { string_escape_useful := Left true; hex_in_string lexbuf next_rule (skip_n_char_ 2 1 (lexeme lexbuf)) }
+| 'x' [^ '{'] _     { string_escape_useful := Left true; hex_in_string lexbuf next_rule (skip_n_char 1 (lexeme lexbuf)) }
 | '\n' { die lexbuf "do not use \"\\\" before end-of-line, it's useless and generally bad" }
-| ['b' 'f' '$' '@' '%' 'a' 'r' '{' '['] { next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| '\\'{ next_s "\\" (Stack.pop next_rule) lexbuf }
+| ['b' 'f' '$' '@' '%' 'a' 'r' '{' '['] { 
+	if !string_escape_useful = Left false then string_escape_useful := Right (lexeme lexbuf) ;
+	next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf 
+  }
 | _   { 
     let c = lexeme lexbuf in
     (match !string_escape_kind with
     | Double_quote -> 
 	if c <> "\"" then
 	  warn_escape_unneeded lexbuf c
-	else if not !string_is_i18n then
+	else if not !string_is_i18n then (
+	  if !string_escape_useful = Left false then string_escape_useful := Right c ;
 	  warn lexbuf "you can replace \"xxx\\\"xxx\" with qq(xxx\"xxx), that way you don't need to escape <\">"
+	)
     | Qq -> if c <> "(" && c <> ")" then warn_escape_unneeded lexbuf c
     | Here_doc -> warn_escape_unneeded lexbuf c
     | Delimited -> if c = String.make 1 !delimit_char then 
