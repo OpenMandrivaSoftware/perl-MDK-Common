@@ -8,7 +8,7 @@ let raw_pos2pos(a, b) = !Info.current_file, a, b
 let pos_range (_, (_, (a1, b1))) (_, (_, (a2, b2))) = raw_pos2pos((if a1 = -1 then a2 else a1), (if b2 = -1 then b1 else b2))
 let sp_pos_range (_, (space, (a1, b1))) (_, (_, (a2, b2))) = space, ((if a1 = -1 then a2 else a1), (if b2 = -1 then b1 else b2))
 let get_pos (_, (_, pos)) = raw_pos2pos pos
-let var_dollar_ = Deref(I_scalar, Ident(None, "_", raw_pos2pos bpos))
+let var_dollar_ pos = Deref(I_scalar, Ident(None, "_", pos))
 let var_STDOUT = Deref(I_star, Ident(None, "STDOUT", raw_pos2pos bpos))
 
 let is_var_dollar_ = function
@@ -227,19 +227,21 @@ let sp_same (_, (spaces1, _) as ter1) (_, (spaces2, _) as ter2) =
 
 let check_word_alone (word, _) =
   match word with
-  | Ident(None, f, _) ->
+  | Ident(None, f, pos) ->
       (match f with
       | "length" | "stat" | "lstat" | "chop" | "chomp" | "quotemeta" | "lc" | "lcfirst" | "uc" | "ucfirst" ->
-	  Deref(I_func, word)
+	  Call(Deref(I_func, word), [var_dollar_ pos])
 
-      | "split" | "shift" 
-      | "return" | "eof" | "die" | "caller" 
+      | "split" -> Call(Deref(I_func, word), [ Raw_string(" ", pos) ; var_dollar_ pos ])
+      | "shift" -> Call(Deref(I_func, word), [ Deref(I_array,  Ident(None, "_", raw_pos2pos bpos)) ])
+      | "die"   -> Call(Deref(I_func, word), [ Deref(I_scalar, Ident(None, "@", raw_pos2pos bpos)) ])
+      | "return" | "eof" | "caller" 
       | "redo" | "next" | "last" -> 
 	  Deref(I_func, word)
 
       | "hex" | "ref" -> 
 	  warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" f f) ;
-	  Deref(I_func, word)
+	  Call(Deref(I_func, word), [ Raw_string(" ", pos) ; var_dollar_ pos ])
       | "time" | "wantarray" | "fork" | "getppid" | "arch" -> 
 	  warn_rule (sprintf "please use %s() instead of %s" f f) ;
 	  Deref(I_func, word)
@@ -399,8 +401,9 @@ let to_Local ((_, e), (_, pos)) =
     | _ -> [e]
   in
   let local_vars, local_exprs = fpartition (function
-    | Deref(I_star, Ident(None, ident, _)) ->
-	Some(I_star, ident)
+    | Deref(I_star as context, Ident(None, ident, _))
+    | Deref(I_scalar as context, Ident(None, ("_" as ident), _)) ->
+	Some(context, ident)
     | Deref(I_scalar, Ident _)
     | Deref(I_array, Ident _)
     | Deref(I_star, Ident _)
@@ -419,7 +422,7 @@ let op prio s (_, both) = prio, (((), both), s)
 let op_p prio s e = sp_p e ; op prio s e
 
 let sub_declaration (name, proto) body = Sub_declaration(name, proto, Block body)
-let anonymous_sub body = Anonymous_sub (Block body)
+let anonymous_sub (body, (_, pos)) = Anonymous_sub (Block body, raw_pos2pos pos)
 
 let cook_call_op(op, para, pos) =
   let call = Call_op(op, para, raw_pos2pos pos) in
@@ -499,6 +502,13 @@ let call_func is_a_func (e, para) =
 	  if para = [] then warn_rule "length() with no parameter !?" else
 	  if is_not_a_scalar (List.hd para) then warn_rule "never use \"length @l\", it returns the length of the string int(@l)" ;
 	  None
+
+      | "split" ->
+	  (match para with
+	  | [ List(Call_op("m//", Deref(I_scalar, Ident(None, "_", _)) :: pattern, pos) :: l) ]
+	  | Call_op("m//", Deref(I_scalar, Ident(None, "_", _)) :: pattern, pos) :: l ->
+	      Some(Call_op("qr//", pattern, pos) :: l)
+	  | _ -> None)
 	    
       | _ -> None
       in Call(e, some_or para' para)

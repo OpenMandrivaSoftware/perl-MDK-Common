@@ -112,7 +112,7 @@ let get_exported t =
 	if exports.export_ok <> [] then warn_with_pos pos "weird, @EXPORT_OK set twice" ;
 	(match v with
 	| Call(Deref(I_func, Ident(None, "map", _)), 
-	       [ Anonymous_sub(Block [List [Deref(I_array, Deref(I_scalar, Ident (None, "_", _)))]]);
+	       [ Anonymous_sub(Block [List [Deref(I_array, Deref(I_scalar, Ident (None, "_", _)))]], _);
 		 Call(Deref(I_func, Ident(None, "values", _)), [ Deref(I_hash, Ident(None, "EXPORT_TAGS", _))])]) ->
 		   { exports with export_ok = collect snd exports.export_tags }
 	| _ -> { exports with export_ok = from_qw v })
@@ -252,7 +252,7 @@ let rec fold_tree f env e =
   | Some env -> env
   | None ->
   match e with
-  | Anonymous_sub(e')
+  | Anonymous_sub(e', _)
   | Ref(_, e')
   | Deref(_, e')
     -> fold_tree f env e'
@@ -357,12 +357,12 @@ let is_global_var context ident =
   match context with
   | I_scalar -> 
       (match ident with
-      | "_" | "@" | "!" | ">" | "\\" | "$" | "^A" | "'" | "/" | "?" | "<" | "^W" | "|" | "^I" | "&"
+      | "@" | "!" | ">" | "\\" | "$" | "^A" | "'" | "/" | "?" | "<" | "^W" | "|" | "^I" | "&"
       | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" -> true
       | _ -> false)
   | I_array -> 
       (match ident with
-      | "_" | "ARGV" | "INC" -> true
+      | "ARGV" | "INC" -> true
       | _ -> false)
   | I_hash ->
       (match ident with
@@ -429,7 +429,7 @@ let declare_Our vars (ours, pos) =
   | [] -> vars (* we're at the toplevel, already declared in vars_declared *)
   | l_pre :: other ->
       List.iter (fun v ->
-	if List.mem_assoc v l_pre then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
+	if List.mem_assoc v l_pre && v <> (I_scalar, "_") then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
       ) ours ;
       { vars with our_vars = (List.map (fun v -> v, (pos, ref false)) ours @ l_pre) :: other }
 
@@ -455,11 +455,26 @@ let check_variables vars t =
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
 	Some vars
-    | Call(Deref(I_func, Ident(None, "sort", pos)), (Anonymous_sub(Block f) :: l)) ->
+    | Call(Deref(I_func, Ident(None, "sort", _)), (Anonymous_sub(Block f, pos) :: l)) ->
 	let vars = List.fold_left check_variables_ vars l in
 	let vars' = { vars with my_vars = [ (I_scalar, "a"), (pos, ref true) ; (I_scalar, "b"), (pos, ref true) ] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' f in
 	check_unused_local_variables vars' ;
+	Some vars
+
+    | Call(Deref(I_func, Ident(None, func, _)), Anonymous_sub(Block f, pos) :: l) when func = "grep" || func = "map" || func = "substInFile" || func = "map_index" || func = "each_index" || func = "partition" || func = "find_index" || func = "grep_index" ->
+	let vars = List.fold_left check_variables_ vars l in
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true)] :: vars.our_vars } in
+	let vars' = List.fold_left check_variables_ vars' f in
+	check_unused_local_variables vars' ;
+	Some vars
+
+    | Call_op("while infix", [ expr ; (List [ Call_op("<>", _, _) ] as l) ], pos)
+    | Call_op("for infix", [ expr ; l ], pos) ->
+	let vars = check_variables_ vars l in
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true)] :: vars.our_vars } in
+	let vars' = check_variables_ vars' expr in
+	if List.hd(vars'.my_vars) <> [] then warn_with_pos pos "you can't declare variables in foreach infix";
 	Some vars
 
     | Call_op("foreach my", [my; expr; Block block], _) ->
@@ -474,17 +489,29 @@ let check_variables vars t =
 	let vars = List.fold_left check_variables_ vars other in
 	Some vars
 
-    | Sub_declaration(Ident(None, "AUTOLOAD", pos) as ident, _proto, Block l) ->
+    | Sub_declaration(Ident(fq, name, pos) as ident, _proto, Block l) ->
 	let vars = declare_Our vars ([ I_func, string_of_Ident ident ], pos) in
-	let vars' = { vars with my_vars = [ (I_scalar, "AUTOLOAD"), (pos, ref true) ] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
+	let local_vars = ((I_array, "_"), (pos, ref true)) :: (if fq = None && name = "AUTOLOAD" then [ (I_scalar, "AUTOLOAD"), (pos, ref true) ] else []) in
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = local_vars :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
 	Some vars
 
-    | Sub_declaration(Ident(_, _, pos) as ident, _proto, body) ->
-	let vars = declare_Our vars ([ I_func, string_of_Ident ident ], pos) in
-	let vars = check_variables_ vars body in
+    | Anonymous_sub(Block l, pos) ->
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_array, "_"), (pos, ref true)] :: vars.our_vars } in
+	let vars' = List.fold_left check_variables_ vars' l in
+	check_unused_local_variables vars' ;
 	Some vars
+
+    | Call_op("foreach", [ expr ; Block l ], pos) ->
+	let vars = check_variables_ vars expr in
+	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true)] :: vars.our_vars } in
+	let vars' = List.fold_left check_variables_ vars' l in
+	check_unused_local_variables vars' ;
+	Some vars
+
+    | Anonymous_sub _
+    | Sub_declaration _ -> internal_error "check_variables"
 
     | Ident _ as var ->
 	check_variable (I_star, var) vars ;

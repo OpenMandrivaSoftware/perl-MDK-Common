@@ -5,7 +5,7 @@ val pos_range :
 val sp_pos_range :
   'a * ('b * (int * int)) -> 'c * ('d * (int * int)) -> 'b * (int * int)
 val get_pos : 'a * ('b * ('c * 'd)) -> string * 'c * 'd
-val var_dollar_ : Types.fromparser
+val var_dollar_ : Types.pos -> Types.fromparser
 val var_STDOUT : Types.fromparser
 val is_var_dollar_ : Types.fromparser -> bool
 val is_var_number_match : Types.fromparser -> bool
@@ -110,7 +110,8 @@ val op_p :
   'a * ((unit * (Types.spaces * (int * 'd))) * 'b)
 val sub_declaration :
   Types.fromparser * string -> Types.fromparser list -> Types.fromparser
-val anonymous_sub : Types.fromparser list -> Types.fromparser
+val anonymous_sub :
+  Types.fromparser list * ('a * (int * int)) -> Types.fromparser
 val cook_call_op :
   string * Types.fromparser list * (int * int) -> Types.fromparser
 val call_op_ :

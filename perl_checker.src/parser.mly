@@ -19,7 +19,7 @@
 %token <(string * ((int * int) * token) list) list * (Types.spaces * Types.raw_pos)> STRING COMMAND_STRING
 %token <((string * ((int * int) * token) list) list * Types.raw_pos) * (Types.spaces * Types.raw_pos)> HERE_DOC
 
-%token <((string * ((int * int) * token) list) list * string) * (Types.spaces * Types.raw_pos)> PATTERN
+%token <((string * ((int * int) * token) list) list * string) * (Types.spaces * Types.raw_pos)> PATTERN QR_PATTERN
 %token <((string * ((int * int) * token) list) list * (string * ((int * int) * token) list) list * string) * (Types.spaces * Types.raw_pos)> PATTERN_SUBST
 
 %token <(string option * string) * (Types.spaces * Types.raw_pos)> SCALAR_IDENT ARRAY_IDENT HASH_IDENT FUNC_IDENT STAR_IDENT RAW_IDENT RAW_IDENT_PAREN ARRAYLEN_IDENT
@@ -224,6 +224,8 @@ term:
 | term PATTERN_MATCH PATTERN_SUBST {sp_n($2); sp_p($3); check_unneeded_var_dollar_s  ($1); to_Call_op_(P_expr, "s///", sndfst $1 :: from_PATTERN_SUBST $3) (sp_pos_range $1 $3)}
 | term PATTERN_MATCH_NOT PATTERN_SUBST {die_with_rawpos (sndsnd $2) "use =~ instead of !~ and negate the return value"}
 
+| term PATTERN_MATCH     QR_PATTERN {sp_n($2); sp_p($3); to_Call_op_(P_expr, "m//",  sndfst $1 :: from_PATTERN $3) (sp_pos_range $1 $3)}
+| term PATTERN_MATCH_NOT QR_PATTERN {sp_n($2); sp_p($3); to_Call_op_(P_expr, "!m//", sndfst $1 :: from_PATTERN $3) (sp_pos_range $1 $3)}
 | term PATTERN_MATCH     scalar { (P_expr, Call(Too_complex, [sndfst $1 ; fst $3 ])), sp_pos_range $1 $3}
 | term PATTERN_MATCH_NOT scalar { (P_expr, Call(Too_complex, [sndfst $1 ; fst $3 ])), sp_pos_range $1 $3}
 
@@ -265,8 +267,8 @@ term:
 
 | BRACKET BRACKET_END {(P_expr, Ref(I_hash, List [])), sp_pos_range $1 $2} /* empty hash */
 | BRACKET_HASHREF expr BRACKET_END %prec PREC_HIGH {sp_p($3); (P_expr, Ref(I_hash, sndfst $2)), sp_pos_range $1 $3} /* { foo => "Bar" } */
-| SUB BRACKET BRACKET_END %prec PREC_HIGH {sp_n($2); sp_0($3); (P_expr, anonymous_sub []), sp_pos_range $1 $3}
-| SUB BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); check_block_sub $3 $4; (P_expr, anonymous_sub(fst $3)), sp_pos_range $1 $4}
+| SUB BRACKET BRACKET_END %prec PREC_HIGH {sp_n($2); sp_0($3); (P_expr, anonymous_sub ([], snd $2)), sp_pos_range $1 $3}
+| SUB BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); check_block_sub $3 $4; (P_expr, anonymous_sub $3), sp_pos_range $1 $4}
 
 | termdo {(P_tok, fst $1), snd $1}
 | REF term {(P_expr, Ref(I_scalar, sndfst $2)), sp_pos_range $1 $2} /* \$x, \@y, \%z */
@@ -288,9 +290,9 @@ term:
 | func parenthesized {sp_0($2); (P_tok, call_func true (fst $1, sndfst $2)), sp_pos_range $1 $2} /* &foo(@args) */
 | word argexpr {check_parenthesized_first_argexpr (string_of_Ident (fst $1)) $2; (P_call_no_paren, call(Deref(I_func, fst $1), sndfst $2)), sp_pos_range $1 $2} /* foo $a, $b */
 | word_paren parenthesized {sp_0($2); (P_tok, call(Deref(I_func, fst $1), sndfst $2)), sp_pos_range $1 $2} /* foo(@args) */
-| word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); check_block_sub $3 $4; ((if sndfst $5 = [] then P_tok else P_call_no_paren), call(Deref(I_func, fst $1), anonymous_sub(fst $3) :: sndfst $5)), sp_pos_range $1 $5} /* map { foo } @bar */
-| word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); ((if sndfst $7 = [] then P_tok else P_call_no_paren), call(Deref(I_func, fst $1), anonymous_sub [ Ref(I_hash, sndfst $4) ] :: sndfst $7)), sp_pos_range $1 $7} /* map { { foo } } @bar */
-| word BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); ((if sndfst $8 = [] then P_tok else P_call_no_paren), call(Deref(I_func, fst $1), anonymous_sub [ Ref(I_hash, sndfst $4); Semi_colon ] :: sndfst $8)), sp_pos_range $1 $8} /* map { { foo }; } @bar */
+| word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); check_block_sub $3 $4; ((if sndfst $5 = [] then P_tok else P_call_no_paren), call(Deref(I_func, fst $1), anonymous_sub $3 :: sndfst $5)), sp_pos_range $1 $5} /* map { foo } @bar */
+| word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); ((if sndfst $7 = [] then P_tok else P_call_no_paren), call(Deref(I_func, fst $1), anonymous_sub([ Ref(I_hash, sndfst $4) ], snd $4) :: sndfst $7)), sp_pos_range $1 $7} /* map { { foo } } @bar */
+| word BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); ((if sndfst $8 = [] then P_tok else P_call_no_paren), call(Deref(I_func, fst $1), anonymous_sub([ Ref(I_hash, sndfst $4); Semi_colon ], snd $4) :: sndfst $8)), sp_pos_range $1 $8} /* map { { foo }; } @bar */
 
 | term ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); (P_tok, to_Method_call(sndfst $1, fst $3, sndfst $4)), sp_pos_range $1 $4} /* $foo->bar(list) */
 | term ARROW word_or_scalar {sp_0($2); sp_0($3); (P_tok, to_Method_call(sndfst $1, fst $3, [])), sp_pos_range $1 $3} /* $foo->bar */
@@ -304,11 +306,11 @@ term:
 | NEW word terminal { die_rule "you must parenthesize parameters: \"new Class(...)\" instead of \"new Class ...\"" }
 | NEW word variable { die_rule "you must parenthesize parameters: \"new Class(...)\" instead of \"new Class ...\"" }
 
-| PRINT { to_Call_op_(P_call_no_paren, fst $1, var_STDOUT :: [ var_dollar_ ]) (snd $1)}
+| PRINT { to_Call_op_(P_call_no_paren, fst $1, var_STDOUT :: [ var_dollar_ (get_pos $1) ]) (snd $1)}
 | PRINT argexpr {check_parenthesized_first_argexpr (fst $1) $2; to_Call_op_(P_call_no_paren, fst $1, var_STDOUT :: sndfst $2) (sp_pos_range $1 $2)}
 | PRINT_TO_SCALAR         { to_Call_op_(P_call_no_paren, fstfst $1, var_STDOUT :: [ Deref(I_scalar, Ident(None, sndfst $1, get_pos $1)) ]) (snd $1)}
 | PRINT_TO_SCALAR argexpr { to_Call_op_(P_call_no_paren, fstfst $1, Deref(I_scalar, Ident(None, sndfst $1, get_pos $1)) :: sndfst $2) (sp_pos_range $1 $2)}
-| PRINT_TO_STAR           { to_Call_op_(P_call_no_paren, fstfst $1, Deref(I_star, Ident(None, sndfst $1, get_pos $1)) :: [ var_dollar_ ]) (snd $1)}
+| PRINT_TO_STAR           { to_Call_op_(P_call_no_paren, fstfst $1, Deref(I_star, Ident(None, sndfst $1, get_pos $1)) :: [ var_dollar_ (get_pos $1) ]) (snd $1)}
 | PRINT_TO_STAR argexpr   { to_Call_op_(P_call_no_paren, fstfst $1, Deref(I_star, Ident(None, sndfst $1, get_pos $1)) :: sndfst $2) (sp_pos_range $1 $2)}
 
 | hash PKG_SCOPE {sp_0($2); (P_tok, Call(Too_complex, [fst $1])), sp_pos_range $1 $2} /* %main:: */
@@ -325,8 +327,9 @@ terminal:
 | QUOTEWORDS {to_Call_op_(P_tok, "qw", [to_Raw_string $1]) (snd $1)}
 | HERE_DOC {(P_tok, to_String false (fstfst $1, snd $1)), snd $1}
 | RAW_HERE_DOC {(P_tok, Raw_string(fstfst $1, raw_pos2pos (sndfst $1))), snd $1}
-| PATTERN {to_Call_op_(P_expr, "m//", var_dollar_ :: from_PATTERN $1) (snd $1)}
-| PATTERN_SUBST {to_Call_op_(P_expr, "s///", var_dollar_ :: from_PATTERN_SUBST $1) (snd $1)}
+| QR_PATTERN {to_Call_op_(P_tok, "qr//", from_PATTERN $1) (snd $1)}
+| PATTERN {to_Call_op_(P_expr, "m//", var_dollar_ (get_pos $1) :: from_PATTERN $1) (snd $1)}
+| PATTERN_SUBST {to_Call_op_(P_expr, "s///", var_dollar_ (get_pos $1) :: from_PATTERN_SUBST $1) (snd $1)}
 | diamond {(P_expr, fst $1), snd $1}
 
 diamond:

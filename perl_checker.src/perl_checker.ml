@@ -78,7 +78,7 @@ let parse_options =
   let usage = "Usage: perl_checker [-v] [-q] <files>\nOptions are:" in
   Arg.parse options (lpush args_r) usage;
 
-  let args = if !args_r = [] then (Unix.chdir "/home/pixel/cooker/gi/perl-install" ; ["/home/pixel/cooker/gi/perl-install/t.pl"]) else !args_r in
+  let args = if !args_r = [] then ["../t.pl"] else !args_r in
   let required_packages, state = collect_withenv parse_file default_state args in
 
   let state = parse_required_packages state required_packages in

@@ -33,7 +33,7 @@ type fromparser =
    | Call of fromparser * fromparser list
    | Method_call of fromparser * fromparser * fromparser list
 
-   | Anonymous_sub of fromparser
+   | Anonymous_sub of fromparser * pos
    | My_our of string * (context * string) list * pos
    | Use of fromparser * fromparser list
    | Sub_declaration of fromparser * string * fromparser (* name, prototype, body *)

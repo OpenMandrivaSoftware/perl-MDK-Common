@@ -14,6 +14,7 @@ type raw_token =
   | RAW_STRING of (string * raw_pos)
   | STRING of (raw_interpolated_string * raw_pos)
   | PATTERN of (raw_interpolated_string * string * raw_pos)
+  | QR_PATTERN of (raw_interpolated_string * string * raw_pos)
   | PATTERN_SUBST of (raw_interpolated_string * raw_interpolated_string * string * raw_pos)
   | BAREWORD of (string * raw_pos)
   | BAREWORD_PAREN of (string * raw_pos)
@@ -66,6 +67,7 @@ let rec raw_token_to_pos_and_token spaces = function
   | RAW_HERE_DOC(r, pos) -> pos, Parser.RAW_HERE_DOC(!r, (spaces, pos))
   | STRING(l, pos) -> pos, Parser.STRING(raw_interpolated_string_to_tokens l, (spaces, pos))
   | COMMAND_STRING(l, pos) -> pos, Parser.COMMAND_STRING(raw_interpolated_string_to_tokens l, (spaces, pos))
+  | QR_PATTERN(s, opts, pos) -> pos, Parser.QR_PATTERN((raw_interpolated_string_to_tokens s, opts), (spaces, pos))
   | PATTERN(s, opts, pos) -> pos, Parser.PATTERN((raw_interpolated_string_to_tokens s, opts), (spaces, pos))
   | PATTERN_SUBST(from, to_, opts, pos) -> pos, Parser.PATTERN_SUBST((raw_interpolated_string_to_tokens from, raw_interpolated_string_to_tokens to_, opts), (spaces, pos))
   | HERE_DOC(l, pos) -> pos, Parser.HERE_DOC((raw_interpolated_string_to_tokens (fst !l), snd !l), (spaces, pos))
@@ -504,7 +506,7 @@ rule token = parse
   let s, pos = ins delimited_string lexbuf in
   let opts, _ = raw_ins pattern_options lexbuf in
   check_multi_line_delimited_string (Some opts) pos ;
-  PATTERN(s, opts, pos)
+  QR_PATTERN(s, opts, pos)
 }
 
 | "s" pattern_separator {
