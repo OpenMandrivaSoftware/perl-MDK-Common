@@ -180,7 +180,7 @@ sub cp_with_option {
 	    }
 	} elsif (-d $src) {
 	    -d $dest or mkdir $dest, (stat($src))[2] or die "mkdir: can't create directory $dest: $!\n";
-	    cp_af(glob_($src), $dest);
+	    cp_with_option($option, glob_($src), $dest);
 	} elsif ((-b $src || -c $src) && $keep_special) {
 	    my @stat = stat($src);
 	    require MDK::Common::System;
