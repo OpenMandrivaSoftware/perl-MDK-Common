@@ -252,8 +252,9 @@ val from_PATTERN_SUBST :
    (string * ((int * int) * 'a) list) list * string)
   Types.any_spaces_pos -> Types.fromparser list
 val mcontext2s : Types.maybe_context -> string
-val mcontext_is_scalar : Types.maybe_context -> bool
 val mcontext_lower : Types.maybe_context -> Types.maybe_context -> bool
+val mcontext_is_scalar : Types.maybe_context -> bool
+val mcontext_to_scalar : Types.maybe_context -> Types.maybe_context
 val mcontext_merge_raw :
   Types.maybe_context -> Types.maybe_context -> Types.maybe_context option
 val mcontext_lmerge_add :
@@ -263,34 +264,29 @@ val mcontext_merge :
   Types.maybe_context -> Types.maybe_context -> Types.maybe_context
 val mcontext_lmaybe :
   'a list Types.any_spaces_pos -> Types.maybe_context list
-val mcontext_check_raw :
-  Types.maybe_context ->
-  'a Types.any_spaces_pos ->
-  (unit -> 'b) -> (unit -> 'b) -> (unit -> 'b) -> 'b
+val mcontext_check_raw : Types.maybe_context -> Types.maybe_context -> unit
 val mcontext_check :
   Types.maybe_context ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos -> unit
-val mcontext_symops :
+val mcontext_check_unop_l :
   Types.maybe_context ->
-  'a Types.any_spaces_pos -> 'b Types.any_spaces_pos -> Types.maybe_context
-val mcontext_rightops :
-  Types.maybe_context ->
-  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
-  'a Types.any_spaces_pos -> Types.maybe_context
-val mcontext_unop :
-  Types.maybe_context ->
-  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
-  Types.maybe_context
-val mcontext_unop_l :
-  Types.maybe_context ->
-  Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
-  Types.maybe_context
+  Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos -> unit
 val mcontext_check_non_none : 'a Types.any_spaces_pos -> unit
 val mcontext_check_none :
   string -> Types.fromparser list -> 'a Types.any_spaces_pos -> unit
+val mcontext_float_or_int : Types.maybe_context list -> Types.maybe_context
 val mcontext_op_assign :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
   Types.maybe_context
 val mtuple_context_concat :
   Types.maybe_context -> Types.maybe_context -> Types.maybe_context
+val symops :
+  Types.priority ->
+  Types.maybe_context ->
+  Types.maybe_context ->
+  string ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
+  'a Types.any_spaces_pos ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos

@@ -1,8 +1,8 @@
 if ($xxx or $yyy) {}                     value should be dropped
-                                         context () is not compatible with context scalar
+                                         context () is not compatible with context bool
 
 if ($xxx and $yyy) {}                    value should be dropped
-                                         context () is not compatible with context scalar
+                                         context () is not compatible with context bool
 
 $xxx && yyy();                           value is dropped
 
@@ -14,3 +14,4 @@ map { xxx($_) } @l;                      if you don't use the return value, use 
 
 $xxx = chomp;                            () context not accepted here
                                          context () is not compatible with context scalar
+

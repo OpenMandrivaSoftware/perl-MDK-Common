@@ -343,6 +343,30 @@ let sp_same esp1 esp2 =
   if esp1.spaces <> Space_0 then sp_p esp2
   else if esp2.spaces <> Space_0 then sp_p esp1
 
+let function_to_context = function
+  | "map" | "grep" | "grep_index" | "map_index" -> M_array
+  | "partition" -> M_tuple [ M_ref M_array ; M_ref M_array ]
+  | "find" -> M_unknown_scalar
+  | "any" | "every" -> M_bool
+  | "find_index" -> M_int
+  | "each_index" -> M_none
+  | "N" | "N_" -> M_string
+
+  | "chop" | "chomp" -> M_none
+  | "hex" | "length" | "time" | "fork" | "getppid" -> M_int
+  | "eof" | "wantarray" -> M_int
+  | "stat" | "lstat" -> M_list
+  | "arch" | "quotemeta" | "join" | "lc" | "lcfirst" | "uc" | "ucfirst" -> M_string
+	    
+  | "split" -> M_array
+  | "shift" | "pop" -> M_unknown_scalar
+  | "die" | "return" | "redo" | "next" | "last" -> M_unknown
+  | "caller" -> M_mixed [M_string ; M_list]
+  | "undef"	-> M_undef
+	
+  | "ref" -> M_ref M_unknown_scalar
+  | _ -> M_unknown
+
 let word_alone esp =
   let word = esp.any in
   let mcontext, e = match word with
@@ -365,22 +389,7 @@ let word_alone esp =
 	  Deref(I_func, word)
       | _ -> word
       in
-      let mcontext = match f with
-      | "chop" | "chomp" -> M_none
-      | "hex" | "length" | "time" | "fork" | "getppid" -> M_int
-      | "eof" | "wantarray" -> M_int
-      | "stat" | "lstat" -> M_list
-      | "arch" | "quotemeta" | "join" | "lc" | "lcfirst" | "uc" | "ucfirst" -> M_string
-	    
-      | "split" -> M_array
-      | "shift" | "pop" -> M_scalar
-      | "die" | "return" | "redo" | "next" | "last" -> M_unknown
-      | "caller" -> M_mixed [M_string ; M_list]
-      | "undef"	-> M_undef
-
-      | "ref" -> M_ref M_scalar
-      | _ -> M_unknown
-      in mcontext, e
+      function_to_context f, e
   | _ -> M_unknown, word
   in
   new_pesp mcontext P_tok e esp esp
@@ -919,15 +928,7 @@ let check_return esp_func esp_para =
 let call_and_context(e, para) force_non_builtin_func priority esp_start esp_end =
   let context = 
     match e with
-    | Deref(I_func, Ident(None, f, _)) ->
-	(match f with
-	| "map" | "grep" | "grep_index" | "map_index" | "partition" -> M_list
-	| "find" -> M_scalar
-	| "any" | "every" -> M_scalar
-	| "find_index" -> M_int
-	| "each_index" -> M_none
-	| "N" | "N_" -> M_string
-	| _ -> M_unknown)
+    | Deref(I_func, Ident(None, f, _)) -> function_to_context f
     | _ -> M_unknown
   in
   new_pesp context priority (call_raw force_non_builtin_func (e, para)) esp_start esp_end
@@ -1047,7 +1048,7 @@ let rec mcontext2s = function
   | M_revision -> "revision"
   | M_undef -> "undef"
   | M_sub -> "sub"
-  | M_scalar -> "scalar"
+  | M_unknown_scalar -> "scalar"
 
   | M_tuple l -> "tuple(" ^ String.concat ", " (List.map mcontext2s l) ^ ")"
   | M_list -> "list"
@@ -1058,62 +1059,68 @@ let rec mcontext2s = function
   | M_unknown -> "unknown"
   | M_mixed l -> String.concat " | " (List.map mcontext2s l)
 
-let mcontext_is_scalar = function
-  | M_int | M_float | M_string | M_ref _ | M_revision | M_undef
-  | M_scalar | M_array -> true
-  | _ -> false
-
 let rec mcontext_lower c1 c2 =
   match c1, c2 with
   | M_special, _ | _, M_special -> internal_error "M_special in mcontext_compare"
 
-  | M_array, M_array | M_array, M_int | M_array, M_float | M_array, M_scalar | M_array, M_tuple _ | M_array, M_list
-  | M_hash, M_hash | M_hash, M_scalar | M_hash, M_tuple _ | M_hash, M_list
+  | M_unknown, _
+  | _, M_unknown -> true
 
-  | M_bool, M_bool | M_bool, M_scalar | M_bool, M_list
+  | M_none, M_none | M_sub, M_sub | M_hash, M_hash -> true
+  | M_none, _      | M_sub, _     | M_hash, _      -> false
 
-  | M_int, M_int | M_int, M_float | M_int, M_string | M_int, M_scalar | M_int, M_list
-  | M_float, M_float | M_float, M_string | M_float, M_scalar | M_float, M_list
-  | M_ref _, M_scalar | M_ref _, M_list
-  | M_string, M_string | M_string, M_scalar | M_string, M_list
-  | M_revision, M_revision | M_revision, M_scalar | M_revision, M_list
-  | M_undef, M_undef | M_undef, M_scalar | M_undef, M_list
-  | M_scalar, M_scalar | M_scalar, M_list
+  | _, M_list -> true
+
+  | M_list, M_bool
+
+    (* M_unknown_scalar is M_mixed [ M_int ; M_float ; M_string ; M_bool ; M_ref _ ; M_revision ; M_undef ] *)
+  | M_unknown_scalar, M_int | M_unknown_scalar, M_float | M_unknown_scalar, M_string | M_unknown_scalar, M_bool 
+  | M_unknown_scalar, M_ref _ | M_unknown_scalar, M_revision | M_unknown_scalar, M_undef | M_unknown_scalar, M_unknown_scalar
+
+  | M_array, M_array | M_array, M_int | M_array, M_float | M_array, M_bool | M_array, M_unknown_scalar | M_array, M_tuple _
+  | M_int, M_int | M_int, M_float | M_int, M_string | M_int, M_bool | M_int, M_unknown_scalar
+  | M_float, M_float | M_float, M_string | M_float, M_bool | M_float, M_unknown_scalar
+  | M_string, M_string | M_string, M_bool | M_string, M_unknown_scalar
+  | M_bool, M_bool | M_bool, M_unknown_scalar
+
+  | M_ref _, M_unknown_scalar
+  | M_revision, M_revision | M_revision, M_unknown_scalar
+  | M_undef, M_undef | M_undef, M_unknown_scalar
+
     -> true
-
-  | M_bool, M_tuple (c :: _) | M_int, M_tuple (c :: _) | M_float, M_tuple (c :: _) | M_ref _, M_tuple (c :: _) | M_string, M_tuple (c :: _) | M_revision, M_tuple (c :: _) | M_scalar, M_tuple (c :: _)
-    -> mcontext_lower c1 c
 
   | M_tuple t1, M_tuple t2 -> 
       List.length t1 <= List.length t2 && for_all2_true mcontext_lower t1 t2
-  | M_tuple _, M_list
 
-  | M_list, M_list
-  | M_none, M_none
-  | M_sub, M_sub
+  | M_int, M_tuple (c :: _) | M_float, M_tuple (c :: _) | M_string, M_tuple (c :: _) | M_bool, M_tuple (c :: _) 
+  | M_ref _, M_tuple (c :: _) | M_revision, M_tuple (c :: _) | M_undef, M_tuple (c :: _) | M_unknown_scalar, M_tuple (c :: _)
+    -> mcontext_lower c1 c
 
-  | _, M_unknown
+(*  | M_ref a, M_ref b -> mcontext_lower a b *)
 
-    -> true
-
-  | M_ref a, M_ref b -> mcontext_lower a b
-  | c, M_mixed l -> List.exists (mcontext_lower c) l
+(*  | c, M_mixed l -> List.exists (mcontext_lower c) l*)
   | M_mixed l, c -> List.exists (fun a -> mcontext_lower a c) l
 
   | _ -> false
+
+let mcontext_is_scalar = function
+  | M_unknown -> false
+  | c -> mcontext_lower c M_unknown_scalar
+
+let mcontext_to_scalar = function
+  | M_array -> M_int
+  | c -> if mcontext_is_scalar c then c else M_unknown_scalar
 
 let mcontext_merge_raw c1 c2 =
   match c1, c2 with
   | M_unknown, _ | _, M_unknown -> Some M_unknown
   | M_mixed _, _ | _, M_mixed _ -> internal_error "mcontext_merge_raw"
   | _ -> 
-      (*
       if mcontext_lower c1 c2 then Some c2 else
       if mcontext_lower c2 c1 then Some c1 else
-       *)
       if c1 = c2 then Some c1 else
       if mcontext_is_scalar c1 && mcontext_is_scalar c2 
-      then Some M_scalar 
+      then Some M_unknown_scalar 
       else None
 
 let rec mcontext_lmerge_add l = function
@@ -1138,48 +1145,24 @@ let mcontext_merge c1 c2 = mcontext_lmerge [ c1 ; c2 ]
 
 let mcontext_lmaybe esp = if esp.any = [] then [] else [esp.mcontext]
 
-let mcontext_check_raw wanted_mcontext esp f_lower f_greater f_err =
-  if mcontext_lower esp.mcontext wanted_mcontext then
-    f_lower()
-  else if mcontext_lower wanted_mcontext esp.mcontext then
-    f_greater()
-  else 
-    (warn_rule (sprintf "context %s is not compatible with context %s" (mcontext2s esp.mcontext) (mcontext2s wanted_mcontext)); 
-     f_err())
+let mcontext_check_raw wanted_mcontext mcontext =
+  if not (mcontext_lower mcontext wanted_mcontext) then
+    warn_rule (sprintf "context %s is not compatible with context %s" (mcontext2s mcontext) (mcontext2s wanted_mcontext))
 
 let mcontext_check wanted_mcontext esp =
   (match wanted_mcontext with
   | M_list | M_array | M_mixed [M_array; M_none] | M_tuple _ -> ()
   | _ ->
     match un_parenthesize_full esp.any.expr with
-    | Call(Deref(I_func, Ident(None, "grep", _)), _) -> warn_rule "in boolean context, use \"any\" instead of \"grep\""
+    | Call(Deref(I_func, Ident(None, "grep", _)), _) -> 
+	warn_rule (if wanted_mcontext = M_bool then
+	  "in boolean context, use \"any\" instead of \"grep\"" else
+	  "you may use \"find\" instead of \"grep\"")
     | _ -> ());
-  mcontext_check_raw wanted_mcontext esp (fun () -> ()) (fun () -> ()) (fun () -> ())
+  mcontext_check_raw wanted_mcontext esp.mcontext
 
-let mcontext_symops wanted_mcontext esp1 esp2 =
-  mcontext_check_raw wanted_mcontext esp1 
-    (fun () ->
-      mcontext_check_raw wanted_mcontext esp2
-	(fun () ->
-	  match mcontext_merge esp1.mcontext esp2.mcontext with
-	  | M_array when mcontext_is_scalar wanted_mcontext -> M_int (* don't allow @a + @b to return M_array *)
-	  | r -> r)
-	(fun () -> mcontext_merge esp1.mcontext wanted_mcontext)
-	(fun () -> wanted_mcontext))
-    (fun () ->
-      mcontext_check_raw wanted_mcontext esp2
-	(fun () -> mcontext_merge wanted_mcontext esp2.mcontext)
-	(fun () -> wanted_mcontext)
-	(fun () -> wanted_mcontext))
-    (fun () -> wanted_mcontext)
-
-let mcontext_rightops wanted_mcontext esp1 esp2 = 
-  mcontext_check wanted_mcontext esp1 ;
-  mcontext_check_raw wanted_mcontext esp2 (fun () -> esp2.mcontext) (fun () -> wanted_mcontext) (fun () -> wanted_mcontext)
-
-let mcontext_unop wanted_mcontext esp = mcontext_check wanted_mcontext esp ; wanted_mcontext
-
-let mcontext_unop_l wanted_mcontext esp = mcontext_unop wanted_mcontext { esp with any = { esp.any with expr = List esp.any.expr  } }
+let mcontext_check_unop_l wanted_mcontext esp = 
+  mcontext_check wanted_mcontext { esp with any = { esp.any with expr = List esp.any.expr  } }
 
 let mcontext_check_non_none esp =
   if esp.mcontext = M_none then warn_rule "() context not accepted here"
@@ -1209,6 +1192,12 @@ let mcontext_check_none msg expr esp =
   in
   mcontext_check_none_rec msg expr esp.mcontext
 
+let mcontext_float_or_int l = 
+  List.fold_left (fun c1 c2 ->
+    if c1 = M_int && c2 = M_int then M_int else 
+    (mcontext_check_raw M_float c2 ; M_float)
+  ) M_int l
+
 let mcontext_op_assign left right =
   mcontext_check_non_none right;
   let left_context =
@@ -1234,3 +1223,9 @@ let mtuple_context_concat c1 c2 =
   | M_hash, _ | _, M_hash -> M_list
   | M_tuple l, _ -> M_tuple (l @ [c2])
   | _ -> M_tuple [c1 ; c2]
+
+let symops pri para_context return_context op_str left op right =
+  sp_same op right;
+  mcontext_check para_context left ;
+  mcontext_check para_context right ;
+  to_Call_op_ return_context pri op_str [prio_lo pri left; prio_lo_after pri right] left right

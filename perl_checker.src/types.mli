@@ -16,14 +16,19 @@ type context = I_scalar | I_hash | I_array | I_func | I_raw | I_star
 type maybe_context =
   | M_none
 
-  | M_bool
-  | M_int | M_float | M_string | M_ref of maybe_context | M_revision | M_sub | M_undef
-  | M_scalar
+  (* scalars *)
+  | M_bool | M_int | M_float
+  | M_revision
+  | M_string
+  | M_ref of maybe_context
+  | M_undef
+  | M_unknown_scalar
 
   | M_tuple of maybe_context list
   | M_list
   | M_array
   | M_hash
+  | M_sub
 
   | M_special
   | M_unknown
