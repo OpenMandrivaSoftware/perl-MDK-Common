@@ -52,7 +52,7 @@ C<($a, $b) = divide(10,3)> gives C<$a is 3> and C<$b is 1>
 =item min(LIST)
 
 =item max(LIST)
-    
+
 returns the minimum/maximum number in the list
 
 =item or_(LIST)

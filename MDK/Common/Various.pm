@@ -86,7 +86,7 @@ use this to ensure nobody uses the return value of the function. eg:
 gives
 
     test.pl:3: main::f() expects a value from main::g(), but main::g() doesn't return any value
-    
+
 =back
 
 =head1 SEE ALSO
