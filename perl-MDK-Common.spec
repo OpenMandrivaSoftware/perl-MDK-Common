@@ -66,7 +66,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files devel
 %defattr(-,root,root)
-%doc index.html tutorial.html
+%doc index.html tutorial.html perl_checker.src/perl_checker.html
 %{_bindir}/*
 %{perl_vendorlib}/perl_checker_fake_packages
 

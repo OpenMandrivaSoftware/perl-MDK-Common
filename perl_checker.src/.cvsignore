@@ -5,6 +5,7 @@
 *.cmo
 *.cmx
 perl_checker
+perl_checker.html
 perl_checker_debug
 gmon.out
 lexer.ml
