@@ -1,3 +1,6 @@
+
+
+print <<'EOF';
 =head1 NAME
 
 MDK::Common - miscellaneous functions
@@ -27,11 +30,23 @@ L<MDK::Common::String>,
 L<MDK::Common::System>,
 L<MDK::Common::Various>.
 
-=head1 EXPORTS
+EOF
 
-C<MDK::Common> exports the functions in the package mentioned above. See their
-manpage for more.
+foreach my $f (<MDK/Common/*.pm>) {
+    (my $pkg = $f) =~ s|/|::|g;
+    open F, $f or die "can't open file $f";
+    while (<F>) {
+	if (/^=head1 (EXPORTS|OTHER)/ .. /^=back/) {
+	    s/^=head1 EXPORTS/=head1 EXPORTS from $pkg/;
+	    s/^=head1 OTHER/=head1 OTHER in $pkg/;
+	    s/^=back/=back\n/;
+	    print;
+	}
+    }
+}
 
+
+print <<'EOF';
 =head1 COPYRIGHT
 
 Copyright (c) 2001 MandrakeSoft <pixel@mandrakesoft.com>. All rights reserved.
@@ -58,3 +73,4 @@ use vars qw(@ISA @EXPORT $VERSION); #);
 $VERSION = "1.0";
 
 1;
+EOF
