@@ -132,7 +132,7 @@ sub glob_ {
 
 sub substInFile(&@) {
     my ($f, $file) = @_;
-    if (-e $file) {
+    if (-s $file) {
 	local @ARGV = $file;
 	local ($^I, $_) = '';
 	while (<>) { &$f($_); print }
