@@ -353,7 +353,7 @@ terminal:
 | RAW_STRING {new_1pesp P_tok (to_Raw_string $1) $1}
 | REVISION {new_1pesp P_tok (to_Raw_string $1) $1}
 | COMMAND_STRING {to_Call_op_ (M_mixed[M_string; M_list]) P_tok "``" [to_String false $1] $1 $1}
-| QUOTEWORDS {to_Call_op_ M_list P_tok "qw" [to_Raw_string $1] $1 $1}
+| QUOTEWORDS {let l = List.map (fun s -> Raw_string(s, raw_pos2pos $1.pos)) (words $1.any) in new_pesp (M_tuple (repeat M_string (List.length l))) P_tok (List [ List l ]) $1 $1}
 | HERE_DOC {new_1pesp P_tok (to_String false (new_1esp (fst $1.any) $1)) $1 }
 | RAW_HERE_DOC {new_1pesp P_tok (Raw_string(fst $1.any, raw_pos2pos (snd $1.any))) $1}
 | QR_PATTERN {to_Call_op_ M_string P_tok "qr//" (from_PATTERN $1) $1 $1}

@@ -79,8 +79,6 @@ let get_current_package t =
       [ None, t ]
 
 let from_qw_raw = function
-  | Call_op("qw", [ Raw_string(s, pos)], _) -> 
-      List.map (fun symbol -> symbol, pos) (words s)
   | String([s, List []], pos) -> [ s, pos ]
   | String(_, pos) ->
       warn_with_pos pos "not recognised yet" ;

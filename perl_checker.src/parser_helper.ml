@@ -409,7 +409,6 @@ let check_ternary_paras(cond, a, b) =
     | Num _
     | Raw_string _
     | String ([(_, List [])], _) 
-    | Call_op("qw", _, _)
       -> true
     | Call(Deref(I_func, Ident(None, "N", _)), [ List(String _ :: l) ])
     | Call_op(".", l, _)
@@ -826,7 +825,8 @@ let call_raw force_non_builtin_func (e, para) =
       | "pop" | "shift" ->
 	  (match para with
 	  | [] 
-	  | [ Deref(I_array, _) ] -> ()
+	  | [ Deref(I_array, _) ] 
+	  | [ List [ Deref(I_array, _) ] ] -> ()
 	  | _ -> warn_rule (f ^ " is expecting an array and nothing else")) ; None
 	    
       | _ -> None
