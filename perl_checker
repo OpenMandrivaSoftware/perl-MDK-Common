@@ -63,6 +63,10 @@ if (/\blocal\b.*\|\|=/) {
     err(q(never use ``local $var ||= <val>'', write ``local $var = $var || <val>''), info());
 }
 
+if (/\bsub\b\s*\{[^{}]*\$_(?!\[)/) {
+    warn_(q(using $_ in a sub is generally bad news), info()) if !/local\s+\$_/;
+}
+
 if (/^\s*package ([\w:]+)/) {
     $package = $1;
     $path{$package} ||= ($ARGV =~ m|(.*/)|)[0];
