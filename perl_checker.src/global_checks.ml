@@ -537,7 +537,10 @@ let read_packages_from_cache per_files dir =
     let l = Marshal.from_channel fh in
     close_in fh ;
 
-    let l = List.filter (fun file -> not (Hashtbl.mem per_files file.file_name) && file.build_time > mtime file.file_name) l in
+    let l = List.filter (fun file -> 
+      not (Hashtbl.mem per_files file.file_name) && 
+      (try file.build_time > mtime file.file_name with _ -> false)
+    ) l in
 
     if !Flags.verbose then print_endline_flush (sprintf "using cached files\n%sfrom %s" (String.concat "" (List.map (fun s -> "   " ^ s ^ "\n") (List.sort compare (List.map (fun pkg -> pkg.file_name) l)))) file) ;
 
