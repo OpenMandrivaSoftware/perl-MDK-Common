@@ -572,7 +572,7 @@ let read_packages_from_cache per_files dir =
     let file = dir ^ "/.perl_checker.cache" in
     let fh = open_in file in
     let magic = input_line fh in
-    if magic <> "perl_checker cache " ^ string_of_int Build.date then () else    
+    if magic <> "perl_checker cache " ^ Build.date then () else
     let l = Marshal.from_channel fh in
     close_in fh ;
 
@@ -594,7 +594,7 @@ let write_packages_cache per_files dir =
     let l = List.filter (fun per_file -> per_file.require_name <> None) (hashtbl_values per_files) in
     let file = dir ^ "/.perl_checker.cache" in
     let fh = open_out file in
-    output_string fh ("perl_checker cache " ^ string_of_int Build.date ^ "\n") ;
+    output_string fh ("perl_checker cache " ^ Build.date ^ "\n") ;
     Marshal.to_channel fh l [] ;
     close_out fh ;
     if !Flags.verbose then print_endline_flush (sprintf "saving cached files\n%sin %s" (pkgs2s "   " l) file)

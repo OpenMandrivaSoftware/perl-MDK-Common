@@ -16,7 +16,7 @@ build_ml:
 	$(MAKE) build.ml
 
 build.ml:
-	date '+let date = %s' > $@
+	date '+let date = "%s"' > $@
 	echo 'let fake_packages_dir = "'$(VENDORLIB)'/perl_checker_fake_packages"' >> $@
 	echo 'let debugging = $(DEBUG) > 0' >> $@
 

@@ -1,3 +1,3 @@
-val date : int
+val date : string
 val fake_packages_dir : string
 val debugging : bool
