@@ -1086,7 +1086,7 @@ let mcontext_check wanted_mcontext esp =
   | M_list | M_array | M_mixed [M_array; M_none] | M_tuple _ -> ()
   | _ ->
     match un_parenthesize_full esp.any.expr with
-    | Call(Deref(I_func, Ident(None, "grep", _)), _) -> warn_rule "in scalar context, use \"any\" instead of \"grep\""
+    | Call(Deref(I_func, Ident(None, "grep", _)), _) -> warn_rule "in boolean context, use \"any\" instead of \"grep\""
     | _ -> ());
   mcontext_check_raw wanted_mcontext esp (fun () -> ()) (fun () -> ()) (fun () -> ())
 
