@@ -146,6 +146,7 @@ sub set_events {}
 sub set_filename {}
 sub set_focus_vadjustment {}
 sub set_fraction {}
+sub set_from_pixbuf {}
 sub set_has_window {}
 sub set_headers_visible {}
 sub set_justify {}
