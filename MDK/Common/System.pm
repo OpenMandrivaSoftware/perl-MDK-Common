@@ -155,7 +155,6 @@ package MDK::Common::System;
 
 use MDK::Common::Math;
 use MDK::Common::File;
-use MDK::Common::Func qw(map_each);
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_int $bitof_int); #);
 @ISA = qw(Exporter);
@@ -325,25 +324,33 @@ sub template2userfile {
     }
 }
 sub update_gnomekderc {
-    my ($file, $category, %subst) = @_;
+    my ($file, $category, %subst_) = @_;
 
-    MDK::Common::File::output($file,
-      (map {
-	  my $l = $_;
-	  s/^\s*//;
-	  if (my $i = /^\[$category\]/i ... /^\[/) {
-	      if ($i =~ /E/) { #- for last line of category
-		  $l = join('', map_each { "$::a=$::b\n" } %subst) . $l;
-		  %subst = ();
-	      } elsif (/^(\w*?)=/) {
-		  if (my $e = delete $subst{lc($1)}) {
-		      $l = "$1=$e\n";
-		  }
+    my %subst = map { lc($_) => [ $_, $subst_{$_} ] } keys %subst_;
+
+    my $s;
+    foreach (MDK::Common::File::cat_($file), "[NOCATEGORY]\n") {
+	if (my $i = /^\s*\[$category\]/i ... /^\[/) {
+	    if ($i =~ /E/) { #- for last line of category
+		$s .= "$_->[0]=$_->[1]\n" foreach values %subst;
+		%subst = ();
+	    } elsif (/^\s*(\w*?)=/) {
+		if (my $e = delete $subst{lc($1)}) {
+		    $_ = "$1=$e->[1]\n";
+		}
 	      }
-	  }
-	  $l;
-      } MDK::Common::File::cat_($file)),
-	(%subst && "[$category]\n", map_each { "$::a=$::b\n" } %subst)); #- if category has not been found above.
+	}
+	$s .= $_ if !/^\Q[NOCATEGORY]/;
+    }
+
+    #- if category has not been found above.
+    if (%subst) {
+	$s .= "[$category]\n";
+	$s .= "$_->[0]=$_->[1]\n" foreach values %subst;
+    }
+
+    MDK::Common::File::output($file, $s);
+
 }
 
 1;
