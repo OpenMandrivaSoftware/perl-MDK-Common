@@ -59,12 +59,12 @@ let rec get_imported state current_package (package_name, (imports, pos)) =
 	    | I_raw, tag -> 
 		(try 
 		  List.assoc tag exports.export_tags
-		with Not_found -> die_with_pos pos (sprintf "package %s doesn't export tag %s" package_name tag))
+		with Not_found -> warn_with_pos pos (sprintf "package %s doesn't export tag %s" package_name tag) ; [])
 	    | variable ->
 		if List.mem variable exports.export_ok || List.mem variable exports.export_auto then
 		  [ variable ]
 		else
-		  die_with_pos pos (sprintf "package %s doesn't export %s" package_name (variable2s variable))
+		  (warn_with_pos pos (sprintf "package %s doesn't export %s" package_name (variable2s variable)) ; [])
 		  ) l
 	in
 	List.map get_var_by_name imports_vars
@@ -168,7 +168,7 @@ let is_global_var context ident =
       | _ -> false)
   | I_func ->
       (match ident with
-      | "-b" | "-d" | "-e" | "-f" | "-l" | "-r" | "-s" | "-w" | "-x"
+      | "-b" | "-c" | "-d" | "-e" | "-f" | "-l" | "-r" | "-s" | "-w" | "-x"
       | "abs" | "alarm" | "atan2" | "bless" 
       | "caller" | "chdir" | "chmod" | "chomp" | "chop" | "chown" | "chr" | "chroot" | "close" | "closedir" | "cos" | "crypt"
       | "defined" | "delete" | "die"
@@ -378,7 +378,7 @@ let check_variables vars t =
 	(* check e first *)
 	let vars = check_variables_ vars e in
 	List.iter (fun (context, var) ->
-	  if non_scalar_context context then die_with_pos pos (sprintf "%s takes all the arguments, %s is undef in any case" (variable2s (context, var)) (variable2s (last mys)))
+	  if non_scalar_context context then warn_with_pos pos (sprintf "%s takes all the arguments, %s is undef in any case" (variable2s (context, var)) (variable2s (last mys)))
 	) (removelast mys) ; (* mys is never empty *)
 	Some(declare_My_our vars (my_or_our, mys, pos))
 
