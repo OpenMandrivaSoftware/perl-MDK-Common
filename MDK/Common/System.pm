@@ -339,8 +339,7 @@ sub setVarsInSh {
 sub setVarsInShMode {
     my ($file, $mod, $l, @fields) = @_;
     @fields = keys %$l unless @fields;
-
-    MDK::Common::File::output($file, 
+    my $string = join('',
 	map { 
 	    my $val = $l->{$_};
 	    if ($val =~ /["`\$]/) {
@@ -353,6 +352,12 @@ sub setVarsInShMode {
 	    "$_=$val\n";
 	} grep { $l->{$_} } @fields
     );
+    if ($file =~ m!^/home/!) {
+        MDK::Common::File::secured_output($file, $string);
+    } else {
+        MDK::Common::File::output($file, $string);
+    }
+
     chmod $mod, $file;
 }
 
