@@ -41,7 +41,7 @@ returns the length of the list. Useful in list (opposed to array) context:
     sub f { "a", "b" } 
     my $l = listlength f();
 
-where C<scalar f()> would return "b"
+whereas C<scalar f()> would return "b"
 
 =item deref(REF)
 

@@ -1,3 +1,131 @@
+=head1 NAME
+
+MDK::Common::Func - miscellaneous functions
+
+=head1 SYNOPSIS
+
+    use MDK::Common::Func qw(:all);
+
+=head1 EXPORTS
+
+=over
+
+=item may_apply(CODE REF, SCALAR)
+
+C<may_apply($f, $v)> is C<$f ? $f-E<gt>($v) : $v>
+
+=item may_apply(CODE REF, SCALAR, SCALAR)
+
+C<may_apply($f, $v, $otherwise)> is C<$f ? $f-E<gt>($v) : $otherwise>
+
+=item if_(BOOL, LIST)
+
+special constructs to workaround a missing perl feature:
+C<if_($b, "a", "b")> is C<$b ? ("a", "b") : ()>
+
+example of use: C<f("a", if_(arch() =~ /i.86/, "b"), "c")> which is not the
+same as C<f("a", arch()=~ /i.86/ && "b", "c")>
+
+=item if__(SCALAR, LIST)
+
+if_ alike. Test if the value is defined
+
+=item fold_left { CODE } LIST
+
+if you don't know fold_left (aka foldl), don't use it ;p
+
+    fold_left { $::a + $::b } 1, 3, 6
+
+gives 10 (aka 1+3+6)
+
+=item mapn { CODE } ARRAY REF, ARRAY REF, ...
+
+map lists in parallel:
+
+    mapn { $_[0] + $_[1] } [1, 2], [2, 4] # gives 3, 6
+    mapn { $_[0] + $_[1] + $_[2] } [1, 2], [2, 4], [3, 6] gives 6, 12
+
+=item mapn_ { CODE } ARRAY REF, ARRAY REF, ... 
+
+mapn alike. The difference is what to do when the lists have not the same
+length: mapn takes the minimum common elements, mapn_ takes the maximum list
+length and extend the lists with undef values
+
+=item map_index { CODE } LIST
+
+just like C<map>, but set C<$::i> to the current index in the list:
+
+    map_index { "$::i $_" } "a", "b"
+
+gives "0 a", "1 b"
+
+=item grep_index { CODE } LIST
+
+just like C<grep>, but set C<$::i> to the current index in the list:
+
+    grep_index { $::i == $_ } 0, 2, 2, 3
+
+gives (0, 2, 3)
+
+=item find_index { CODE } LIST
+
+returns the index of the first element where CODE returns true
+
+    find_index { /foo/ } "fo", "fob", "foobar", "foobir"
+
+gives 2
+
+=item map_each { CODE } HASH
+
+returns the list of results of CODE applied with $::a (key) and $::b (value)
+
+    map_each { "$::a is $::b" } 1=>2, 3=>4
+
+gives "1 is 2", "3 is 4"
+
+=item grep_each { CODE } HASH
+
+returns the hash key/value for which CODE applied with $::a (key) and $::b
+(value) is true:
+
+    grep_each { $::b == 2 } 1=>2, 3=>4, 4=>2
+
+gives 1=>2, 4=>2
+
+=item before_leaving { CODE }
+
+the code will be executed when the current block is finished
+
+    # create $tmp_file
+    my $b = before_leaving { unlink $tmp_file };
+    # some code that may throw an exception, the "before_leaving" ensures the
+    # $tmp_file will be removed
+
+=item cdie(SCALAR)
+
+aka I<conditional die>. If a C<cdie> is catched, the execution continues
+B<after> the cdie, not where it was catched (as happens with die & eval)
+
+If a C<cdie> is not catched, it mutates in real exception that can be catched
+with C<eval>
+
+cdie is useful when you want to warn about something weird, but when you can
+go on. In that case, you cdie "something weird happened", and the caller
+decide wether to go on or not. Especially nice for libraries.
+
+=item catch_cdie { CODE1 } sub { CODE2 }
+
+If a C<cdie> occurs while executing CODE1, CODE2 is executed. If CODE2
+returns true, the C<cdie> is catched.
+
+=back
+
+=head1 SEE ALSO
+
+L<MDK::Common>
+
+=cut
+
 package MDK::Common::Func;
 
 use MDK::Common::Math;
@@ -29,7 +157,7 @@ sub fold_left(&@) {
     my ($f, $initial, @l) = @_;
     local ($::a, $::b);
     $::a = $initial;
-    foreach $::b (@_) { $::a = &$f() }
+    foreach $::b (@l) { $::a = &$f() }
     $::a
 }
 

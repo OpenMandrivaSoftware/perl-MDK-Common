@@ -1,3 +1,61 @@
+=head1 NAME
+
+MDK::Common::String - formatting functions
+
+=head1 SYNOPSIS
+
+    use MDK::Common::String qw(:all);
+
+=head1 EXPORTS
+
+=over
+
+=item bestMatchSentence(STRING, LIST)
+
+finds in the list the best corresponding string
+
+=item formatList(INT, LIST)
+
+if the list size is bigger than INT, replace the remaining elements with "...".
+
+formatList(3, qw(a b c d e))  # => "a, b, c, ..."
+
+=item formatError(STRING)
+
+the string is something like "error at foo.pl line 2" that you get when
+catching an exception. formatError will remove the "at ..." so that you can
+nicely display the returned string to the user
+
+=item formatTimeRaw(TIME)
+
+the TIME is an epoch as returned by C<time>, the formatted time looks like "23:59:00"
+
+=item formatLines(STRING)
+
+remove "\n"s when the next line doesn't start with a space. Otherwise keep
+"\n"s to keep the indentation.
+
+=item formatAlaTeX(STRING)
+
+handle carriage return just like LaTeX: merge lines that are not separated by
+an empty line
+
+=item warp_text(STRING, INT)
+
+return a list of lines which do not exceed INT characters
+
+=item warp_text(STRING)
+
+warp_text at a default width (80)
+
+=back
+
+=head1 SEE ALSO
+
+L<MDK::Common>
+
+=cut
+
 package MDK::Common::String;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);

@@ -1,3 +1,90 @@
+=head1 NAME
+
+MDK::Common::File - miscellaneous file/filename manipulation functions
+
+=head1 SYNOPSIS
+
+    use MDK::Common::File qw(:all);
+
+=head1 EXPORTS
+
+=over
+
+=item dirname(FILENAME)
+
+=item basename(FILENAME)
+
+returns the dirname/basename of the file name
+
+=item cat_(FILENAME)
+
+returns the file content: in scalar context it returns a single string, in
+array context it returns the lines.
+
+If the file doesn't exist, it returns undef
+
+=item cat__(FILEHANDLE REF)
+
+returns the file content: in scalar context it returns a single string, in
+array context it returns the lines
+
+=item output(FILENAME, LIST)
+
+creates a file and outputs the list (if the file exists, it is clobbered)
+
+=item linkf(SOURCE, DESTINATION)
+
+=item symlinkf(SOURCE, DESTINATION)
+
+=item renamef(SOURCE, DESTINATION)
+
+same as link/symlink/rename but removes the destination file first
+
+=item touch(FILENAME)
+
+ensure the file exists, set the modification time to current time
+
+=item all(DIRNAME)
+
+returns all the file in directory (except "." and "..")
+
+=item glob_(STRING)
+
+simple version of C<glob>: doesn't handle wildcards in directory (eg:
+*/foo.c), nor special constructs (eg: [0-9] or {a,b})
+
+=item substInFile { CODE } FILENAME
+
+executes the code for each line of the file. You can know the end of the file
+is reached using C<eof>
+
+=item concat_symlink(DIRNAME, RELATIVE LINK)
+
+concat dirname and the symlink and removes "../" if possible:
+C<concat_symlink("/usr/bin", "../../bin/ls")> gives "/bin/ls"
+
+=item expand_symlinks(FILENAME)
+
+expand the symlinks in the absolute filename:
+C<expand_symlinks("/etc/X11/X")> gives "/usr/X11R6/bin/XFree86"
+
+=item openFileMaybeCompressed(FILENAME)
+
+opens the file and returns the file handle. If the file is not found, tries to
+gunzip the file + .gz
+
+=item catMaybeCompressed(FILENAME)
+
+cat_ alike. If the file is not found, tries to gunzip the file + .gz
+
+=back
+
+=head1 SEE ALSO
+
+L<MDK::Common>
+
+=cut
+
 package MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
@@ -7,7 +94,7 @@ use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
 sub basename { local $_ = shift; s|/*\s*$||; s|.*/||; $_ }
-sub cat_ { local *F; open F, $_[0] or $_[1] ? die "cat of file $_[0] failed: $!\n" : return; my @l = <F>; wantarray ? @l : join '', @l }
+sub cat_ { local *F; open F, $_[0] or return; my @l = <F>; wantarray ? @l : join '', @l }
 sub cat__ { my ($f) = @_; my @l = <$f>; wantarray ? @l : join '', @l }
 sub output { my $f = shift; local *F; open F, ">$f" or die "output in file $f failed: $!\n"; print F foreach @_; }
 sub linkf    { unlink $_[1]; link    $_[0], $_[1] }
@@ -49,19 +136,17 @@ sub glob_ {
 
 
 sub substInFile(&@) {
-    my $f = shift;
-    foreach my $file (@_) {
-	if (-e $file) {
-	    local @ARGV = $file;
-	    local ($^I, $_) = '';
-	    while (<>) { &$f($_); print }
-	} else {
-	    local *F; my $old = select F; # that way eof return true
-	    local $_ = '';
-	    &$f($_);
-	    select $old;
-	    eval { output($file, $_) };
-	}
+    my ($f, $file) = @_;
+    if (-e $file) {
+	local @ARGV = $file;
+	local ($^I, $_) = '';
+	while (<>) { &$f($_); print }
+    } else {
+	local *F; my $old = select F; # that way eof return true
+	local $_ = '';
+	&$f($_);
+	select $old;
+	eval { output($file, $_) };
     }
 }
 

@@ -1,3 +1,130 @@
+=head1 NAME
+
+MDK::Common::System - formatting functions
+
+=head1 SYNOPSIS
+
+    use MDK::Common::System qw(:all);
+
+=head1 EXPORTS
+
+=over
+
+=item %compat_arch
+
+architecture compatibility mapping (eg: k6 => i586, k7 => k6 ...)
+
+=item %printable_chars
+
+7 bit ascii characters
+
+=item $sizeof_int
+
+sizeof(int)
+
+=item $bitof_int
+
+$sizeof_int * 8
+
+=item typeFromMagic(FILENAME, LIST)
+
+find the first corresponding magic in FILENAME. eg of LIST:
+
+    [ 'empty', 0, "\0\0\0\0" ],
+    [ 'grub', 0, "\xEBG", 0x17d, "stage1 \0" ],
+    [ 'lilo', 0x2,  "LILO" ],
+
+where each entry is [ magic_name, offset, string, offset, string, ... ].
+
+=item list_passwd()
+
+return the list of users as given by C<getpwent> (see perlfunc)
+
+=item list_home()
+
+return the list of home (eg: /home/foo, /home/pixel, ...)
+
+=item list_skels()
+
+return the directories where we can find dot files: homes, /root and /etc/skel
+
+=item syscall_(NAME, PARA)
+
+calls the syscall NAME
+
+=item psizeof(STRING)
+
+useful to know the length of a C<pack> format string. 
+
+    psizeof("I I I C C S") = 4 + 4 + 4 + 1 + 1 + 2 = 16
+
+=item availableMemory()
+
+size of swap + memory
+
+=item availableRamMB()
+
+size of RAM as reported by the BIOS (it is a round number that can be
+displayed or given as "mem=128M" to the kernel)
+
+!! "mem=..." is dangerous in 2.4 kernels
+
+=item gettimeofday()
+
+returns the epoch in microseconds
+
+=item unix2dos(STRING)
+
+takes care of CR/LF translation
+
+=item getVarsFromSh(FILENAME)
+
+returns a hash associating shell variables to their value. useful for config
+files such as /etc/sysconfig files
+
+=item setVarsInSh(FILENAME, HASH REF)
+
+write file in shell format association a shell variable + value for each
+key/value
+
+=item setVarsInSh(FILENAME, HASH REF, LIST)
+
+restrict the fields that will be printed to LIST
+
+=item setVarsInShMode(FILENAME, INT, HASH REF, LIST)
+
+like setVarsInSh with INT being the chmod value for the config file
+
+=item setVarsInCsh(FILENAME, HASH REF, LIST)
+
+same as C<setVarsInSh> for csh format
+
+=item template2file(FILENAME_IN, FILENAME_OUT, HASH)
+
+read in a template file, replace keys @@@key@@@ with value, save it in out
+file
+
+=item template2userfile(PREFIX, FILENAME_IN, FILENAME_OUT, BOOL, HASH)
+
+read in a template file, replace keys @@@key@@@ with value, save it in every homes.
+If BOOL is true, overwrite existing files. FILENAME_OUT must be a relative filename
+
+=item update_gnomekderc(FILENAME, STRING, HASH)
+
+modifies GNOME-like and KDE-like config files (aka windows-like).
+If the category doesn't exist, it creates it. eg:
+
+    update_gnomekderc("/etc/skels/.kderc", 'KDE', 
+		      kfmIconStyle => "Large")
+
+=back
+
+=head1 SEE ALSO
+
+L<MDK::Common>
+
+=cut
+
 package MDK::Common::System;
 
 use MDK::Common::Math;
@@ -6,7 +133,7 @@ use MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_int $bitof_int); #);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int typeFromMagic list_passwd list_home list_skels syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setVarsInCsh template2file template2userfile update_userkderc); #);
+@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int typeFromMagic list_passwd list_home list_skels syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setVarsInCsh template2file template2userfile update_gnomekderc); #);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -156,7 +283,7 @@ sub template2userfile {
 	m|/home/(.+?)/| and chown(getpwnam($1), getgrnam($1), $_);
     }
 }
-sub update_userkderc {
+sub update_gnomekderc {
     my ($file, $category, %subst) = @_;
 
     output $file,
