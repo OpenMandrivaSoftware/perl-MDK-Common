@@ -8,8 +8,8 @@
 %}
 
 
-%token <unit   * (Types.spaces * Types.raw_pos)> EOF DEFINED
-%token <string * (Types.spaces * Types.raw_pos)> NUM STRING BAREWORD BAREWORD_PAREN REVISION COMMENT POD LABEL PRINT_TO_STAR PRINT_TO_SCALAR
+%token <unit   * (Types.spaces * Types.raw_pos)> EOF
+%token <string * (Types.spaces * Types.raw_pos)> NUM STRING BAREWORD BAREWORD_PAREN REVISION COMMENT POD LABEL PRINT_TO_STAR PRINT_TO_SCALAR ONE_SCALAR_PARA
 %token <string * (Types.spaces * Types.raw_pos)> COMMAND_STRING QUOTEWORDS COMPACT_HASH_SUBSCRIPT
 
 %token <(string * Types.raw_pos) ref * (Types.spaces * Types.raw_pos)> HERE_DOC
@@ -186,7 +186,7 @@ argexpr: /* Expressions are a list of terms joined by commas */
 
 /********************************************************************************/
 term:
-| term ASSIGN     term {let pri = P_assign    in call_op(op_p pri (fst $2) $2, $3, [prio_lo pri $1; prio_lo_after pri $3]), pos_range $1 $3}
+| term ASSIGN     term {let pri = P_assign    in call_op(op_p pri (fst $2) $2, $3, [sndfst $1; prio_lo_after pri $3]), pos_range $1 $3}
 | term PLUS       term {let pri = P_add       in call_op(op   pri (fst $2) $2, $3, [prio_lo pri $1; prio_lo_after pri $3]), pos_range $1 $3}
 | term COMPARE_OP term {let pri = P_cmp       in call_op(op_p pri (fst $2) $2, $3, [prio_lo pri $1; prio_lo_after pri $3]), pos_range $1 $3}
 | term LT         term {let pri = P_cmp       in call_op(op_p pri "<"      $2, $3, [prio_lo pri $1; prio_lo_after pri $3]), pos_range $1 $3}
@@ -219,10 +219,10 @@ term:
 | term PATTERN_MATCH_NOT STRING {die_with_pos (sndsnd $3) "use a regexp, not a string"}
 
 
-| term QUESTION_MARK term COLON term {sp_n($2); sp_p($3); sp_p($4); sp_p($5); (P_ternary, Call_op("?:", [ prio_lo P_ternary $1 ; prio_lo_after P_ternary $3; prio_lo_after P_ternary $5])), pos_range $1 $5}
-| term QUESTION_MARK term COLON BRACKET expr BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); (P_ternary, Call_op("?:", [ prio_lo P_ternary $1 ; prio_lo_after P_ternary $3; sndfst $6])), pos_range $1 $7}
-| term QUESTION_MARK BRACKET expr BRACKET_END COLON term {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); (P_ternary, Call_op("?:", [ prio_lo P_ternary $1 ; sndfst $4; prio_lo_after P_ternary $7])), pos_range $1 $7}
-| term QUESTION_MARK BRACKET expr BRACKET_END COLON BRACKET expr BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); sp_p($8); sp_p($9); (P_ternary, Call_op("?:", [ prio_lo P_ternary $1 ; sndfst $4; sndfst $8])), pos_range $1 $9}
+| term QUESTION_MARK term COLON term {sp_p($2); sp_p($3); sp_p($4); sp_p($5); (P_ternary, Call_op("?:", [ prio_lo P_ternary $1 ; prio_lo_after P_ternary $3; prio_lo_after P_ternary $5])), pos_range $1 $5}
+| term QUESTION_MARK term COLON BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); (P_ternary, Call_op("?:", [ prio_lo P_ternary $1 ; prio_lo_after P_ternary $3; sndfst $6])), pos_range $1 $7}
+| term QUESTION_MARK BRACKET expr BRACKET_END COLON term {sp_p($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); (P_ternary, Call_op("?:", [ prio_lo P_ternary $1 ; sndfst $4; prio_lo_after P_ternary $7])), pos_range $1 $7}
+| term QUESTION_MARK BRACKET expr BRACKET_END COLON BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); sp_p($8); sp_p($9); (P_ternary, Call_op("?:", [ prio_lo P_ternary $1 ; sndfst $4; sndfst $8])), pos_range $1 $9}
 
 
 /* Unary operators and terms */
@@ -235,10 +235,11 @@ term:
 | term DECR    {sp_0($2); (P_tight, Call_op("-- post", [sndfst $1])), pos_range $1 $2}
 | NOT argexpr  {(P_and, Call_op("not", sndfst $2)), pos_range $1 $2}
 
-| DEFINED variable {(P_expr, Call(Ident(None, "defined", get_pos $1), [fst $2])), pos_range $1 $2}
-| DEFINED subscripted {(P_expr, Call(Ident(None, "defined", get_pos $1), [fst $2])), pos_range $1 $2}
-| DEFINED parenthesized {(P_expr, Call(Ident(None, "defined", get_pos $1), sndfst $2)), pos_range $1 $2}
-| DEFINED word_paren parenthesized {(P_expr, Call(Ident(None, "defined", get_pos $1), [Call(fst $2, sndfst $3)])), pos_range $1 $3}
+| ONE_SCALAR_PARA STRING                   {call_one_scalar_para $1 [to_String $2], pos_range $1 $2}
+| ONE_SCALAR_PARA variable                 {call_one_scalar_para $1 [fst $2], pos_range $1 $2}
+| ONE_SCALAR_PARA subscripted              {call_one_scalar_para $1 [fst $2], pos_range $1 $2}
+| ONE_SCALAR_PARA parenthesized            {call_one_scalar_para $1 (sndfst $2), pos_range $1 $2}
+| ONE_SCALAR_PARA word_paren parenthesized {call_one_scalar_para $1 [Call(fst $2, sndfst $3)], pos_range $1 $3}
 
 /* Constructors for anonymous data */
 

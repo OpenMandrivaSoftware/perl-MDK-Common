@@ -37,7 +37,7 @@ type raw_token =
   | NEW of (raw_pos) | FORMAT of (raw_pos) | AT of raw_pos | DOLLAR of raw_pos | PERCENT of raw_pos | AMPERSAND of raw_pos
   | STAR of raw_pos | ARRAYLEN of raw_pos | SEMI_COLON of raw_pos | PKG_SCOPE of raw_pos | PAREN of raw_pos | PAREN_END of raw_pos | BRACKET of raw_pos
   | BRACKET_END of raw_pos | BRACKET_HASHREF of raw_pos | ARRAYREF of raw_pos | ARRAYREF_END of raw_pos | ARROW of raw_pos | INCR of raw_pos | DECR of raw_pos
-  | POWER of raw_pos | TIGHT_NOT of raw_pos | BIT_NEG of raw_pos | REF of raw_pos | DEFINED of raw_pos | PATTERN_MATCH of raw_pos | PATTERN_MATCH_NOT of raw_pos | MULT of (string * raw_pos)
+  | POWER of raw_pos | TIGHT_NOT of raw_pos | BIT_NEG of raw_pos | REF of raw_pos | ONE_SCALAR_PARA of (string * raw_pos) | PATTERN_MATCH of raw_pos | PATTERN_MATCH_NOT of raw_pos | MULT of (string * raw_pos)
   | PLUS of (string * raw_pos) | BIT_SHIFT of (string * raw_pos)
   | LT of raw_pos | GT of raw_pos | COMPARE_OP of (string * raw_pos) | EQ_OP of (string * raw_pos)
   | BIT_AND of raw_pos | BIT_OR of raw_pos | BIT_XOR of raw_pos | AND_TIGHT of raw_pos | OR_TIGHT of raw_pos | DOTDOT of (string * raw_pos)
@@ -115,6 +115,7 @@ let rec concat_spaces get_token lexbuf =
   | MULT(s, pos) -> Parser.MULT(s, (spaces, pos))
   | BIT_SHIFT(s, pos) -> Parser.BIT_SHIFT(s, (spaces, pos))
   | PLUS(s, pos) -> Parser.PLUS(s, (spaces, pos))
+  | ONE_SCALAR_PARA(s, pos) -> Parser.ONE_SCALAR_PARA(s, (spaces, pos))
 
   | EOF              (pos) -> Parser.EOF              ((), (spaces, pos))
   | IF               (pos) -> Parser.IF               ((), (spaces, pos))
@@ -171,7 +172,6 @@ let rec concat_spaces get_token lexbuf =
   | AND              (pos) -> Parser.AND              ((), (spaces, pos))
   | OR               (pos) -> Parser.OR               ((), (spaces, pos))
   | XOR              (pos) -> Parser.XOR              ((), (spaces, pos))
-  | DEFINED          (pos) -> Parser.DEFINED          ((), (spaces, pos))
 
   | SPACE _ | CR -> internal_error "raw_token_to_token"
 
@@ -358,7 +358,7 @@ rule token = parse
 | "print"    { PRINT(lexeme lexbuf, pos lexbuf) }
 | "new"      { NEW(pos lexbuf) }
 | "format"   { let _ = here_doc_next_line "." false in FORMAT(pos lexbuf) }
-| "defined"  { DEFINED(pos lexbuf) }
+| "defined"  { ONE_SCALAR_PARA(lexeme lexbuf, pos lexbuf) }
 
 | "split"
 | "grep"  { (* ok_for_match! *) BAREWORD(lexeme lexbuf, pos lexbuf) }
@@ -517,7 +517,7 @@ rule token = parse
 
 | ident ":" { LABEL(lexeme lexbuf, pos lexbuf) }
 
-| '-' [ 'a'-'z' 'A'-'Z' ] [ ' ' '(' ] { putback lexbuf 1; BAREWORD(lexeme lexbuf, pos lexbuf) }
+| '-' [ 'a'-'z' 'A'-'Z' ] [ ' ' '(' ] { putback lexbuf 1; ONE_SCALAR_PARA(lexeme lexbuf, pos lexbuf) }
 
 | ['0'-'9'] ['0'-'9' '_']* ('.' ['0'-'9'] ['0'-'9' '_']*)+ 
 | 'v' ['0'-'9'] ['0'-'9' '_']* ('.' ['0'-'9'] ['0'-'9' '_']*)* 

@@ -105,7 +105,6 @@ let prio_lo pri_out ((pri_in, e), (_, pos)) =
     | P_paren (P_paren_wanted _) -> ()
     | P_paren pri_in' ->
 	if pri_in' <> pri_out && 
-	   pri_out <> P_assign && 
 	   prio_less(pri_in', pri_out) && not_complex (un_parenthesize e) then 
 	  warn pos "unneeded parentheses"
     | _ -> ())
@@ -269,6 +268,17 @@ let call(e, para) =
       | [ Ident _ ] -> ()
       | [ String _ ] -> ()
       | _ -> die_rule "use either \"require PACKAGE\" or \"require 'PACKAGE.pm'\"")
+  | Ident(None, "N", _) ->
+      (match para with
+      | [List(String _ :: _)] -> ()
+      | _ -> die_rule "N() must be used with a string")
   | _ -> ());
   Call(e, para)
 
+let call_one_scalar_para (e, (_, pos)) para =
+  let pri =
+    match e with
+    | "defined" -> P_expr
+    | _ -> P_add
+  in
+  pri, Call(Ident(None, e, raw_pos2pos pos), para)

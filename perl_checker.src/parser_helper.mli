@@ -82,3 +82,6 @@ val to_List : Types.fromparser list -> Types.fromparser
 val sub_declaration :
   Types.fromparser * string -> Types.fromparser list -> Types.fromparser
 val call : Types.fromparser * Types.fromparser list -> Types.fromparser
+val call_one_scalar_para :
+  string * ('a * (int * int)) ->
+  Types.fromparser list -> Types.priority * Types.fromparser
