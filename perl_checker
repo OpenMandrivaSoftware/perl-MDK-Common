@@ -2,9 +2,11 @@
 
 BEGIN {
     while ($ARGV[0] =~ /-I(.*)/) {
-	unshift @INC, $1;
+	push @I, $1;
 	shift;
     }
+    unshift @INC, @I;
+
     $NO_CW = $ARGV[0] eq "-no_cw" and shift;
     $USES = $ARGV[0] eq "-uses" and shift;
 
@@ -20,7 +22,7 @@ BEGIN {
 
     if (!$NO_CW) {
 	foreach (@ARGV) {
-	    system("perl", "-cw", $_);
+	    system("perl", (map {; "-I", $_ } @I), "-cw", $_);
 	    $? == 0 or die "perl -cw $_ failed\n";
 	}
     }
@@ -52,6 +54,10 @@ s|\(/.*?/|(|g; # m// operator
 s{([!=]~|\bif\b)\s*/.*?/}{}g;
 
 s/#.*//;
+
+if (/\blocal\b.*\|\|=/) {
+    err(q(never use ``local $var ||= <val>'', write ``local $var = $var || <val>''), info());
+}
 
 if (/^\s*package ([\w:]+)/) {
     $package = $1;
