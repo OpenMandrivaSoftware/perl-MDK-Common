@@ -883,7 +883,14 @@ let call_raw force_non_builtin_func (e, para) =
 						      warn_rule "you can replace \"map { if_(..., $_) }\" with \"grep { ... }\""
 	  | _ -> check_anonymous_block f para)
 
-      | "grep"
+      | "grep" ->
+	  (match para with
+	  | [ Anonymous_sub(None, Block [ List [ Call_op("not", [ Call(Deref(I_func, Ident(None, "member", _)), [ List(Deref(I_scalar, Ident(None, "_", _)) :: _) ]) ], _) ] ], _); _ ] ->
+	      warn_rule "you can replace \"grep { !member($_, ...) } @l\" with \"difference2([ @l ], [ ... ])\""
+	  | [ Anonymous_sub(None, Block [ List [ Call(Deref(I_func, Ident(None, "member", _)), [ List(Deref(I_scalar, Ident(None, "_", _)) :: _) ]) ] ], _); _ ] ->
+	      warn_rule "you can replace \"grep { member($_, ...) } @l\" with \"intersection([ @l ], [ ... ])\""
+	  | _ -> check_anonymous_block f para)
+
       | "grep_index" | "map_index" | "partition" | "uniq_"
       | "find"
       | "any" | "every"
