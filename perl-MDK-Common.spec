@@ -39,6 +39,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Sat Aug  4 2001 Pixel <pixel@mandrakesoft.com> 1.0.1-1mdk
+- add some arch() stuff
+
 * Fri Aug  3 2001 Pixel <pixel@mandrakesoft.com> 1.0-1mdk
 - doc finished
 - index.html added (nicer than perldoc)
