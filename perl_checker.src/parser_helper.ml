@@ -496,10 +496,9 @@ let check_hash_subscript esp =
   | List [Raw_string(s, _)] when can_be_raw_string s -> warn [Warn_suggest_simpler] esp.pos (sprintf "{'%s'} can be written {%s}" s s)
   | _ -> ()
 
-let check_arrow_needed esp1 esp2 =
-  match esp1.any.expr with
+let check_arrow_needed arrow = function
   | Deref_with(I_array, I_scalar, List [List [Call _]], _) -> () (* "->" needed for (f())[0]->{XX} *)
-  | Deref_with _ -> warn [Warn_suggest_simpler] esp2.pos "the arrow \"->\" is unneeded"
+  | Deref_with _ -> warn [Warn_suggest_simpler] arrow.pos "the arrow \"->\" is unneeded"
   | _ -> ()
 
 let check_scalar_subscripted esp =
@@ -671,6 +670,10 @@ let to_Method_call (object_, method_, para) =
 let to_Deref_with(from_context, to_context, ref_, para) =
   if is_not_a_scalar ref_ then warn_rule [] "bad deref";
   Deref_with(from_context, to_context, ref_, para)
+
+let to_Deref_with_arrow arrow (from_context, to_context, ref_, para) =
+  if from_context != I_func then check_arrow_needed arrow ref_ ;
+  to_Deref_with(from_context, to_context, ref_, para)
 
 let lines_to_Block esp_lines esp_BRACKET_END =
   check_block_lines esp_lines esp_BRACKET_END;

@@ -103,9 +103,7 @@ val check_parenthesized_first_argexpr_with_Ident :
   Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos -> unit
 val check_hash_subscript :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos -> unit
-val check_arrow_needed :
-  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
-  'a Types.any_spaces_pos -> unit
+val check_arrow_needed : 'a Types.any_spaces_pos -> Types.fromparser -> unit
 val check_scalar_subscripted : Types.fromparser Types.any_spaces_pos -> unit
 val negatable_ops : (string * string) list
 val check_negatable_expr :
@@ -156,6 +154,10 @@ val to_Method_call :
   Types.fromparser * Types.fromparser * Types.fromparser list ->
   Types.fromparser
 val to_Deref_with :
+  Types.context * Types.context * Types.fromparser * Types.fromparser ->
+  Types.fromparser
+val to_Deref_with_arrow :
+  'a Types.any_spaces_pos ->
   Types.context * Types.context * Types.fromparser * Types.fromparser ->
   Types.fromparser
 val lines_to_Block :
