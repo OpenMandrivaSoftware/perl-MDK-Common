@@ -230,8 +230,8 @@ term:
 | term OR_TIGHT   BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); to_Call_op_ M_scalar P_tight_or  "||"   [prio_lo P_assign $1; Ref(I_hash, $4.any.expr)] $1 $5}
 
 
-| term PATTERN_MATCH     PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_   ($1); let pattern = from_PATTERN $3 in check_simple_pattern pattern ; to_Call_op_ M_array P_expr "m//"  ($1.any.expr :: pattern) $1 $3}
-| term PATTERN_MATCH_NOT PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_not($1); let pattern = from_PATTERN $3 in check_simple_pattern pattern ; to_Call_op_ M_int   P_expr "!m//" ($1.any.expr :: pattern) $1 $3}
+| term PATTERN_MATCH     PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_   ($1); mcontext_check M_string $1; let pattern = from_PATTERN $3 in check_simple_pattern pattern ; to_Call_op_ M_array P_expr "m//"  ($1.any.expr :: pattern) $1 $3}
+| term PATTERN_MATCH_NOT PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_not($1); mcontext_check M_string $1; let pattern = from_PATTERN $3 in check_simple_pattern pattern ; to_Call_op_ M_int   P_expr "!m//" ($1.any.expr :: pattern) $1 $3}
 | term PATTERN_MATCH PATTERN_SUBST {sp_n($2); sp_p($3); check_unneeded_var_dollar_s  ($1); to_Call_op_ (M_mixed[M_none; M_int]) P_expr "s///" ($1.any.expr :: from_PATTERN_SUBST $3) $1 $3}
 | term PATTERN_MATCH_NOT PATTERN_SUBST {die_with_rawpos $2.pos "use =~ instead of !~ and negate the return value"}
 
@@ -263,7 +263,7 @@ term:
 	to_Call_op_ (mcontext_unop M_float $2) P_tight "- unary" [$2.any.expr] $1 $2
     | _ -> die_rule "syntax error"
 }
-| TIGHT_NOT term {check_negatable_expr $2; to_Call_op_ (mcontext_unop M_scalar $2) P_tight "not" [$2.any.expr] $1 $2}
+| TIGHT_NOT term {check_negatable_expr $2; mcontext_check M_scalar $2; to_Call_op_ M_bool P_tight "not" [$2.any.expr] $1 $2}
 | BIT_NEG term {to_Call_op_ (mcontext_unop M_int $2) P_expr "~" [$2.any.expr] $1 $2}
 | INCR term    {sp_0($2); mcontext_check M_int $2; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "++" [$2.any.expr] $1 $2}
 | DECR term    {sp_0($2); mcontext_check M_int $2; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "--" [$2.any.expr] $1 $2}

@@ -16,6 +16,7 @@ type context = I_scalar | I_hash | I_array | I_func | I_raw | I_star
 type maybe_context =
   | M_none
 
+  | M_bool
   | M_int | M_float | M_string | M_ref of maybe_context | M_revision | M_sub
   | M_scalar
 

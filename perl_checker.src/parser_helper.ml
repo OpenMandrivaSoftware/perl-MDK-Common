@@ -949,6 +949,8 @@ let from_PATTERN_SUBST parse { any = (s1, s2, opts) ; pos = pos } =
 let rec mcontext2s = function
   | M_none -> "()"
 
+  | M_bool -> "bool"
+
   | M_int -> "int"
   | M_float -> "float"
   | M_string -> "string"
@@ -976,6 +978,8 @@ let rec mcontext_lower c1 c2 =
 
   | M_array, M_array | M_array, M_int | M_array, M_float | M_array, M_scalar | M_array, M_list
   | M_hash, M_hash | M_hash, M_scalar | M_hash, M_list
+
+  | M_bool, M_bool | M_bool, M_scalar | M_bool, M_list
 
   | M_int, M_int | M_int, M_float | M_int, M_string | M_int, M_scalar | M_int, M_list
   | M_float, M_float | M_float, M_string | M_float, M_scalar | M_float, M_list
