@@ -72,6 +72,14 @@ is the scalar undefined or is the hash empty
 
 returns the list with no duplicates (keeping the first elements)
 
+=item uniq_ { CODE } LIST
+
+returns the list with no duplicates according to the scalar results of CODE on each element of LIST (keeping the first elements)
+
+    uniq_ { $_->[1] } [ 1, "fo" ], [ 2, "fob" ], [ 3, "fo" ], [ 4, "bar" ]
+
+gives [ 1, "fo" ], [ 2, "fob" ], [ 4, "bar" ]
+
 =item difference2(ARRAY REF, ARRAY REF)
 
 returns the first list without the element of the second list
@@ -111,7 +119,7 @@ use MDK::Common::Func;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(sort_numbers ikeys add2hash add2hash_ put_in_hash member invbool listlength deref deref_array is_empty_array_ref is_empty_hash_ref uniq difference2 intersection next_val_in_array group_by2 list2kv);
+@EXPORT_OK = qw(sort_numbers ikeys add2hash add2hash_ put_in_hash member invbool listlength deref deref_array is_empty_array_ref is_empty_hash_ref uniq uniq_ difference2 intersection next_val_in_array group_by2 list2kv);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -133,6 +141,12 @@ sub is_empty_hash_ref { my $a = shift; !defined $a || keys(%$a) == 0 }
 sub uniq { my %l; $l{$_} = 1 foreach @_; grep { delete $l{$_} } @_ }
 sub difference2 { my %l; @l{@{$_[1]}} = (); grep { !exists $l{$_} } @{$_[0]} }
 sub intersection { my (%l, @m); @l{@{shift @_}} = (); foreach (@_) { @m = grep { exists $l{$_} } @$_; %l = (); @l{@m} = () } keys %l }
+
+sub uniq_(&@) {
+    my $f = shift;
+    $l{$f->($_)} = 1 foreach @_;
+    grep { delete $l{$f->($_)} } @_;
+}
 
 
 sub next_val_in_array {

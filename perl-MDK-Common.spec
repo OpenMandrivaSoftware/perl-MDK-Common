@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Oct 15 2003 Guillaume Cottenceau <gc@mandrakesoft.com> 1.1.7-2mdk
+- add uniq_ (uniq but according to some code results on each value)
+
 * Fri Sep 19 2003 Pixel <pixel@mandrakesoft.com> 1.1.7-1mdk
 - read_gnomekderc() & update_gnomekderc() will now handle key=value where key
 can contain spaces
