@@ -829,7 +829,9 @@ let expand_symlinks file =
   | _ -> internal_error (Printf.sprintf "expand_symlinks: %s is relative\n" file)
 
 let file_to_absolute_file file =
-  if file.[0] = '/' then file else expand_symlinks (Unix.getcwd() ^ "/" ^ file)
+  if file.[0] = '/' then file else 
+  let cwd = Unix.getcwd() in
+  if file = "." then cwd else expand_symlinks (cwd ^ "/" ^ file)
 
 let mtime f = int_of_float ((Unix.stat f).Unix.st_mtime)
 

@@ -42,7 +42,7 @@ type per_file = {
 
 let anonymous_package_count = ref 0
 let empty_exports = { export_ok = []; export_auto = []; export_tags = []; special_export = None }
-let use_lib = ref (readlines (Unix.open_process_in "perl -le 'print foreach @INC'"))
+let use_lib = ref (List.map file_to_absolute_file (readlines (Unix.open_process_in "perl -le 'print foreach @INC'")))
 
 let ignore_package pkg = 
   if !Flags.verbose then print_endline_flush ("ignoring package " ^ pkg);
@@ -185,7 +185,7 @@ let get_uses t =
   List.fold_left (fun uses e ->
     match e with
     | Use(Ident(None, "lib", _), [libs]) ->
-	use_lib := List.map snd (from_qw libs) @ !use_lib ;
+	use_lib := List.map file_to_absolute_file (List.map snd (from_qw libs)) @ !use_lib ;
 	uses
     | Use(Ident _ as pkg, _) when uses_external_package (string_of_Ident pkg) -> uses
     | Use(Ident(_, _, pos) as ident, l) ->
