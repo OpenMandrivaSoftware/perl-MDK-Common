@@ -409,7 +409,7 @@ parenthesized_start:
 | parenthesized_start BRACKET expr BRACKET_END comma {(if $1.any = [] then sp_0_or_cr else sp_p)($2); sp_p($3); sp_p($4); new_esp (M_ref M_hash) ($1.any @ [hash_ref $3]) $1 $5}
 
 my_our: /* Things that can be "my"'d */
-| my_our_paren     PAREN_END {sp_0($2); if snd $1.any <> [] && fstfst $1.any then die_rule "syntax error";  new_esp (M_mixed [ $1.mcontext ; M_none ]) (My_our(sndfst $1.any, snd $1.any, get_pos $1)) $1 $2}
+| my_our_paren     PAREN_END {sp_0($2); new_esp (M_mixed [ $1.mcontext ; M_none ]) (My_our(sndfst $1.any, snd $1.any, get_pos $1)) $1 $2}
 | my_our_paren SCALAR_IDENT PAREN_END {check_my_our_paren $1 $2; new_esp (M_mixed [ mtuple_context_concat $1.mcontext M_scalar; M_none ]) (My_our(sndfst $1.any, snd $1.any @ [I_scalar, snd $2.any], pos_range $1 $3)) $1 $3}
 | my_our_paren HASH_IDENT   PAREN_END {check_my_our_paren $1 $2; new_esp (M_mixed [ M_list ; M_none ]) (My_our(sndfst $1.any, snd $1.any @ [I_hash,   snd $2.any], pos_range $1 $3)) $1 $3}
 | my_our_paren ARRAY_IDENT  PAREN_END {check_my_our_paren $1 $2; new_esp (M_mixed [ M_list ; M_none ]) (My_our(sndfst $1.any, snd $1.any @ [I_array,  snd $2.any], pos_range $1 $3)) $1 $3}
