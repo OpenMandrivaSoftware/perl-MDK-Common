@@ -1,8 +1,119 @@
+=head1 NAME
+
+MDK::Common::Math - miscellaneous math functions
+
+=head1 SYNOPSIS
+
+    use MDK::Common::Math qw(:all);
+
+=head1 EXPORTS
+
+=over
+
+=item $PI
+
+the well-known constant 
+
+=item even(INT)
+
+=item odd(INT)
+
+is the number even or odd?
+
+=item sqr(FLOAT)
+
+C<sqr(3)> gives C<9>
+
+=item sign(FLOAT)
+
+returns a value in { -1, 0, 1 }
+
+=item round(FLOAT)
+
+C<round(1.2)> gives C<1>, C<round(1.6)> gives C<2>
+
+=item round_up(FLOAT, INT)
+
+returns the number rounded up to the modulo:
+C<round_up(11,10)> gives C<20>
+
+=item round_down(FLOAT, INT)
+
+returns the number rounded down to the modulo:
+C<round_down(11,10)> gives C<10>
+
+=item divide(INT, INT)
+
+integer division (which is lacking in perl). In array context, also returns the remainder:
+C<($a, $b) = divide(10,3)> gives C<$a is 3> and C<$b is 1>
+
+=item min(LIST)
+
+=item max(LIST)
+    
+returns the minimum/maximum number in the list
+
+=item or_(LIST)
+
+is there a true value in the list?
+
+=item and_(LIST)
+
+are all values true in the list?
+
+=item sum(LIST)
+
+=item product(LIST)
+
+returns the sum/product of all the element in the list
+
+=item factorial(INT)
+
+C<factorial(4)> gives C<24> (4*3*2)
+
+=back
+
+=head1 OTHER
+
+the following functions are provided, but not exported:
+
+=over
+
+=item factorize(INT)
+
+C<factorize(40)> gives C<([2,3], [5,1])> as S<40 = 2^3 + 5^1>
+
+=item decimal2fraction(FLOAT)
+
+C<decimal2fraction(1.3333333333)> gives C<(4, 3)> 
+($PRECISION is used to decide which precision to use)
+
+=item poly2(a,b,c)
+
+Solves the a*x2+b*x+c=0 polynomial:
+C<poly2(1,0,-1)> gives C<(1, -1)>
+
+=item permutations(n,p)
+
+A(n,p)
+
+=item combinaisons(n,p)
+
+C(n,p)
+
+=back
+
+=head1 SEE ALSO
+
+L<MDK::Common>
+
+=cut
+
 package MDK::Common::Math;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK $PRECISION $PI);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw($PI even odd sqr sign round round_up round_down divide min max or_ and_ sum product factorize decimal2fraction poly2);
+@EXPORT_OK = qw($PI even odd sqr sign round round_up round_down divide min max or_ and_ sum product factorial);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -61,5 +172,25 @@ sub poly2 {
     my $d = ($b**2 - 4 * $a * $c) ** 0.5;  
     (-$b + $d) / 2 / $a, (-$b - $d) / 2 / $a
 }
+
+# A(n,p)
+sub permutations {
+    my ($n, $p) = @_;
+    my ($r, $i);
+    for ($r = 1, $i = 0; $i < $p; $i++) {
+	$r *= $n - $i;
+    }
+    $r
+}
+
+# C(n,p)
+sub combinaisons {
+    my ($n, $p) = @_;
+
+    permutations($n, $p) / factorial($p)
+}
+
+sub factorial { permutations($_[0], $_[0]) }
+
 
 1;

@@ -4,11 +4,11 @@ Shares constant values between modules
 
 =head1 SYNOPSIS
 
-use MDK::Common::Globals "foo", qw($a $b);
-
-MDK::Common::Globals::init(a => 2, b => 3);
-
-print $a;  # 2
+    use MDK::Common::Globals "foo", qw($a $b);
+    
+    MDK::Common::Globals::init(a => 2, b => 3);
+    
+    print $a;  # 2
 
 =cut
 
