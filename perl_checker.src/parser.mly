@@ -230,20 +230,20 @@ term:
 | term OR_TIGHT   BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); to_Call_op_ M_scalar P_tight_or  "||"   [prio_lo P_assign $1; hash_ref $4] $1 $5}
 
 
-| term PATTERN_MATCH     PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_   ($1); mcontext_check M_string $1; let pattern = from_PATTERN $3 in check_simple_pattern pattern ; to_Call_op_ M_array P_expr "m//"  ($1.any.expr :: pattern) $1 $3}
-| term PATTERN_MATCH_NOT PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_not($1); mcontext_check M_string $1; let pattern = from_PATTERN $3 in check_simple_pattern pattern ; to_Call_op_ M_int   P_expr "!m//" ($1.any.expr :: pattern) $1 $3}
+| term PATTERN_MATCH     PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_   ($1); mcontext_check M_string $1; to_Call_op_ M_array P_expr "m//"  ($1.any.expr :: from_PATTERN $3) $1 $3}
+| term PATTERN_MATCH_NOT PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_not($1); mcontext_check M_string $1; to_Call_op_ M_int   P_expr "!m//" ($1.any.expr :: from_PATTERN $3) $1 $3}
 | term PATTERN_MATCH PATTERN_SUBST {sp_n($2); sp_p($3); check_unneeded_var_dollar_s  ($1); to_Call_op_ (M_mixed[M_none; M_int]) P_expr "s///" ($1.any.expr :: from_PATTERN_SUBST $3) $1 $3}
 | term PATTERN_MATCH_NOT PATTERN_SUBST {die_with_rawpos $2.pos "use =~ instead of !~ and negate the return value"}
 
-| term PATTERN_MATCH     QR_PATTERN {sp_n($2); sp_p($3); to_Call_op_ M_array P_expr "m//"  ($1.any.expr :: from_PATTERN $3) $1 $3}
-| term PATTERN_MATCH_NOT QR_PATTERN {sp_n($2); sp_p($3); to_Call_op_ M_int   P_expr "!m//" ($1.any.expr :: from_PATTERN $3) $1 $3}
+| term PATTERN_MATCH     QR_PATTERN {warn $3.pos "use m/.../ or /.../ instead of qr/.../ when you do a pattern matching"; to_Call_op_ M_array P_expr "m//"  ($1.any.expr :: from_PATTERN $3) $1 $3}
+| term PATTERN_MATCH_NOT QR_PATTERN {warn $3.pos "use m/.../ or /.../ instead of qr/.../ when you do a pattern matching"; to_Call_op_ M_int   P_expr "!m//" ($1.any.expr :: from_PATTERN $3) $1 $3}
 | term PATTERN_MATCH     scalar { new_pesp M_array P_expr (Call(Too_complex, [$1.any.expr ; $3.any ])) $1 $3}
 | term PATTERN_MATCH_NOT scalar { new_pesp M_int   P_expr (Call(Too_complex, [$1.any.expr ; $3.any ])) $1 $3}
 
-| term PATTERN_MATCH     RAW_STRING {die_with_rawpos $3.pos "use a regexp, not a string"}
-| term PATTERN_MATCH_NOT RAW_STRING {die_with_rawpos $3.pos "use a regexp, not a string"}
-| term PATTERN_MATCH     STRING {die_with_rawpos $3.pos "use a regexp, not a string"}
-| term PATTERN_MATCH_NOT STRING {die_with_rawpos $3.pos "use a regexp, not a string"}
+| term PATTERN_MATCH     RAW_STRING {warn $3.pos "use a regexp, not a string"; to_Call_op_ M_array P_expr "m//"  [ $1.any.expr; to_Raw_string $3 ] $1 $3}
+| term PATTERN_MATCH_NOT RAW_STRING {warn $3.pos "use a regexp, not a string"; to_Call_op_ M_int   P_expr "!m//" [ $1.any.expr; to_Raw_string $3 ] $1 $3}
+| term PATTERN_MATCH     STRING {warn $3.pos "use a regexp, not a string"; to_Call_op_ M_array P_expr "m//"  [ $1.any.expr; to_String false $3 ] $1 $3}
+| term PATTERN_MATCH_NOT STRING {warn $3.pos "use a regexp, not a string"; to_Call_op_ M_int   P_expr "!m//" [ $1.any.expr; to_String false $3 ] $1 $3}
 
 
 | term QUESTION_MARK term COLON term {sp_p($2); sp_p($3); sp_p($4); sp_p($5); mcontext_check M_scalar $1; to_Call_op_ (mcontext_merge $3.mcontext $5.mcontext) P_ternary "?:" (check_ternary_paras(prio_lo P_ternary $1, prio_lo_after P_ternary $3, prio_lo_after P_ternary $5)) $1 $5}

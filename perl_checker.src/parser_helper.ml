@@ -963,8 +963,10 @@ let from_PATTERN parse { any = (s, opts) ; pos = pos } =
       else if str_ends_with s ".*$" then
 	warn_rule (sprintf "you can remove \"%s\" at the end of your regexp" ".*$")
   | _ -> ());
-  [ String(re, raw_pos2pos pos) ; 
-    Raw_string(opts, raw_pos2pos pos) ]
+  let pattern = [ String(re, raw_pos2pos pos) ; Raw_string(opts, raw_pos2pos pos) ] in
+  check_simple_pattern pattern;
+  pattern
+
 let from_PATTERN_SUBST parse { any = (s1, s2, opts) ; pos = pos } = 
   [ String(parse_interpolated parse s1, raw_pos2pos pos) ; 
     String(parse_interpolated parse s2, raw_pos2pos pos) ; 
