@@ -16,6 +16,7 @@ all: $(GENERATED) test
 
 index.html: MDK/Common.pm
 	pod2html $< > $@
+	rm -f pod2htm*.tmp
 
 MDK/Common.pm: %: %.pl
 	perl $< > $@
