@@ -842,7 +842,7 @@ and string_escape = parse
 | ['b' 'f' 'a' 'r'] { string_escape_useful := Left true; next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 | ['$' '@' '%' '{' '['] { 
 	if !string_escape_useful = Left false then string_escape_useful := Right (lexeme lexbuf) ;
-	next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf 
+	next_s (lexeme lexbuf) (Stack.pop next_rule) lexbuf 
   }
 | _   { 
     let c = lexeme lexbuf in
