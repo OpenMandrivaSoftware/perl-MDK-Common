@@ -1,5 +1,6 @@
 NAME = perl-MDK-Common
 TAR = $(NAME).tar.bz2
+RPM ?= $(HOME)/rpm
 
 PREFIX = /usr
 BINDIR = $(PREFIX)/bin
