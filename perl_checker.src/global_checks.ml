@@ -161,8 +161,8 @@ let is_global_var context ident =
   | I_func ->
       (match ident with
       | "-b" | "-d" | "-e" | "-f" | "-l" | "-r" | "-s" | "-w" | "-x"
-      | "abs" | "alarm" | "bless" 
-      | "caller" | "chdir" | "chmod" | "chomp" | "chop" | "chown" | "chr" | "chroot" | "close" | "closedir" | "crypt"
+      | "abs" | "alarm" | "atan2" | "bless" 
+      | "caller" | "chdir" | "chmod" | "chomp" | "chop" | "chown" | "chr" | "chroot" | "close" | "closedir" | "cos" | "crypt"
       | "defined" | "delete" | "die"
       | "each" | "endpwent" | "eof" | "eval" | "exec" | "exists" | "exit"
       | "fcntl" | "fileno" | "flock" | "formline" | "fork"
@@ -172,7 +172,7 @@ let is_global_var context ident =
       | "map" | "mkdir" | "next" | "no" | "oct" | "open" | "opendir" | "ord"
       | "pack" | "pipe" | "pop" | "print" | "printf" | "push" | "quotemeta" 
       | "rand" | "read" | "readdir" | "readlink" | "redo" | "ref" | "rename" | "require" | "return" | "reverse" | "rindex" | "rmdir"
-      | "scalar" | "seek" | "select" | "setpwent" | "shift" | "sleep" | "sort" | "splice" | "split" | "sprintf" | "stat" | "substr"
+      | "scalar" | "seek" | "select" | "setpwent" | "shift" | "sin" | "sleep" | "sort" | "splice" | "split" | "sprintf" | "sqrt" | "stat" | "substr"
       | "symlink" | "syscall" | "sysopen" | "sysread" | "sysseek" | "system" | "syswrite" | "tie" | "time"
       | "uc" | "ucfirst" | "umask" | "undef" | "unlink" | "unpack" | "unshift" | "utime" | "values" | "vec" | "wait" | "waitpid" | "wantarray" | "warn" | "write"
 	  -> true
