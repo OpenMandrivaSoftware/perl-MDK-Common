@@ -1,7 +1,7 @@
 # OCAMLC = ocamlcp -p a
 OCAMLBCFLAGS = -w A -w e
 YFLAGS = -v
-TRASH = parser.output TAGS
+TRASH = parser.output perl_checker.html TAGS
 RESULT  = perl_checker
 BCSUFFIX = _debug
 SOURCES = build.ml common.ml flags.ml config_file.ml types.mli info.ml parser_helper.ml parser.mly lexer.mll tree.ml global_checks.ml perl_checker.ml
