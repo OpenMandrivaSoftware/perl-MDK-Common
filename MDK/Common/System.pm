@@ -410,7 +410,8 @@ sub update_gnomekderc {
     my %subst = map { lc($_) => [ $_, $subst_{$_} ] } keys %subst_;
 
     my $s;
-    foreach (MDK::Common::File::cat_($file), "[NOCATEGORY]\n") {
+    defined($category) or $category = "DEFAULTCATEGORY";
+    foreach ("[DEFAULTCATEGORY]\n", MDK::Common::File::cat_($file), "[NOCATEGORY]\n") {
 	if (my $i = /^\s*\[\Q$category\E\]/i ... /^\[/) {
 	    if ($i =~ /E/) { #- for last line of category
 		chomp $s; $s .= "\n";
@@ -422,10 +423,10 @@ sub update_gnomekderc {
 		}
 	      }
 	}
-	$s .= $_ if !/^\Q[NOCATEGORY]/;
+	$s .= $_ if !/^\[(NO|DEFAULT)CATEGORY\]/;
     }
 
-    #- if category has not been found above.
+    #- if category has not been found above (DEFAULTCATEGORY is always found).
     if (keys %subst) {
 	chomp $s;
 	$s .= "\n[$category]\n";
