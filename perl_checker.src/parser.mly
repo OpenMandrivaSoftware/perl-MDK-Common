@@ -268,7 +268,7 @@ term:
     | "-" ->
 	(match $2.any.expr with
 	| Ident(_, _, pos) when $2.spaces = Space_0 ->
-	    let s = "-" ^ string_of_Ident $2.any.expr in
+	    let s = "-" ^ string_of_fromparser $2.any.expr in
 	    warn_rule [Warn_complex_expressions] (Printf.sprintf "don't use %s, use '%s' instead" s s);
 	    new_pesp M_string P_tok (Raw_string(s, pos)) $1 $2
 	| _ -> to_Call_op_ (mcontext_float_or_int [$2.mcontext]) P_tight "- unary" [$2.any.expr] $1 $2)

@@ -48,9 +48,11 @@ val is_always_false : Types.fromparser -> bool
 val is_lvalue : Types.fromparser -> bool
 val not_complex : Types.fromparser -> bool
 val not_simple : Types.fromparser -> bool
-val string_of_Ident : Types.fromparser -> string
 val context2s : Types.context -> string
 val variable2s : Types.context * string -> string
+val string_of_fromparser : Types.fromparser -> string
+val lstring_of_fromparser : Types.fromparser list -> string
+val lstring_of_fromparser_parentheses : Types.fromparser list -> string
 val is_same_fromparser : Types.fromparser -> Types.fromparser -> bool
 val from_scalar : Types.fromparser Types.any_spaces_pos -> Types.fromparser
 val from_array : Types.fromparser Types.any_spaces_pos -> Types.fromparser
@@ -203,8 +205,6 @@ val po_comments : string list ref
 val po_comment : string Types.any_spaces_pos -> unit
 val check_format_a_la_printf : string -> int -> Types.maybe_context list
 val generate_pot : string -> unit
-val fake_string_from_String_l : (string * 'a) list -> string
-val fake_string_option_from_expr : Types.fromparser -> string option
 val check_system_call : string list -> unit
 val call_raw :
   bool -> Types.fromparser * Types.fromparser list -> Types.fromparser

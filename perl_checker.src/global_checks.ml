@@ -192,7 +192,7 @@ let is_global_var context ident =
 let check_variable (context, var) vars para = 
   match var with
   | Ident(_, s, pos) when context <> I_func && is_anonymous_variable_name s && s <> "__FILE__" && s <> "__LINE__" ->
-      warn_with_pos [Warn_normalized_expressions] pos (sprintf "variable %s must not be used\n  (variable with name _XXX are reserved for unused variables)" (variable2s(context, string_of_Ident var)))
+      warn_with_pos [Warn_normalized_expressions] pos (sprintf "variable %s must not be used\n  (variable with name _XXX are reserved for unused variables)" (variable2s(context, string_of_fromparser var)))
   | Ident(Some pkg, _, _) when uses_external_package pkg || List.mem pkg !ignored_packages -> ()
   | Ident(None, ident, pos) ->
       if is_my_declared vars (context, ident) || is_our_declared vars (context, ident) || is_var_declared vars (context, ident) para || is_global_var context ident
@@ -203,7 +203,7 @@ let check_variable (context, var) vars para =
       then ()
       else 
 	if context = I_func then 
-	  warn_with_pos [Warn_names] pos ("unknown function " ^ string_of_Ident var)
+	  warn_with_pos [Warn_names] pos ("unknown function " ^ string_of_fromparser var)
 	else
 	  lpush vars.state.global_vars_used ((context, fq, name), pos)
   | _ -> ()
@@ -287,7 +287,7 @@ let check_variables vars t =
 	(* special warning if @_ is unbound *)
 	check_variable (I_func, ident) vars None ;
 	if not (is_my_declared vars (I_array, "_")) then
-	  warn_with_pos [Warn_suggest_simpler] pos (sprintf "replace %s(@_) with &%s" (string_of_Ident ident) (string_of_Ident ident)) ;
+	  warn_with_pos [Warn_suggest_simpler] pos (sprintf "replace %s(@_) with &%s" (string_of_fromparser ident) (string_of_fromparser ident)) ;
 	Some vars
 
     | Call(Deref(I_func, Ident(None, "require", _)), [Ident _]) -> Some vars
@@ -322,7 +322,7 @@ let check_variables vars t =
 	Some vars
 
     | Sub_declaration(Ident(fq, name, pos) as ident, perl_proto, Block body, kind) ->
-	let vars = declare_Our vars ([ I_func, string_of_Ident ident ], pos) in
+	let vars = declare_Our vars ([ I_func, string_of_fromparser ident ], pos) in
 
 	let my_vars, l =
 	  match has_proto perl_proto (Block body) with

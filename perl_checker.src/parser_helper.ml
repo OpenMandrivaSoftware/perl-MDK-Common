@@ -128,10 +128,6 @@ let not_simple = function
   | Num _ | Ident _ | Deref(_, Ident _) -> false
   | _ -> true
 
-let string_of_Ident = function
-  | Ident(None, s, _) -> s
-  | Ident(Some fq, s, _) -> fq ^ "::" ^ s
-  | _ -> internal_error "string_of_Ident"
 let context2s = function
   | I_scalar -> "$"
   | I_hash -> "%"
@@ -140,6 +136,61 @@ let context2s = function
   | I_raw -> ""
   | I_star -> "*"
 let variable2s(context, ident) = context2s context ^ ident
+
+let rec string_of_fromparser = function
+  | Semi_colon -> ";"
+  | Undef -> "undef"
+  | Num(num, _) -> num
+
+  | Raw_string(s, _) -> "\"" ^ s ^ "\""
+  | String(l, _) -> 
+      let l' = List.map (fun (s, e) -> 
+	s ^ if e = List[] then "" else string_of_fromparser e
+      ) l in
+      "\"" ^ String.concat "" l' ^ "\""
+
+  | Ident(None, s, _) -> s
+  | Ident(Some fq, s, _) -> fq ^ "::" ^ s
+  | My_our(myour, l, _) -> myour ^ "(" ^ String.concat "," (List.map (fun (context, s) -> context2s context ^ s) l) ^ ")"
+
+  | Anonymous_sub(_, e, _) -> "sub { " ^ string_of_fromparser e ^ " }"
+  | Ref(_, e) -> "\\" ^ string_of_fromparser e
+  | Deref(context, e) -> context2s context ^ string_of_fromparser e
+
+  | Diamond(None) -> "<>"
+  | Diamond(Some e) -> "<" ^ string_of_fromparser e ^ ">"
+
+  | Sub_declaration(name, _prototype, body, Real_sub_declaration) ->
+      "sub " ^ string_of_fromparser name ^ " { " ^ string_of_fromparser body ^ " }"
+
+  | Sub_declaration(name, _prototype, body, Glob_assign) ->
+      "*" ^ string_of_fromparser name ^ " = sub { " ^ string_of_fromparser body ^ " };"
+
+  | Deref_with(_, _, _e1, _e2) ->
+      internal_error "todo"
+
+  | Package(p) -> "package " ^ string_of_fromparser p
+
+  | Use(e, []) -> "use " ^ string_of_fromparser e
+  | Use(e, l) -> "use " ^ string_of_fromparser e ^ "(" ^ lstring_of_fromparser l
+
+  | List l -> lstring_of_fromparser_parentheses l
+  | Block l -> "{ " ^ lstring_of_fromparser l ^ " }"
+  | Call_op(op, l, _) -> op ^ lstring_of_fromparser_parentheses l
+
+  | Call(e, l) -> string_of_fromparser e ^ lstring_of_fromparser l
+
+  | Method_call(obj, meth, l) -> 
+      let para = if l = [] then "" else lstring_of_fromparser_parentheses l in
+      string_of_fromparser obj ^ "->" ^ string_of_fromparser meth ^ para
+
+  | Label(e) -> e ^ ": "
+
+  | Perl_checker_comment _ -> ""
+  | Too_complex -> "XXX"
+
+and lstring_of_fromparser l = String.concat ", " (List.map string_of_fromparser l)
+and lstring_of_fromparser_parentheses l = "(" ^ lstring_of_fromparser l ^ ")"
 
 let rec is_same_fromparser a b =
   match a, b with
@@ -288,8 +339,8 @@ let prio_lo_check pri_out pri_in pos expr =
     | _ -> ())
   else 
     (match expr with
-    | Call_op ("print", [Deref (I_star, Ident (None, "STDOUT", _)); Deref(I_scalar, ident)], _) -> 
-	 warn [Warn_traps] pos (sprintf "use parentheses: replace \"print $%s ...\" with \"print($%s ...)\"" (string_of_Ident ident) (string_of_Ident ident))
+    | Call_op ("print", [Deref (I_star, Ident (None, "STDOUT", _)); (Deref(I_scalar, _) as ident)], _) -> 
+	 warn [Warn_traps] pos (sprintf "use parentheses: replace \"print %s ...\" with \"print(%s ...)\"" (string_of_fromparser ident) (string_of_fromparser ident))
     | _ -> warn [Warn_traps] pos "missing parentheses (needed for clarity)")
 
 let prio_lo pri_out in_ = prio_lo_check pri_out in_.any.priority in_.pos in_.any.expr ; in_.any.expr
@@ -432,7 +483,7 @@ let check_parenthesized_first_argexpr_with_Ident ident esp =
   | Ident(None, word, _) when List.mem word ["ref" ; "readlink"] ->
       if esp.any.priority <> P_tok then warn_rule [Warn_complex_expressions] "use parentheses around argument"
   | _ -> ());
-  check_parenthesized_first_argexpr (string_of_Ident ident) esp
+  check_parenthesized_first_argexpr (string_of_fromparser ident) esp
 
 let check_hash_subscript esp =
   let can_be_raw_string = function
@@ -581,7 +632,7 @@ let only_one_array_ref esp =
   let e = only_one esp in
   (match e with
   | Call_op("last_array_index", [Deref(I_array, e)], _) ->
-      warn [Warn_suggest_simpler] esp.pos (sprintf "you can replace $#%s with -1" (string_of_Ident e))
+      warn [Warn_suggest_simpler] esp.pos (sprintf "you can replace $#%s with -1" (string_of_fromparser e))
   | _ -> ());
   e
 
@@ -611,7 +662,7 @@ let deref_raw context e =
       let fq, ident = split_name_or_fq_name s in
       Ident(fq, ident, pos)
   | Deref(I_scalar, (Ident _ as ident)) ->
-      warn_rule [Warn_suggest_simpler] (sprintf "%s{$%s} can be written %s$%s" (context2s context) (string_of_Ident ident) (context2s context) (string_of_Ident ident));
+      warn_rule [Warn_suggest_simpler] (sprintf "%s{$%s} can be written %s$%s" (context2s context) (string_of_fromparser ident) (context2s context) (string_of_fromparser ident));
       e
   | _ -> e
   in Deref(context, e)
@@ -686,15 +737,15 @@ let cook_call_op op para pos =
   | "foreach", [ _; Block [ expr ; Semi_colon ] ]
   | "foreach", [ _; Block [ expr ] ] -> 
       (match expr with
-      | Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)) ; Deref(I_scalar, Ident(None, "_", _)) ]) ] ; _ ], _) ->
-	  let l = string_of_Ident l in
-	  warn_rule [Warn_suggest_functional] (sprintf "use \"push @%s, grep { ... } ...\" instead of \"foreach (...) { push @%s, $_ if ... }\"\n  or sometimes \"@%s = grep { ... } ...\"" l l l) 
-      | Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)); _ ]) ] ; _ ], _) ->
-	  let l = string_of_Ident l in
-	  warn_rule [Warn_suggest_functional] (sprintf "use \"push @%s, map { ... ? ... : () } ...\" instead of \"foreach (...) { push @%s, ... if ... }\"\n  or sometimes \"@%s = map { ... ? ... : () } ...\"\n  or sometimes \"@%s = map { if_(..., ...) } ...\"" l l l l)
-      | List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)); _ ]) ] ->
-	  let l = string_of_Ident l in
-	  warn_rule [Warn_suggest_functional] (sprintf "use \"push @%s, map { ... } ...\" instead of \"foreach (...) { push @%s, ... }\"\n  or sometimes \"@%s = map { ... } ...\"" l l l)
+      | Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, Ident _) as l ; Deref(I_scalar, Ident(None, "_", _)) ]) ] ; _ ], _) ->
+	  let l = string_of_fromparser l in
+	  warn_rule [Warn_suggest_functional] (sprintf "use \"push %s, grep { ... } ...\" instead of \"foreach (...) { push %s, $_ if ... }\"\n  or sometimes \"%s = grep { ... } ...\"" l l l)
+      | Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, Ident _) as l; _ ]) ] ; _ ], _) ->
+	  let l = string_of_fromparser l in
+	  warn_rule [Warn_suggest_functional] (sprintf "use \"push %s, map { ... ? ... : () } ...\" instead of \"foreach (...) { push %s, ... if ... }\"\n  or sometimes \"%s = map { ... ? ... : () } ...\"\n  or sometimes \"%s = map { if_(..., ...) } ...\"" l l l l)
+      | List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, Ident _) as l; _ ]) ] ->
+	  let l = string_of_fromparser l in
+	  warn_rule [Warn_suggest_functional] (sprintf "use \"push %s, map { ... } ...\" instead of \"foreach (...) { push %s, ... }\"\n  or sometimes \"%s = map { ... } ...\"" l l l)
       | _ -> ())
 
   | "=", [My_our _; Ident(None, "undef", _)] -> 
@@ -739,11 +790,11 @@ let cook_call_op op para pos =
 
   match op, para with
   | "=", [ Deref(I_star, (Ident _ as f1)); Deref(I_star, (Ident _ as f2)) ] ->
-      let s1, s2 = string_of_Ident f1, string_of_Ident f2 in
+      let s1, s2 = string_of_fromparser f1, string_of_fromparser f2 in
       warn [Warn_complex_expressions] pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
       sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
   | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Deref(I_star, (Ident _ as f2)) ] ->
-      let s2 = string_of_Ident f2 in
+      let s2 = string_of_fromparser f2 in
       warn [Warn_help_perl_checker] pos (sprintf "\"*{'%s'} = *%s\" is better written \"*{'%s'} = \\&%s\"" sf1 s2 sf1 s2) ;
       sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
 
@@ -843,12 +894,6 @@ msgstr \"\"
 	output_string fd "msgstr \"\"\n\n"
   ) sorted_pot_strings ;      
   close_out fd
-
-let fake_string_from_String_l l = String.concat "$foo" (List.map fst l)
-let fake_string_option_from_expr = function
-  | String(l, _) -> Some(fake_string_from_String_l l)
-  | Raw_string(s, _) -> Some s
-  | _ -> None
 
 let check_system_call = function
   | "mkdir" :: l ->
@@ -965,6 +1010,11 @@ let call_raw force_non_builtin_func (e, para) =
 	  | _ -> warn_rule [Warn_traps] (f ^ " is expecting an array"))
 
       | "system" ->
+	  let fake_string_option_from_expr = function
+	    | String(l, _) -> Some(String.concat "" (List.map fst l))
+	    | Raw_string(s, _) -> Some s
+	    | _ -> None
+	  in
 	  (match un_parenthesize_full_l para with
 	  | [ e ] ->
 	      (match fake_string_option_from_expr e with
@@ -983,8 +1033,8 @@ let call_raw force_non_builtin_func (e, para) =
       let para' = match f with
       | "no" ->
 	  (match para with
-	  | [ Ident(_, _, pos) as s ] -> Some [ Raw_string(string_of_Ident s, pos) ]
-	  | [ Call(Deref(I_func, (Ident(_, _, pos) as s)), l) ] -> Some(Raw_string(string_of_Ident s, pos) :: l)
+	  | [ Ident(_, _, pos) as s ] -> Some [ Raw_string(string_of_fromparser s, pos) ]
+	  | [ Call(Deref(I_func, (Ident(_, _, pos) as s)), l) ] -> Some(Raw_string(string_of_fromparser s, pos) :: l)
 	  | _ -> die_rule "use \"no PACKAGE <para>\"")
       | "undef" ->
 	  (match para with

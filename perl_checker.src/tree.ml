@@ -70,11 +70,11 @@ let get_current_package t =
 	| [] -> List.rev ((Some current_package, List.rev found_body) :: packages)
 	| Package(Ident _ as ident) :: body ->
 	    let packages = (Some current_package, List.rev found_body) :: packages in
-	    bundled_packages packages (string_of_Ident ident) [] body
+	    bundled_packages packages (string_of_fromparser ident) [] body
 	| instr :: body ->
 	    bundled_packages packages current_package (instr :: found_body) body
       in
-      bundled_packages [] (string_of_Ident ident) [] body
+      bundled_packages [] (string_of_fromparser ident) [] body
   | _ -> 
       if str_ends_with !Info.current_file ".pm" then warn_with_pos [Warn_normalized_expressions] (!Info.current_file, 0, 0) (sprintf "module %s does not have \"package xxxx;\" on its first line" (Info.absolute_file_to_file !Info.current_file)) ;
       [ None, t ]
@@ -91,7 +91,7 @@ let from_qw_raw = function
       some_or (l_option2option_l (List.map (function
 	| String([s, List []], pos)
 	| Raw_string(s, pos) -> Some(s, pos)
-	| Ident(_, _, pos) as ident -> Some(string_of_Ident ident, pos)
+	| Ident(_, _, pos) as ident -> Some(string_of_fromparser ident, pos)
 	| e -> warn_with_pos [] (get_pos_from_expr e) "not recognised yet"; None
       ) l)) []
   | e -> warn_with_pos [] (get_pos_from_expr e) "not recognised yet"; []
@@ -186,15 +186,17 @@ let get_uses t =
     | Use(Ident(None, "lib", _), [libs]) ->
 	use_lib := List.map Info.file_to_absolute_file (List.map snd (from_qw libs)) @ !use_lib ;
 	uses
-    | Use(Ident _ as pkg, _) when uses_external_package (string_of_Ident pkg) -> uses
-    | Use(Ident(_, _, pos) as ident, l) ->
-	let package = string_of_Ident ident in
-	let para = match l with
-	| [] -> None
-	| [ Num(_, _) ] -> None (* don't care about the version number *)
-	| _ -> Some(collect from_qw l)
-	in
-	(package, (para, pos)) :: uses
+    | Use(Ident(_, _, pos) as pkg, l) ->
+	let package = string_of_fromparser pkg in
+	if uses_external_package package then
+	  uses
+	else
+	  let para = match l with
+	  | [] -> None
+	  | [ Num(_, _) ] -> None (* don't care about the version number *)
+	  | _ -> Some(collect from_qw l)
+	  in
+	  (package, (para, pos)) :: uses
     | _ -> uses
   ) [] t
 
@@ -398,7 +400,7 @@ let get_global_info_from_package from_basedir require_name build_time t =
 	| Perl_checker_comment(s, pos) when str_begins_with "require " s ->
 	    Some((skip_n_char 8 s, pos) :: l)
 	| Call(Deref(I_func, Ident (None, "require", pos)), [Ident _ as pkg]) ->
-	    let package = string_of_Ident pkg in
+	    let package = string_of_fromparser pkg in
 	    if uses_external_package package then None else Some((package, pos) :: l)
 	| Call(Deref(I_func, Ident (None, "require", pos)), [Raw_string(pkg, _)])
 	    when not (String.contains pkg '/') && Filename.check_suffix pkg ".pm" ->
