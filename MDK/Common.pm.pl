@@ -1,6 +1,8 @@
 
 
 print <<'EOF';
+package MDK::Common;
+
 =head1 NAME
 
 MDK::Common - miscellaneous functions
@@ -55,7 +57,6 @@ modify it under the same terms as Perl itself.
 
 =cut
 
-package MDK::Common;
 
 use MDK::Common::DataStructure qw(:all);
 use MDK::Common::File qw(:all);
