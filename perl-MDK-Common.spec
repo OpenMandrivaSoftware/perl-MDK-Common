@@ -12,6 +12,7 @@ URL: http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-MDK-Common/
 Source0: %{name}.tar.bz2
 License: GPL
 Group: Development/Perl
+Conflicts: drakxtools-newt < 9.1-30mdk, drakconf < 9.1-14mdk
 BuildRoot: %{_tmppath}/%{name}-buildroot
 BuildRequires: ocaml
 
