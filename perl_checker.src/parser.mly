@@ -173,7 +173,7 @@ use:
 use_word:
 | use_revision word comma {new_esp M_none $2.any $1 $3}
 | use_revision word {new_esp M_none $2.any $1 $2}
-| use_revision {new_1esp (Ident(None, "", get_pos $1)) $1 }
+| use_revision {new_1esp Undef $1 }
 
 use_revision:
 | USE REVISION comma {$1}
