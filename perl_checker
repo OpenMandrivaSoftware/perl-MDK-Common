@@ -55,6 +55,9 @@ if (/\$_\s*=~/) {
 if (/\$_\s*!~/) {
     warn_(q(``$_ !~ /regexp/'' can be written ``!/regexp/''), info());
 }
+if (/my \$\w+\s*=~/ || /my \(\$\w+\)\s*=~/) {
+    err(q(applying =~ on a new initialized variable is wrong), info());
+}
 if (/[}>]{(['"])([a-z][a-z0-9_]*)\1}/i) {
     warn_(qq(``{$1$2$1}'' can be written ``{$2}''), info())
       if $2 ne 'x' && $2 ne 'y'; 
