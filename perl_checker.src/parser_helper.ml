@@ -596,6 +596,9 @@ let cook_call_op op para pos =
 	warn_rule "don't do this"
       else if List.exists (function Num _ -> true | _ -> false) para then
 	warn_rule (sprintf "you should use a number operator, not the string operator \"%s\" (or replace the number with a string)" op)
+  | "." ->
+      if List.exists (function Call(Deref(I_func, Ident(None, "N_", _)), _) -> true | _ -> false) para then
+	warn_rule "N_(\"xxx\") . \"yyy\" is dumb since the string \"xxx\" will never get translated"
   | "||=" | "&&=" ->
       (match List.hd para with
       | List [ List _ ] -> warn_rule "remove the parentheses"
