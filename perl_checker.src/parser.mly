@@ -465,6 +465,7 @@ word_paren:
 | BAREWORD_PAREN { new_1esp (Ident(None, $1.any, get_pos $1)) $1 }
 | RAW_IDENT_PAREN { new_1esp (to_Ident $1) $1 }
 | PO_COMMENT word_paren { po_comment($1); new_esp M_special $2.any $1 $2 }
+| PO_COMMENT { die_rule "N(...) must follow the #-PO: comment, with nothing in between" }
 
 
 arraylen: ARRAYLEN_IDENT {new_esp M_int     (deref_arraylen (to_Ident $1)) $1 $1} | ARRAYLEN  scalar {sp_0($2); new_esp M_int     (deref_arraylen  $2.any ) $1 $1 } | ARRAYLEN  bracket_subscript {new_esp M_int     (deref_arraylen      $2.any) $1 $2}
