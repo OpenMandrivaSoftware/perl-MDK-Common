@@ -184,7 +184,7 @@ sub cp_with_option {
 	} elsif ((-b $src || -c $src) && $keep_special) {
 	    my @stat = stat($src);
 	    require MDK::Common::System;
-	    MDK::Common::System::syscall_('mknod', $dest, $stat[2], $stat[6]) or die "mknod failed (dev $_): $!";
+	    MDK::Common::System::syscall_('mknod', $dest, $stat[2], $stat[6]) or die "mknod failed (dev $dest): $!";
 	} else {
 	    local *F; open F, $src or die "can't open $src for reading: $!\n";
 	    local *G; open G, "> $dest";
