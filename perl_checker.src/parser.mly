@@ -257,6 +257,7 @@ term:
 | ONE_SCALAR_PARA restricted_subscripted   {call_one_scalar_para $1 [fst $2], sp_pos_range $1 $2}
 | ONE_SCALAR_PARA parenthesized            {call_one_scalar_para $1 (sndfst $2), sp_pos_range $1 $2}
 | ONE_SCALAR_PARA word_paren parenthesized {call_one_scalar_para $1 [call(Deref(I_func, fst $2), sndfst $3)], sp_pos_range $1 $3}
+| ONE_SCALAR_PARA {call_one_scalar_para $1 [], snd $1}
 
 /* Constructors for anonymous data */
 

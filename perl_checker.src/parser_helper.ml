@@ -606,6 +606,13 @@ let call(e, para) = call_func false (e, para)
 
 
 let call_one_scalar_para (e, (_, pos)) para =
+  let para =
+    match para with
+    | [] ->
+	  warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" e e) ;
+	  [var_dollar_ (raw_pos2pos pos)]
+    | _ -> para
+  in
   let pri =
     match e with
     | "defined" -> P_expr

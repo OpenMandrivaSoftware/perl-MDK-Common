@@ -586,7 +586,7 @@ rule token = parse
 
 | ident ":" { LABEL(lexeme lexbuf, pos lexbuf) }
 
-| '-' [ 'a'-'z' 'A'-'Z' ] [ ' ' '(' ] { putback lexbuf 1; ONE_SCALAR_PARA(lexeme lexbuf, pos lexbuf) }
+| '-' [ 'a'-'z' 'A'-'Z' ] [ ' ' '(' ';' ] { putback lexbuf 1; ONE_SCALAR_PARA(lexeme lexbuf, pos lexbuf) }
 
 | ['0'-'9'] ['0'-'9' '_']* ('.' ['0'-'9'] ['0'-'9' '_']*)+ 
 | 'v' ['0'-'9'] ['0'-'9' '_']* ('.' ['0'-'9'] ['0'-'9' '_']*)* 
