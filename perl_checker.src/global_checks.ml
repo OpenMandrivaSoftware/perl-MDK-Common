@@ -19,6 +19,7 @@ type vars = {
     locally_imported : ((context * string) * (string * bool ref * prototype option)) list ;
     required_vars : (context * string * string) list ;
     current_package : per_package ;
+    is_toplevel : bool ;
     state : state ;
   }
 
@@ -241,7 +242,7 @@ let check_unused_local_variables vars =
 	  if s.[0] != '_' || s = "_" then warn_with_pos pos (sprintf "unused variable %s" (variable2s v))
   ) (List.hd vars.my_vars)
   
-
+let imported_add i1 i2 = if i1 = None && i2 = None then None else Some (some_or i1 [] @ some_or i2 [])
 
 let check_variables vars t = 
   let rec check_variables_ vars t = fold_tree check vars t
@@ -325,13 +326,13 @@ let check_variables vars t =
 	  then [ (I_scalar, "AUTOLOAD"), (pos, ref true, None) ]
 	  else [] in
 
-	let vars' = { vars with my_vars = my_vars :: vars.my_vars ; our_vars = local_vars :: vars.our_vars } in
+	let vars' = { vars with my_vars = my_vars :: vars.my_vars ; our_vars = local_vars :: vars.our_vars ; is_toplevel = false } in
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
 	Some vars
 
     | Anonymous_sub(_, Block l, pos) ->
-	let vars' = { vars with my_vars = [(I_array, "_"), (pos, ref true, None)] :: vars.my_vars } in
+	let vars' = { vars with my_vars = [(I_array, "_"), (pos, ref true, None)] :: vars.my_vars ; is_toplevel = false } in
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
 	Some vars
@@ -381,7 +382,12 @@ let check_variables vars t =
 	  | [ List [v] ] -> Some(from_qw v)
 	  | _ -> die_with_pos pos "bad import statement" in
 	let l = get_imported vars.state vars.current_package (package_name, (args, pos)) in
-	let vars = { vars with locally_imported = l @ vars.locally_imported } in
+	let vars = 
+	  if vars.is_toplevel then (
+	    vars.current_package.imported := imported_add !(vars.current_package.imported) (Some l) ;
+	    vars
+	  ) else
+	    { vars with locally_imported = l @ vars.locally_imported } in
 	Some vars
 
     | Method_call(Raw_string(pkg, _) as class_, Raw_string(method_, pos), para) ->
@@ -426,7 +432,7 @@ let check_variables vars t =
   vars
 
 let check_tree state package =
-  let vars = { my_vars = [[]]; our_vars = []; locally_imported = []; required_vars = []; current_package = package; state = state } in
+  let vars = { my_vars = [[]]; our_vars = []; locally_imported = []; required_vars = []; current_package = package; state = state; is_toplevel = true } in
   if !Flags.verbose then print_endline_flush_always ("checking package " ^ package.package_name) ;
   let _vars = check_variables vars package.body in
   ()
@@ -445,9 +451,7 @@ let add_package_to_state state package =
 	uses = existing_package.uses @ package.uses ;
 	required_packages = existing_package.required_packages @ package.required_packages ;
 	vars_declared = vars_declared ;
-	imported = 
-	  ref (if !(existing_package.imported) = None && !(package.imported) = None then None else
-	  Some (some_or !(existing_package.imported) [] @ some_or !(package.imported) [])) ;
+	imported = ref (imported_add !(existing_package.imported) !(package.imported)) ;
 	exports = { export_ok   = existing_package.exports.export_ok   @ package.exports.export_ok ;
 		    export_auto = existing_package.exports.export_auto @ package.exports.export_auto ;
 		    export_tags = existing_package.exports.export_tags @ package.exports.export_tags ;
