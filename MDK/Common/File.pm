@@ -25,6 +25,10 @@ array context it returns the lines.
 
 If the file doesn't exist, it returns undef
 
+=item cat_or_die(FILENAME)
+
+same as C<cat_> but dies when something goes wrong
+
 =item cat__(FILEHANDLE REF)
 
 returns the file content: in scalar context it returns a single string, in
@@ -41,6 +45,10 @@ add the LIST at the end of the file
 =item output_p(FILENAME, LIST)
 
 just like C<output> but creates directories if needed
+
+=item output_with_perm(FILENAME, PERMISSION, LIST)
+
+same as C<output_p> but sets FILENAME permission to PERMISSION (using chmod)
 
 =item mkdir_p(DIRNAME)
 
@@ -105,16 +113,18 @@ L<MDK::Common>
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(dirname basename cat_ cat__ output output_p append_to_file linkf symlinkf renamef mkdir_p rm_rf cp_af touch all glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
+@EXPORT_OK = qw(dirname basename cat_ cat__ output output_p output_with_perm append_to_file linkf symlinkf renamef mkdir_p rm_rf cp_af touch all glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
 sub basename { local $_ = shift; s|/*\s*$||; s|.*/||; $_ }
 sub cat_ { local *F; open F, $_[0] or return; my @l = <F>; wantarray() ? @l : join '', @l }
+sub cat_or_die { local *F; open F, $_[0] or die "can't read file $_[0]: $!\n"; my @l = <F>; wantarray() ? @l : join '', @l }
 sub cat__ { my ($f) = @_; my @l = <$f>; wantarray() ? @l : join '', @l }
-sub output { my $f = shift; local *F; open F, ">$f" or die "output in file $f failed: $!\n"; print F foreach @_ }
-sub append_to_file { my $f = shift; local *F; open F, ">>$f" or die "output in file $f failed: $!\n"; print F foreach @_ }
+sub output { my $f = shift; local *F; open F, ">$f" or die "output in file $f failed: $!\n"; print F foreach @_; 1 }
+sub append_to_file { my $f = shift; local *F; open F, ">>$f" or die "output in file $f failed: $!\n"; print F foreach @_; 1 }
 sub output_p { my $f = shift; mkdir_p(dirname($f)); output($f, @_) }
+sub output_with_perm { my ($f, $perm, @l) = @_; mkdir_p(dirname($f)); output($f, @l); chmod $perm, $f }
 sub linkf    { unlink $_[1]; link    $_[0], $_[1] }
 sub symlinkf { unlink $_[1]; symlink $_[0], $_[1] }
 sub renamef  { unlink $_[1]; rename  $_[0], $_[1] }

@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 2mdk
+%define release 3mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -50,6 +50,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Dec  2 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-3mdk
+- add output_with_perm(), cat_or_die()
+- some more checks in perl_checker ($1 =~ /re/ is a warning)
+
 * Thu Nov 28 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-2mdk
 - new perl_checker now has every feature of the old version 
   (except checking $_ in small subs, a more global solution should come)
