@@ -72,8 +72,9 @@ foreach (@l) {                           use "push @l2, map { ... ? ... : () } .
   push @l2, yyy($_) if zzz($_);            or sometimes "@l2 = map { ... ? ... : () } ..."
 }                                          or sometimes "@l2 = map { if_(..., ...) } ..."
 
-if (grep { xxx() } @l) {}                in scalar context, use "any" instead of "grep"
+if (grep { xxx() } @l) {}                in boolean context, use "any" instead of "grep"
 
 $xxx ? $yyy : ()                         you may use if_() here
                                            beware that the short-circuit semantic of ?: is not kept
                                            if you want to keep the short-circuit behaviour, replace () with @{[]} and there will be no warning anymore
+
