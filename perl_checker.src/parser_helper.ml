@@ -437,6 +437,11 @@ let call_func is_a_func (e, para) =
 	  | [ Ident(_, _, pos) as s ] -> Some [ Raw_string(string_of_Ident s, pos) ]
 	  | [ Call(Deref(I_func, (Ident(_, _, pos) as s)), l) ] -> Some(Raw_string(string_of_Ident s, pos) :: l)
 	  | _ -> die_rule "use \"no PACKAGE <para>\"")
+      | "undef" ->
+	  (match para with
+	  | [ Deref(I_star, ident) ] -> Some [ Deref(I_func, ident) ]
+	  | _ -> None)
+
       | "N" | "N_" ->
 	  (match para with
 	  | [ List(String([ _s, List [] ], _) :: _) ] -> None
