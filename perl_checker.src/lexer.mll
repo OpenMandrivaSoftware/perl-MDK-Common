@@ -397,10 +397,12 @@ let hex_in_string lexbuf next_rule s =
   next_s s (Stack.pop next_rule) lexbuf 
 
 let set_delimit_char lexbuf op = 
-  match lexeme_char lexbuf (String.length op) with
-  | '@' -> die lexbuf ("don't use " ^ op ^ "@...@, replace @ with / ! , or |")
-  | ':' -> die lexbuf ("don't use " ^ op ^ ":...:, replace : with / ! , or |")
-  | c -> delimit_char := c
+  let c = lexeme_char lexbuf (String.length op) in
+  delimit_char := c;
+  match c with
+  | '@' -> warn lexbuf ("don't use " ^ op ^ "@...@, replace @ with / ! , or |")
+  | ':' -> warn lexbuf ("don't use " ^ op ^ ":...:, replace : with / ! , or |")
+  | _ -> ()
 }
 
 let stash = [ '$' '@' '%' '&' '*' ]
@@ -778,7 +780,8 @@ and delimited_string = parse
 and re_delimited_string = parse
 | '\\' { Stack.push re_delimited_string next_rule ; re_string_escape lexbuf }
 | '$'  { Stack.push re_delimited_string next_rule ; delimited_string_interpolate_scalar lexbuf }
-| '@'  { Stack.push re_delimited_string next_rule ; delimited_string_interpolate_array lexbuf }
+| '@'  { if lexeme_char lexbuf 0 <> !delimit_char then 
+        (Stack.push re_delimited_string next_rule ; delimited_string_interpolate_array lexbuf) }
 | '\n' { 
     add_a_new_line(lexeme_end lexbuf);
     next re_delimited_string lexbuf
