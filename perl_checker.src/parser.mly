@@ -257,6 +257,7 @@ term:
 
 | PRINT { Call_op("print", var_STDOUT :: [ var_dollar_ ]), snd $1 }
 | PRINT argexpr {check_parenthesized_first_argexpr (fst $1) $2; Call_op("print", var_STDOUT :: fst $2), snd $1 }
+| PRINT_TO_STAR { Call_op("print", Deref(I_star,   Ident(None, fst $1, get_pos $1)) :: [ var_dollar_ ]), snd $1 }
 | PRINT_TO_STAR argexpr { Call_op("print", Deref(I_star,   Ident(None, fst $1, get_pos $1)) :: fst $2), snd $1 }
 | PRINT_TO_SCALAR { Call_op("print", var_STDOUT :: [ Deref(I_scalar, Ident(None, fst $1, get_pos $1)) ]), snd $1 }
 | PRINT_TO_SCALAR argexpr { Call_op("print", Deref(I_scalar, Ident(None, fst $1, get_pos $1)) :: fst $2), snd $1 }

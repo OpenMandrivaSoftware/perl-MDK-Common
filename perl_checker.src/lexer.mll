@@ -490,7 +490,7 @@ rule token = parse
 | "\\" ' '* '('
     { putback lexbuf 1; REF(pos lexbuf) }
 
-| "sub" ' '+ ident ' '* '(' [ '$' '@' '\\' '&' ';' ]* ')' {
+| "sub" ' '+ ident ' '* '(' [ '$' '@' '\\' '&' ';' '%' ]* ')' {
     (* bloody prototypes, must be caught especially otherwise "($)" is badly tokenized *)
     (* and alas "($@)" is both valid as an expression and a prototype *)
     let s = lexeme lexbuf in
