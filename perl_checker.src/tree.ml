@@ -62,7 +62,7 @@ let get_current_package t =
   match t with
   | Package(Ident _ as ident) :: body ->
       let rec bundled_packages packages current_package found_body = function
-	| [] -> (Some current_package, List.rev found_body) :: packages
+	| [] -> List.rev ((Some current_package, List.rev found_body) :: packages)
 	| Package(Ident _ as ident) :: body ->
 	    let packages = (Some current_package, List.rev found_body) :: packages in
 	    bundled_packages packages (string_of_Ident ident) [] body
@@ -233,6 +233,7 @@ let read_xs_extension_from_so global_vars_declared package pos =
     let rel_file = String.concat "/" ("auto" :: splitted @ [ last splitted ]) ^ ".so" in
     let so = (findfile !use_lib rel_file) ^ "/" ^ rel_file in
     let channel = Unix.open_process_in (Printf.sprintf "nm --defined-only -D \"%s\"" so) in
+    if !Flags.verbose then print_endline_flush (sprintf "using shared-object symbols from %s" so) ;
     fold_lines (fun () s ->
       let s = skip_n_char 11 s in
       if str_begins_with s "XS_" then
