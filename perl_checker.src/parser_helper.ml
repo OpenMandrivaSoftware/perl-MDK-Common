@@ -46,6 +46,8 @@ let rec is_not_a_scalar = function
   | Deref(context, _) -> non_scalar_context context
   | List []
   | List(_ :: _ :: _) -> true
+  | Call(Deref(I_func, Ident(None, "map", _)), _)
+  | Call(Deref(I_func, Ident(None, "grep", _)), _) -> true
   | Call_op("?:", [ _cond ; a; b ], _) -> is_not_a_scalar a || is_not_a_scalar b
   | _ -> false
   
