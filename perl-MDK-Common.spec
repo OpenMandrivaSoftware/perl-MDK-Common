@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -64,6 +64,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Nov 26 2004 Pixel <pixel@mandrakesoft.com> 1.1.20-2mdk
+- new checks in perl_checker
+
 * Tue Nov 16 2004 Pixel <pixel@mandrakesoft.com> 1.1.20-1mdk
 - MDK::Common::File : add all_files_rec()
 
