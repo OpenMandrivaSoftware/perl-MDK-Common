@@ -323,7 +323,7 @@ arrayref:
 | arrayref_start BRACKET expr BRACKET_END ARRAYREF_END {sp_p($2); sp_p($4); sp_0($5); fst $1 @ [Ref(I_hash, sndfst $3)], pos_range $1 $5}
 parenthesized:
 | parenthesized_start PAREN_END {sp_0_or_cr($2); ((if fst $1 = [] then P_tok else P_paren P_comma), fst $1), pos_range $1 $2}
-| parenthesized_start expr PAREN_END {sp_0_or_cr($3); (P_paren(if fst $1 = [] then fstfst $2 else P_comma), fst $1 @ [sndfst $2]), pos_range $1 $3}
+| parenthesized_start expr PAREN_END {sp_0_or_cr($3); (P_paren(if fst $1 = [] then fstfst $2 else P_comma), fst $1 @ [(if fst $1 = [] then prio_lo P_loose else prio_lo_after P_comma) $2]), pos_range $1 $3}
 | parenthesized_start BRACKET expr BRACKET_END PAREN_END {sp_p($4); sp_0_or_cr($5); (P_paren(if fst $1 = [] then P_expr else P_comma), fst $1 @ [Ref(I_hash, sndfst $3)]), pos_range $1 $5}
 
 arrayref_start:
