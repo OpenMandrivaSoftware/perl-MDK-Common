@@ -59,7 +59,7 @@ returns the first element where CODE returns true (or returns undef)
 
     find { /foo/ } "fo", "fob", "foobar", "foobir"
 
-gives "fob"
+gives "foobar"
 
 =item any { CODE } LIST
 
