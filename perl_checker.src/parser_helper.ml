@@ -689,7 +689,7 @@ let call_func is_a_func (e, para) =
       | "map" | "grep" -> 
 	  (match para with
 	  | Anonymous_sub _ :: _ -> ()
-	  | _ -> warn_rule (sprintf "always use \"%s\" with a block (eg: map { ... } @list)" f));
+	  | _ -> warn_rule (sprintf "always use \"%s\" with a block (eg: %s { ... } @list)" f f));
 	  None
 	    
       | _ -> None
