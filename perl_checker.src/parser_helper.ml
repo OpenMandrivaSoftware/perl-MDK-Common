@@ -683,6 +683,10 @@ let cook_call_op op para pos =
       if Info.is_on_same_line_current pos then warn pos "no need to initialize variables, it's done by default" ;
       call
 
+  | "=", [ Deref_with(I_array, I_scalar, id, Deref(I_array, id_)); _ ] when is_same_fromparser id id_ ->
+      warn_rule "\"$a[@a] = ...\" is better written \"push @a, ...\"" ;
+      call
+
   | "=", [ Deref(I_star, String ([(sf1, List [])], _)); _ ] ->
       warn_rule (sprintf "write *{'%s'} instead of *{\"%s\"}" sf1 sf1) ;
       call

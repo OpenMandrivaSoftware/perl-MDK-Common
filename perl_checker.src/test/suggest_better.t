@@ -56,6 +56,8 @@ $l[$#l]                                  you can replace $#l with -1
 
 $#l == 0                                 $#x == 0 is better written @x == 1
 
+$l[@l] = 1                               "$a[@a] = ..." is better written "push @a, ..."
+
 xxx(@_)                                  replace xxx(@_) with &xxx
 
 member($xxx, keys %h)                    you can replace "member($xxx, keys %yyy)" with "exists $yyy{$xxx}"
