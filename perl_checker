@@ -70,6 +70,9 @@ if (/\bsub\b\s*\{[^{}]*\$_(?!\[)/) {
 if ((my ($op) = /([<>]{2})/) && (/[+-]\s*[\w\$]+\s*[<>]{2}/ || /[<>]{2}\s*[\w\$]+\s*[+-]/) && !/\<\<[A-Z]/) { # don't warn for here-document alike
     err(qq(parentheses needed around operator $op), info());
 }
+if (/=.*:\s*\$\w+\s*=/) {
+    err(q(do not use ``cond ? $v1 = XX1 : $v2 = XX2'' which is parted as ``(cond ? $v1 = XX1 : $v2) = XX2''), info());
+}
 
 if (/^\s*package ([\w:]+)/) {
     $package = $1;
