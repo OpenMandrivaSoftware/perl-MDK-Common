@@ -436,7 +436,8 @@ let check_variables vars t =
 let check_tree state package =
   let vars = { my_vars = [[]]; our_vars = []; locally_imported = []; required_vars = []; current_package = package; state = state; is_toplevel = true } in
   if !Flags.verbose then print_endline_flush_always ("checking package " ^ package.package_name) ;
-  let _vars = check_variables vars package.body in
+  let vars = check_variables vars package.body in
+  check_unused_local_variables vars ;
   ()
   
 let imported_add i1 i2 = if i1 = None && i2 = None then None else Some (some_or i1 [] @ some_or i2 [])
