@@ -56,7 +56,7 @@ and parse_package_if_needed per_files (package_name, pos) =
   (*print_endline_flush ("wondering about " ^ package_name) ;*)
   try
     let dir = findfile (Build.fake_packages_dir :: !use_lib) rel_file in
-    let file = dir ^ "/" ^ rel_file in
+    let file = Info.file_to_absolute_file (dir ^ "/" ^ rel_file) in
     Config_file.read_any (Filename.dirname file) (List.length splitted) ;
     let already_done =
       try
