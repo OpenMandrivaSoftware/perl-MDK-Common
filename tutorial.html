@@ -45,9 +45,9 @@
 
   <p>Thanks to <tt>perl-MDK-Common</tt>'s own documentation, an
   easy way to directly access information about the provided
-  functions, you can use <tt>perldoc</tt>, for example
-  <tt>perldoc MDK::Common::Func</tt> will explain the functions
-  of the Func module. Use <tt>perldoc MDK::Common</tt> to view
+  functions is to use <tt>perldoc</tt>. For example,
+  <tt>perldoc MDK::Common::Func</tt> will list the functions
+  of the Func sub-module. Use <tt>perldoc MDK::Common</tt> to view
   information on all the available functions.</p>
 
   <p>Additionally, <tt>perl-MDK-Common</tt> provides a binary
@@ -64,7 +64,7 @@
 
   <p>Of course, a first look at the Perl language will be
   necessary for the reader. The following can be a good Perl
-  Tutorial (though there are many of them on the web): <a
+  Tutorial (although there are many others on the web): <a
   href="http://www.comp.leeds.ac.uk/Perl/">http://www.comp.leeds.ac.uk/Perl/</a>.</p>
 
   <p>Programming with <tt>perl-MDK-Common</tt> also emphasizes
@@ -84,7 +84,7 @@
   common technique among programmers, and maybe it's even worse
   with Perl programmers; but functional-style programs are often
   clearer, more expressive, more reusable, and more
-  maintainable</li>
+  maintainable, than traditional programs</li>
   <br>
 
   <li><b>strict code style:</b> Perl is known to be a language
@@ -125,13 +125,13 @@
   <p><b>Note:</b> many functions' name, extending capabilities of
   existing functions, or being their functional counterpart, are
   suffixed with the underscore character (<tt>_</tt>); for
-  example, <tt>chomp_</tt> is the equivalent of <tt>chomp</tt>,
-  but returns the chomp'ed results instead of modifying its
-  argument.</p>
+  example, <tt>chomp_</tt> is the semantical equivalent of
+  <tt>chomp</tt>, but returns the chomp'ed results instead of
+  modifying its argument.</p>
 
   <ul>
   <li>
-   <b>cat_</b>(FILENAME): returns the file contents: in scalar 
+   <b>cat_</b>(FILENAME): returns the file contents; in scalar 
     context it returns a single string, in array context it
     returns the lines. If the file doesn't exist, it returns
     <tt>undef</tt>.
@@ -156,14 +156,12 @@
    <b>output</b>(FILENAME, LIST): creates a file and outputs the
     list (if the file exists, it is clobbered)
 
-  <p>Counterpart of <tt>cat_</tt>. Build the contents of the file
-  in your program, and when you're happy with it, write it on
-  disk:</p>
+  <p>Counterpart of <tt>cat_</tt>:</p>
 
   <pre class="SCREEN">
-  my @resolv_conf = qw(search mandrakesoft.com);
-  push @resolv_conf, "nameserver $_" foreach @name_servers;
-  output('/etc/resolv.conf', @resolv_conf);
+  output('/tmp/resolv.conf', 
+         "search $domain\n", 
+         map { "nameserver $_\n" } @name_servers);
   </pre>
   </li>
 
@@ -276,7 +274,7 @@
 
       # equivalent (but much more elegant!) to:
 
-  my @md_devices = map { /^(md\d+)/; $1 } grep { /^md\d+/ } cat_('/proc/mdstat');
+  my @md_devices = map { /^(md\d+)/ } grep { /^md\d+/ } cat_('/proc/mdstat');
   </pre>
   </li>
 
@@ -294,8 +292,9 @@
 
 
   <li>
-   <b>each_index</b> { CODE } LIST: just like <tt>each</tt>, but
-   sets $::i
+   <b>each_index</b> { CODE } LIST: iterate on a list to execute
+   some code needing the index of the list element (available in
+   <tt>$::i</tt>)
 
   <p>Useful when you need to perform an action on each element of
   a list, but you also need the index of each element:</p>
@@ -313,13 +312,115 @@
 
   <h2>perl_checker</h2>
 
-  <p></p>
+  <p>Let's examine now the code-style perl_checker wants you to
+  adopt. Let's consider the following naive code example:</p>
 
+  <pre class="SCREEN">
+  1: sub calc {
+  2:     my ($x,$y) = @_;
+  3:     $_ = $y;
+  4:     ($x==0 && $y==0) and return -1;
+  5:     my @tab = (1, 2, 3);
+  6: 			
+  7:     /sysconfig\/i18n/ and return 1;
+  8: }
+  </pre>
+
+  <p>
+  The following problems are reported:
+  </p>
+
+  <ul>
+  <li><pre class="SCREEN">
+line 2, character 12-12
+you should have a space here</pre>
+
+  <p>
+  Good: <tt>my ($x, $y) = @_;</tt>
+  <br>
+  Why: you should put a space after the comma when specifying a list.
+  </p>
+
+  <li><pre class="SCREEN">
+line 3, character 5-7
+undeclared variable $_</pre>
+
+  <p>
+  Good: <tt>local $_ = $y;</tt>
+  <br>
+  Why: you should always localize <tt>$_</tt> when you set it, because it's a global variable.
+  </p>
+
+  <li><pre class="SCREEN">
+line 4, character 8-8
+you should have a space here</pre>
+
+  <p>
+  Good: <tt>($x == 0 && $y == 0) and return -1;</tt>
+  <br>
+  Why: you should put spaces before and after operators.
+  </p>
+
+  <li><pre class="SCREEN">
+line 4, character 5-21
+unneeded parentheses</pre>
+
+  <p>
+  Good: <tt>$x == 0 && $y == 0 and return -1;</tt>
+  <br>
+  Why: because of operators precedence, the parentheses are unneeded (if unsure about precedence, see <tt>perlop(1)</tt>)
+  </p>
+
+  <li><pre class="SCREEN">
+line 5, character 8-12
+unused variable @tab</pre>
+
+  <p>
+  Why: Assigning to unused variables is (typically) useless. If you really need to assign to an unused variable, prefix its name with `_' and perl_checker will stop boring you (for example, <tt>@_tab</tt>).
+  </p>
+
+  <li><pre class="SCREEN">
+line 7, character 20-21
+change the delimit character / to get rid of this escape</pre>
+
+  <p>
+  Good: <tt>m|sysconfig/i18n|</tt>
+  <br>
+  Why: <tt>/</tt> is not the only regexp delimiter! if you want to specify a slash in your regexp, use another delimiter so that your regexp will be more readable.
+  </p>
+
+  </ul>
+
+  <p>Finally, the correct code looks like:</p>
+
+  <pre class="SCREEN">
+  sub calc {
+      my ($x, $y) = @_;
+      local $_ = $y;
+      $x == 0 && $y == 0 and return -1;
+      my @_tab = (1, 2, 3);
+  			
+      m|sysconfig/i18n| and return 1;
+  }
+  </pre>
+
+  <p>Under Emacs, you might want to add the following to your
+  <tt>.emacs</tt> and then be able to validate your code with <tt>C-Enter</tt>:</p>
+  </p>
+
+  <pre class="SCREEN">
+  (defmacro ilam (&rest body) `(lambda () (interactive) ,@body))
+  (add-hook 'cperl-mode-hook 
+	    '(lambda ()
+	       (local-set-key [(control return)] 
+			      (ilam (save-some-buffers 1) (compile (concat "perl_checker --restrict-to-files " (buffer-file-name (current-buffer))))))
+	       ))
+  </pre>
 
 <hr />
 
     <p>
-       Last update: Fri Apr 18 22:08:06 2003
+       Last update: Wed Apr 30 18:05:40 2003
     </p>
 
 </body>
