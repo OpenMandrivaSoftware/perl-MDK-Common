@@ -153,6 +153,7 @@ sub set_headers_visible {}
 sub set_justify {}
 sub set_label {}
 sub set_layout {}
+sub set_left_margin {}
 sub set_markup {}
 sub set_min_width {}
 sub set_minmax_width {}
