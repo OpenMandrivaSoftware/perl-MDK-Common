@@ -18,9 +18,9 @@ sub gtk2 {
                 my $fun = $1;
                 #- one liner constants
                 #-   sub EXPOSURE_MASK { 'exposure-mask' }
-                /^\s*sub\s+(\w+)\s*{\s*('[^']+')|("[^"]+")\s*}/ and $add->($fun, '() { }');
+                /^\s*sub\s+(\w+)\s*{\s*('[^']+')|("[^"]+")\s*}/ and $add->($fun, '() {}');
                 #-   sub Sym_Hangul_J_Phieuf { 0xeed }
-                /^\s*sub\s+(\w+)\s*{\s*0\S+\s*}/                and $add->($fun, '() { }');
+                /^\s*sub\s+(\w+)\s*{\s*0\S+\s*}/                and $add->($fun, '() {}');
 
                 #- explore first line of subroutine definition
                 local $_ = $contents[$::i+1];
