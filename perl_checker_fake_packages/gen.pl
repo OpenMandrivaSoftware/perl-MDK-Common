@@ -27,15 +27,10 @@ sub parse_xs {
     my $state = 'waiting_for_type';
     ($current_package, $current_prefix) = ('', '');
     my $multi_line;
-    my ($c, $ignore);
+    my $c;
     foreach (cat_($file)) {
-	$ignore = 1 if /^=/;
-	if (/^=cut/) {
-         $ignore = 0;
-         next;
-	}
-	next if $ignore;
 	$c++;
+	next if /^=/ ... /^=cut/;
 	chomp;
 	my $orig_line = $_;
 
