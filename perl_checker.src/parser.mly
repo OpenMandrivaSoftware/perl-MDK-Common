@@ -182,6 +182,7 @@ use_revision:
 
 func_decl:
 | SUB word { new_esp M_none ($2.any, None) $1 $2}
+| SUB BAREWORD_PAREN PAREN PAREN_END { warn_rule "remove carriage return between \"sub\" and the function name"; new_esp M_none (Ident(None, $2.any, get_pos $2), Some "") $1 $4 }
 | FUNC_DECL_WITH_PROTO {new_1esp (Ident(fst3 $1.any, snd3 $1.any, get_pos $1), Some (ter3 $1.any)) $1 }
 
 listexpr: /* Basic list expressions */
