@@ -41,6 +41,7 @@ sub gtk2 {
       [ 'modal',                        ' { my ($_window, $o_bool) = @_ }' ],
       [ 'resizable',                    ' { my ($_window, $o_bool) = @_ }' ],
       [ 'window_position',              ' { my ($_window, $o_pos) = @_ }' ],
+      [ 'expand_to_path',               ' { my ($_treeview, $_path) = @_ }' ],
                       );
     my @added_subroutines;
     my $add = sub {

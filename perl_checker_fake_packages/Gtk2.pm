@@ -1829,6 +1829,7 @@ sub Gtk2::exit { my ($_class, $_errorcode) = @_ }
 sub Gtk2::expand { my ($_boxchild) = @_ }
 sub Gtk2::expand_all { my ($_tree_view) = @_ }
 sub Gtk2::expand_row { my ($_tree_view, $_path, $_open_all) = @_ }
+sub Gtk2::expand_to_path { my ($_treeview, $_path) = @_ }
 sub Gtk2::family_new { my ($_class, $_family) = @_ }
 sub Gtk2::fg_gc { my ($_state, $o_gc) = @_ }
 sub Gtk2::file_list { my ($_dialog) = @_ }
