@@ -513,6 +513,9 @@ let hashtbl_find f h =
 let hashtbl_filter f h =
   Hashtbl.iter (fun v c -> hashtbl_set h v (f v c)) h
 
+let hashtbl_to_list h =
+  Hashtbl.fold (fun k v l -> (k,v) :: l) h []
+
 let array_shift a = Array.sub a 1 (Array.length a - 1)
 let array_last_n n a = 
   let len = Array.length a in

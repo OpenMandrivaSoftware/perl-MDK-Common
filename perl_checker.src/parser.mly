@@ -12,7 +12,8 @@
 
 
 %token <unit   * (Types.spaces * Types.raw_pos)> EOF
-%token <string * (Types.spaces * Types.raw_pos)> NUM RAW_STRING BAREWORD BAREWORD_PAREN REVISION COMMENT POD LABEL PERL_CHECKER_COMMENT PRINT_TO_STAR PRINT_TO_SCALAR ONE_SCALAR_PARA
+%token <string * (Types.spaces * Types.raw_pos)> NUM RAW_STRING BAREWORD BAREWORD_PAREN REVISION COMMENT POD LABEL PERL_CHECKER_COMMENT ONE_SCALAR_PARA
+%token <(string * string) * (Types.spaces * Types.raw_pos)> PRINT_TO_STAR PRINT_TO_SCALAR
 %token <string * (Types.spaces * Types.raw_pos)> QUOTEWORDS COMPACT_HASH_SUBSCRIPT
 %token <(string * Types.raw_pos) * (Types.spaces * Types.raw_pos)> RAW_HERE_DOC
 %token <(string * ((int * int) * token) list) list * (Types.spaces * Types.raw_pos)> STRING COMMAND_STRING
@@ -257,9 +258,9 @@ term:
 /* Constructors for anonymous data */
 
 | ARRAYREF ARRAYREF_END {sp_0($2); (P_expr, Ref(I_array, List[])), sp_pos_range $1 $2}
-| arrayref_start ARRAYREF_END {(P_expr, Ref(I_array, List(fst $1))), sp_pos_range $1 $2}
-| arrayref_start expr ARRAYREF_END {(P_expr, Ref(I_array, List(fst $1 @ [sndfst $2]))), sp_pos_range $1 $3}
-| arrayref_start BRACKET expr BRACKET_END ARRAYREF_END {(P_expr, Ref(I_array, List(fst $1 @ [Ref(I_hash, sndfst $3)]))), sp_pos_range $1 $5}
+| arrayref_start ARRAYREF_END {(if fst $1 = [] then sp_0 else sp_p)($2) ; (P_expr, Ref(I_array, List(fst $1))), sp_pos_range $1 $2}
+| arrayref_start expr ARRAYREF_END {sp_same $2 $3; (P_expr, Ref(I_array, List(fst $1 @ [sndfst $2]))), sp_pos_range $1 $3}
+| arrayref_start BRACKET expr BRACKET_END ARRAYREF_END {sp_same $2 $5; (P_expr, Ref(I_array, List(fst $1 @ [Ref(I_hash, sndfst $3)]))), sp_pos_range $1 $5}
 
 | BRACKET BRACKET_END {(P_expr, Ref(I_hash, List [])), sp_pos_range $1 $2} /* empty hash */
 | BRACKET_HASHREF expr BRACKET_END %prec PREC_HIGH {sp_p($3); (P_expr, Ref(I_hash, sndfst $2)), sp_pos_range $1 $3} /* { foo => "Bar" } */
@@ -300,12 +301,12 @@ term:
 | NEW word terminal { die_rule "you must parenthesize parameters: \"new Class(...)\" instead of \"new Class ...\"" }
 | NEW word variable { die_rule "you must parenthesize parameters: \"new Class(...)\" instead of \"new Class ...\"" }
 
-| PRINT { (P_call_no_paren, Call_op("print", var_STDOUT :: [ var_dollar_ ])), snd $1}
-| PRINT argexpr {check_parenthesized_first_argexpr (fst $1) $2; (P_call_no_paren, Call_op("print", var_STDOUT :: sndfst $2)), sp_pos_range $1 $2}
-| PRINT_TO_SCALAR         { (P_call_no_paren, Call_op("print", var_STDOUT :: [ Deref(I_scalar, Ident(None, fst $1, get_pos $1)) ])), snd $1}
-| PRINT_TO_SCALAR argexpr { (P_call_no_paren, Call_op("print", Deref(I_scalar, Ident(None, fst $1, get_pos $1)) :: sndfst $2)), sp_pos_range $1 $2}
-| PRINT_TO_STAR           { (P_call_no_paren, Call_op("print", Deref(I_star, Ident(None, fst $1, get_pos $1)) :: [ var_dollar_ ])), snd $1}
-| PRINT_TO_STAR argexpr   { (P_call_no_paren, Call_op("print", Deref(I_star, Ident(None, fst $1, get_pos $1)) :: sndfst $2)), sp_pos_range $1 $2}
+| PRINT { (P_call_no_paren, Call_op(fst $1, var_STDOUT :: [ var_dollar_ ])), snd $1}
+| PRINT argexpr {check_parenthesized_first_argexpr (fst $1) $2; (P_call_no_paren, Call_op(fst $1, var_STDOUT :: sndfst $2)), sp_pos_range $1 $2}
+| PRINT_TO_SCALAR         { (P_call_no_paren, Call_op(fstfst $1, var_STDOUT :: [ Deref(I_scalar, Ident(None, sndfst $1, get_pos $1)) ])), snd $1}
+| PRINT_TO_SCALAR argexpr { (P_call_no_paren, Call_op(fstfst $1, Deref(I_scalar, Ident(None, sndfst $1, get_pos $1)) :: sndfst $2)), sp_pos_range $1 $2}
+| PRINT_TO_STAR           { (P_call_no_paren, Call_op(fstfst $1, Deref(I_star, Ident(None, sndfst $1, get_pos $1)) :: [ var_dollar_ ])), snd $1}
+| PRINT_TO_STAR argexpr   { (P_call_no_paren, Call_op(fstfst $1, Deref(I_star, Ident(None, sndfst $1, get_pos $1)) :: sndfst $2)), sp_pos_range $1 $2}
 
 | hash PKG_SCOPE {sp_0($2); (P_tok, Too_complex), sp_pos_range $1 $2} /* %main:: */
 
@@ -371,7 +372,6 @@ my_our: /* Things that can be "my"'d */
 | MY_OUR SCALAR_IDENT {My_our(fst $1, [I_scalar, sndfst $2], get_pos $2), sp_pos_range $1 $2}
 | MY_OUR HASH_IDENT   {My_our(fst $1, [I_hash,   sndfst $2], get_pos $2), sp_pos_range $1 $2}
 | MY_OUR ARRAY_IDENT  {My_our(fst $1, [I_array,  sndfst $2], get_pos $2), sp_pos_range $1 $2}
-| MY_OUR STAR_IDENT   {if fst $1 <> "our" then die_rule "syntax error"; My_our(fst $1, [I_star, sndfst $2], get_pos $2), sp_pos_range $1 $2}
 
 my_our_paren:
 | MY_OUR PAREN {sp_1($2); ((true, fst $1), []), sp_pos_range $1 $2}

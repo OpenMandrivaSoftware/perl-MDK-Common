@@ -148,6 +148,7 @@ val adjustModUp : int -> int -> int
 val hashtbl_set : ('a, 'b) Hashtbl.t -> 'a -> 'b -> unit
 val hashtbl_find : ('a -> 'b -> bool) -> ('a, 'b) Hashtbl.t -> 'a
 val hashtbl_filter : ('a -> 'b -> 'b) -> ('a, 'b) Hashtbl.t -> unit
+val hashtbl_to_list : ('a, 'b) Hashtbl.t -> ('a * 'b) list
 val array_shift : 'a array -> 'a array
 val array_last_n : int -> 'a array -> 'a array
 val array_collect : ('a -> 'b list) -> 'a array -> 'b list

@@ -32,10 +32,10 @@ let rec parse_file state file =
       Info.start_a_new_file file ;
       let tokens = Lexer.get_token Lexer.token lexbuf in
       let t = Parser_helper.parse_tokens Parser.prog tokens (Some lexbuf) in
-      let package = get_global_info_from_package t in
-      Tree.get_global_vars_declaration state package ;
+      let required_packages, package = get_global_info_from_package t in
+      Tree.get_vars_declaration state package ;
       let state = { state with per_package = (package.package_name, package) :: state.per_package } in
-      let state = List.fold_left parse_package_if_needed state package.uses in
+      let state = List.fold_left parse_package_if_needed state (required_packages @ List.map (fun (s, (_, pos)) -> s, pos) package.uses) in
       state
     with Failure s -> (
       prerr_endline s ;
@@ -43,7 +43,7 @@ let rec parse_file state file =
      )
   with _ -> failwith ("bad file " ^ file)
 
-and parse_package_if_needed state (package_name, (_, pos)) =
+and parse_package_if_needed state (package_name, pos) =
   if List.mem_assoc package_name state.per_package then state else
   try
     let package = snd (List.hd state.per_package) in

@@ -13,6 +13,7 @@ type uses = (string * ((context * string) list option * pos)) list
 type per_package = {
     file_name : string ;
     package_name : string ; has_package_name : bool ;
+    vars_declared : (context * string, pos) Hashtbl.t;
     exports : exports ;
     uses : uses ;
     body : fromparser list;
@@ -26,8 +27,8 @@ type state = {
 val ignored_packages : string list ref
 
 val default_state : state
-val get_global_info_from_package : fromparser list -> per_package
-val get_global_vars_declaration : state -> per_package -> unit
+val get_global_info_from_package : fromparser list -> (string * pos) list * per_package
+val get_vars_declaration : state -> per_package -> unit
 val check_tree : state -> per_package -> unit
 
 val die_with_pos : string * int * int -> string -> 'a

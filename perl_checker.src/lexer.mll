@@ -22,8 +22,8 @@ type raw_token =
   | POD of (string * raw_pos)
   | LABEL of (string * raw_pos)
   | COMMAND_STRING of (raw_interpolated_string * raw_pos)
-  | PRINT_TO_STAR of (string * raw_pos)
-  | PRINT_TO_SCALAR of (string * raw_pos)
+  | PRINT_TO_STAR of ((string * string) * raw_pos)
+  | PRINT_TO_SCALAR of ((string * string) * raw_pos)
   | QUOTEWORDS of (string * raw_pos)
   | COMPACT_HASH_SUBSCRIPT of (string * raw_pos)
   | RAW_HERE_DOC of ((string * raw_pos) ref * raw_pos)
@@ -411,6 +411,7 @@ rule token = parse
 | "BEGIN"    { BEGIN(pos lexbuf) }
 | "END"      { END(pos lexbuf) }
 | "print"    { PRINT(lexeme lexbuf, pos lexbuf) }
+| "printf"   { PRINT(lexeme lexbuf, pos lexbuf) }
 | "new"      { NEW(pos lexbuf) }
 | "format"   { let _ = raw_here_doc_next_line "." in FORMAT(pos lexbuf) }
 | "defined"  { ONE_SCALAR_PARA(lexeme lexbuf, pos lexbuf) }
@@ -420,11 +421,19 @@ rule token = parse
 
 | "print " ['A'-'Z'] ['A'-'Z' '0'-'9']* ['\n' ' '] { 
     putback lexbuf 1;
-    PRINT_TO_STAR(skip_n_char 6 (lexeme lexbuf), pos lexbuf)
+    PRINT_TO_STAR(("print", skip_n_char 6 (lexeme lexbuf)), pos lexbuf)
   }
 | "print $" ident ['\n' ' '] { 
     putback lexbuf 1; 
-    PRINT_TO_SCALAR(skip_n_char 7 (lexeme lexbuf), pos lexbuf);
+    PRINT_TO_SCALAR(("print", skip_n_char 7 (lexeme lexbuf)), pos lexbuf);
+  }
+| "printf " ['A'-'Z'] ['A'-'Z' '0'-'9']* ['\n' ' '] { 
+    putback lexbuf 1;
+    PRINT_TO_STAR(("printf", skip_n_char 7 (lexeme lexbuf)), pos lexbuf)
+  }
+| "printf $" ident ['\n' ' '] { 
+    putback lexbuf 1; 
+    PRINT_TO_SCALAR(("printf", skip_n_char 8 (lexeme lexbuf)), pos lexbuf);
   }
 
 | ident ' '* "=>" { (* needed so that (if => 1) works *)
