@@ -82,6 +82,7 @@ let do_para_comply_with_prototype para proto =
   match proto with
   | Some proto -> 
       (match para with
+      | [] as paras
       | [List [List paras]] 
       | [List paras] -> 
 	  if List.exists is_not_a_scalar paras then 0 else
