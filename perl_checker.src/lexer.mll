@@ -241,7 +241,7 @@ let building_current_interpolated_string = Stack.create()
 let building_current_string = Stack.create()
 let current_string_start_pos = ref 0
 let current_string_start_line = ref 0
-let warn lexbuf err = prerr_endline (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
+let warn lexbuf err = print_endline_flush (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
 let die lexbuf err = failwith (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
 let die_in_string lexbuf err = failwith (pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ err)
 
