@@ -546,7 +546,7 @@ let check_format_a_la_printf s pos =
 let generate_pot file = 
   let fd = open_out file in
   output_string fd 
-"# SOME DESCRIPTIVE TITLE.
+("# SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Free Software Foundation, Inc.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
@@ -554,7 +554,7 @@ let generate_pot file =
 msgid \"\"
 msgstr \"\"
 \"Project-Id-Version: PACKAGE VERSION\\n\"
-\"POT-Creation-Date: 2002-12-05 19:52+0100\\n\"
+\"POT-Creation-Date: " ^ input_line (Unix.open_process_in "date '+%Y-%m-%d %H:%M%z'") ^ "\\n\"
 \"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\\n\"
 \"Last-Translator: FULL NAME <EMAIL@ADDRESS>\\n\"
 \"Language-Team: LANGUAGE <LL@li.org>\\n\"
@@ -562,7 +562,7 @@ msgstr \"\"
 \"Content-Type: text/plain; charset=CHARSET\\n\"
 \"Content-Transfer-Encoding: 8-bit\\n\"
 
-" ;
+") ;
 
   let rec print_formatted_char = function
     | '"'  -> output_char fd '\\'; output_char fd '"'
