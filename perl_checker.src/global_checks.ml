@@ -241,8 +241,6 @@ let check_unused_local_variables vars =
       | _ ->
 	  if s.[0] != '_' || s = "_" then warn_with_pos pos (sprintf "unused variable %s" (variable2s v))
   ) (List.hd vars.my_vars)
-  
-let imported_add i1 i2 = if i1 = None && i2 = None then None else Some (some_or i1 [] @ some_or i2 [])
 
 let check_variables vars t = 
   let rec check_variables_ vars t = fold_tree check vars t
@@ -384,7 +382,7 @@ let check_variables vars t =
 	let l = get_imported vars.state vars.current_package (package_name, (args, pos)) in
 	let vars = 
 	  if vars.is_toplevel then (
-	    vars.current_package.imported := imported_add !(vars.current_package.imported) (Some l) ;
+	    vars.current_package.imported := Some (get_imports vars.state vars.current_package @ l) ;
 	    vars
 	  ) else
 	    { vars with locally_imported = l @ vars.locally_imported } in
@@ -436,6 +434,8 @@ let check_tree state package =
   if !Flags.verbose then print_endline_flush_always ("checking package " ^ package.package_name) ;
   let _vars = check_variables vars package.body in
   ()
+  
+let imported_add i1 i2 = if i1 = None && i2 = None then None else Some (some_or i1 [] @ some_or i2 [])
 
 let add_package_to_state state package = 
   let package =
