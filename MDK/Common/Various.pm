@@ -107,8 +107,8 @@ sub second { $_[1] }
 sub top { $_[-1] }
 
 sub to_bool { $_[0] ? 1 : 0 }
-sub to_int { $_[0] =~ /(\d*)/; $1 }
-sub to_float { $_[0] =~ /(\d*(\.\d*)?)/; $1 }
+sub to_int { $_[0] =~ /(\d*)/ && $1 }
+sub to_float { $_[0] =~ /(\d*(\.\d*)?)/ && $1 }
 sub bool2text { $_[0] ? "true" : "false" }
 sub bool2yesno { $_[0] ? "yes" : "no" }
 sub text2bool { my $t = lc($_[0]); $t eq "true" || $t eq "yes" ? 1 : 0 }
