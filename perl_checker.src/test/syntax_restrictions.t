@@ -6,6 +6,10 @@ s:xxx:yyy:                               don't use s:...:, replace : with / ! , 
 
 qw/a b c/                                don't use qw/.../, use qw(...) instead
 
+qw{a b c}                                don't use qw{...}, use qw(...) instead
+
+q{xxx}                                   don't use q{...}, use q(...) instead
+
 qx(xxx)                                  don't use qx{...}, use `...` instead
 
 -xxx                                     don't use -xxx, use '-xxx' instead

@@ -250,6 +250,8 @@ let raw_here_doc_next_line mark =
   here_doc_ref
 
 let delimit_char = ref '/'
+let delimit_char_open = ref '('
+let delimit_char_close = ref ')'
 type string_escape_kinds = Double_quote | Qq | Delimited | Here_doc
 let string_escape_kind = ref Double_quote
 let string_quote_escape = ref false
@@ -403,12 +405,25 @@ let set_delimit_char lexbuf op =
   | '@' -> warn lexbuf ("don't use " ^ op ^ "@...@, replace @ with / ! , or |")
   | ':' -> warn lexbuf ("don't use " ^ op ^ ":...:, replace : with / ! , or |")
   | _ -> ()
+
+let set_delimit_char_open lexbuf op =
+  let char_open = lexeme_char lexbuf (String.length op) in
+  let char_close =
+    match char_open with
+    | '(' -> ')'
+    | '{' -> warn lexbuf ("don't use " ^ op ^ "{...}, use " ^ op ^ "(...) instead") ; '}'
+    | _ -> internal_error "set_delimit_char_open"
+  in
+  delimit_char_open := char_open;
+  delimit_char_close := char_close
 }
 
 let stash = [ '$' '@' '%' '&' '*' ]
 let ident_start = ['a'-'z' 'A'-'Z' '_']
 let ident = ident_start ['0'-'9' 'A'-'Z' 'a'-'z' '_'] *
 let pattern_separator = [ '/' '!' ',' '|' '@' ':' ] 
+let pattern_open = [ '(' '{' ]
+let pattern_close = [ ')' '}' ]
 
 let in_string_expr = (ident | (ident? ("::" ident)+)) "->"? (('{' [^ '{' '}' '\n']* '}') | ('[' [^ '[' ']' '\n']* ']'))*
 
@@ -745,9 +760,9 @@ rule token = parse
 	  let s, pos = ins delimited_string lexbuf in
 	  check_multi_line_delimited_string None pos ;
 	  COMMAND_STRING(s, pos) }
-| "q("  { raw_ins_to_string qstring lexbuf }
+| "q" pattern_open { set_delimit_char_open lexbuf "q"; raw_ins_to_string qstring lexbuf }
 | "qq(" { ins_to_string qqstring lexbuf }
-| "qw(" { let s, pos = raw_ins qstring lexbuf in QUOTEWORDS(s, pos) }
+| "qw" pattern_open { set_delimit_char_open lexbuf "qw"; let s, pos = raw_ins qstring lexbuf in QUOTEWORDS(s, pos) }
 
 | "\n__END__" [^ '0'-'9' 'A'-'Z' 'a'-'z' '_'] 
 | eof   { EOF(pos lexbuf) }
@@ -819,18 +834,21 @@ and qqstring = parse
 | eof { die_in_string lexbuf "Unterminated_qqstring" }
 
 and qstring = parse
-| ')' { 
-    if !string_nestness <> 0 then (decr string_nestness ; next qstring lexbuf) 
+| pattern_close { 
+    if lexeme_char lexbuf 0 = !delimit_char_close then
+      if !string_nestness <> 0 then (decr string_nestness ; next qstring lexbuf) 
+      else ()
+    else next qstring lexbuf
   }
-| '(' {
-    incr string_nestness;
+| pattern_open {
+    if lexeme_char lexbuf 0 = !delimit_char_open then incr string_nestness;
     next qstring lexbuf
   }
 | '\n' { 
     add_a_new_line(lexeme_end lexbuf);
     next qstring lexbuf
   }
-| [^ '\n' '(' ')']+ { next qstring lexbuf }
+| [^ '\n' '(' ')' '{' '}']+ { next qstring lexbuf }
 | eof { die_in_string lexbuf "Unterminated_qstring" }
 
 and here_doc = parse
