@@ -121,6 +121,10 @@ If the category doesn't exist, it creates it. eg:
     update_gnomekderc("/etc/skels/.kderc", 'KDE', 
 		      kfmIconStyle => "Large")
 
+=item fuzzy_pidofs(REGEXP)
+
+return the list of process ids matching the regexp
+
 =back
 
 =head1 OTHER
@@ -158,7 +162,7 @@ use MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_int $bitof_int); #);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch typeFromMagic list_passwd list_home list_skels syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setVarsInCsh template2file template2userfile update_gnomekderc); #);
+@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch typeFromMagic list_passwd list_home list_skels syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setVarsInCsh template2file template2userfile update_gnomekderc fuzzy_pidofs); #);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -351,6 +355,11 @@ sub update_gnomekderc {
 
     MDK::Common::File::output($file, $s);
 
+}
+
+sub fuzzy_pidofs {
+    my ($regexp) = @_;
+    grep { /^(\d+)$/ && MDK::Common::File::cat_("/proc/$_/cmdline") =~ /$regexp/ } MDK::Common::File::all('/proc');
 }
 
 1;

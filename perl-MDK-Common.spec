@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 5mdk
+%define release 6mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -49,6 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Tue Jul 23 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-6mdk
+- MDK::Common::System: add fuzzy_pidofs
+
 * Tue Jul 23 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-5mdk
 - perl_checker: catch misuse of =~ when = was meant
 - MDK/Common/DataStructure.pm: add deref_array
