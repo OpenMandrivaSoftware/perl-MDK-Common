@@ -561,6 +561,24 @@ let cook_call_op(op, para, pos) =
       call
 
 let call_op_((prio, (prev_ter, op)), ter, para) (sp, pos) = 
+  (match op with
+  | "==" | "!=" ->
+      if List.exists (function Undef | List(_ :: _ :: _) -> true | _ -> false) para then
+	warn_rule "don't do this"
+      else if List.exists (function String _ | Raw_string _ -> true | _ -> false) para then
+	warn_rule (sprintf "you should use a string operator, not the number operator \"%s\"" op)
+  | "<=" | ">=" | ">"  | "<"  | "<=>" ->
+      if List.exists (function Undef | List [] | List(_ :: _ :: _) -> true | _ -> false) para then
+	(* nb: allowing @l == () *)
+	warn_rule "don't do this"
+      else if List.exists (function String _ | Raw_string _ -> true | _ -> false) para then
+	warn_rule (sprintf "you should use a string operator, not the number operator \"%s\"" op)
+  | "le" | "ge" | "eq" | "ne" | "gt" | "lt" | "cmp" ->
+      if List.exists (function Undef | List [] | List(_ :: _ :: _) -> true | _ -> false) para then
+	warn_rule "don't do this"
+      else if List.exists (function Num _ -> true | _ -> false) para then
+	warn_rule (sprintf "you should use a number operator, not the string operator \"%s\" (or replace the number with a string)" op)
+  | _ -> ());
   sp_same prev_ter ter ;
   (prio, cook_call_op(op, para, pos)), (sp, pos)
 
