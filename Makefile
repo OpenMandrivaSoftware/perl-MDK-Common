@@ -34,6 +34,7 @@ install: clean all
 	install perl_checker.src/perl_checker $(BINDIR)
 	install -m 644 MDK/Common.pm $(INSTALLVENDORLIB)/MDK
 	install -m 644 MDK/Common/*.pm $(INSTALLVENDORLIB)/MDK/Common
+	cp -r perl_checker_fake_packages $(INSTALLVENDORLIB)
 
 rpm: update tar build commit
 

@@ -748,6 +748,16 @@ let rec fold_lines f init chan =
   with End_of_file -> init
 let readlines chan = List.rev (fold_lines (fun l e -> e::l) [] chan)
 
+let rec updir dir nb =
+  if nb = 0 then dir else
+  match dir with
+  | "." -> String.concat "/" (times ".." nb)
+  | _ -> 
+      if Filename.basename dir = ".." then
+	dir ^ "/" ^ String.concat "/" (times ".." nb)
+      else
+	updir (Filename.dirname dir) (nb-1)
+
 let split_at c s =
   let rec split_at_ accu i =
     try

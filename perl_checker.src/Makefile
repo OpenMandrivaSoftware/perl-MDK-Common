@@ -6,7 +6,7 @@ RESULT  = perl_checker
 BCSUFFIX = _debug
 SOURCES = build.ml common.ml flags.ml config_file.ml types.mli info.ml parser_helper.ml parser.mly lexer.mll tree.ml global_checks.ml perl_checker.ml
 LIBS = unix
-VENDORLIB = $(shell dirname `pwd`)/perl_checker_fake_packages
+VENDORLIB = $(shell dirname `pwd`)
 
 NAME = shyant
 
@@ -18,7 +18,7 @@ build_ml:
 
 build.ml:
 	date '+let date = %s' > $@
-	echo 'let fake_packages_dir = "'$(VENDORLIB)'"' >> $@
+	echo 'let fake_packages_dir = "'$(VENDORLIB)'/perl_checker_fake_packages"' >> $@
 
 tags: 
 	ocamltags *.ml

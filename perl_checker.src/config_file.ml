@@ -29,10 +29,12 @@ let read dir =
       ) default fh
     in
     Hashtbl.add config_cache dir config ;
+    if !Flags.verbose then print_endline_flush ("reading config file " ^ file_name);
     config
   with Sys_error _ -> default
+
 
 let rec read_any dir depth =
   if depth = 0 then () else
   let _ = read dir in
-  read_any (dir ^ "/..") (depth - 1)
+  read_any (updir dir 1) (depth - 1)

@@ -201,6 +201,7 @@ val string_forall_with : (char -> bool) -> int -> string -> bool
 val starts_with_non_lowercase : string -> bool
 val fold_lines : ('a -> string -> 'a) -> 'a -> in_channel -> 'a
 val readlines : in_channel -> string list
+val updir : string -> int -> string
 val split_at : char -> string -> string list
 val split_at2 : char -> char -> string -> string list
 val words : string -> string list

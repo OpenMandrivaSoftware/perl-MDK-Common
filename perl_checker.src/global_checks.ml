@@ -140,13 +140,13 @@ let is_global_var context ident =
       | "fcntl" | "fileno" | "flock" | "formline" | "fork"
       | "gethostbyaddr" | "gethostbyname" | "getgrnam" | "getgrgid" | "getppid" | "getpwent" | "getpwnam" | "getpwuid" | "gmtime" | "goto" | "grep" | "hex"
       | "index" | "int" | "ioctl" | "join" | "keys" | "kill"
-      | "last" | "lc" | "length" | "link" | "localtime" | "log" | "lstat"
+      | "last" | "lc" | "lcfirst" | "length" | "link" | "localtime" | "log" | "lstat"
       | "map" | "mkdir" | "next" | "no" | "oct" | "open" | "opendir" | "ord"
       | "pack" | "pipe" | "pop" | "print" | "printf" | "push" | "quotemeta" 
       | "rand" | "read" | "readdir" | "readlink" | "redo" | "ref" | "rename" | "require" | "return" | "reverse" | "rmdir"
       | "scalar" | "seek" | "select" | "setpwent" | "shift" | "sleep" | "sort" | "splice" | "split" | "sprintf" | "stat" | "substr"
       | "symlink" | "syscall" | "sysopen" | "sysread" | "sysseek" | "system" | "syswrite" | "tie" | "time"
-      | "uc" | "umask" | "undef" | "unlink" | "unpack" | "unshift" | "utime" | "values" | "vec" | "waitpid" | "wantarray" | "warn" | "write"
+      | "uc" | "ucfirst" | "umask" | "undef" | "unlink" | "unpack" | "unshift" | "utime" | "values" | "vec" | "waitpid" | "wantarray" | "warn" | "write"
 	  -> true
 
       | _ -> false)
@@ -415,7 +415,7 @@ let default_state() = { per_package = Hashtbl.create 16; methods = Hashtbl.creat
 let cache_cache = Hashtbl.create 16
 
 let read_packages_from_cache state dir =
-  if Hashtbl.mem cache_cache dir then () else
+  if !Flags.no_cache || Hashtbl.mem cache_cache dir then () else
   try
     Hashtbl.add cache_cache dir ();
     let file = dir ^ "/.perl_checker.cache" in

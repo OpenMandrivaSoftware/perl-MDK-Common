@@ -3,12 +3,6 @@ open Common
 open Tree
 open Global_checks
 
-let rec updir dir nb =
-  if nb = 0 then dir else
-  match dir with
-  | "." -> String.concat "/" (times ".." nb)
-  | _ -> updir (Filename.dirname dir) (nb-1)
-
 let search_basedir file_name nb =
   let dir = Filename.dirname file_name in
   let config = Config_file.read dir in
@@ -17,11 +11,14 @@ let search_basedir file_name nb =
 
 let basedir = ref ""
 let set_basedir state package =
-  let nb = List.length (split_at2 ':'':' package.package_name) - 1 in
-  let dir = search_basedir package.file_name nb in
-  lpush Tree.use_lib dir ;
-  read_packages_from_cache state dir ;
-  basedir := dir
+  if !basedir = "" then
+    let nb = List.length (split_at2 ':'':' package.package_name) - 1 in
+    let dir = search_basedir package.file_name nb in
+    lpush Tree.use_lib dir ;
+    Config_file.read_any dir 1 ;
+    read_packages_from_cache state dir ;
+    if !Flags.verbose then print_endline_flush ("basedir is " ^ dir);
+    basedir := dir
 
 let mtime f = int_of_float ((Unix.stat f).Unix.st_mtime)
 
@@ -65,7 +62,7 @@ and parse_package_if_needed state (package_name, pos) =
   try
     let dir = findfile (Build.fake_packages_dir :: !use_lib) rel_file in
     let file = dir ^ "/" ^ rel_file in
-    Config_file.read_any dir (List.length splitted) ;
+    Config_file.read_any (Filename.dirname file) (List.length splitted) ;
     let already_done =
       try
 	let pkg = Hashtbl.find state.per_package package_name in
@@ -114,6 +111,7 @@ let parse_options =
     "-t", Arg.Int (fun i -> Flags.expand_tabs := Some i), "  set the tabulation width (default is 8)" ;
     "--check-unused", Arg.Set Flags.check_unused_global_vars, "  check unused global functions & variables" ;
     "--restrict-to-files", Arg.Set restrict_to_files, "  only display warnings concerning the file(s) given on command line" ;
+    "--no-cache", Arg.Set Flags.no_cache, "  do not use cache" ;
     "--generate-pot", Arg.String generate_pot_chosen, "" ;
   ] in
   let usage = "Usage: perl_checker [-v] [-q] <files>\nOptions are:" in

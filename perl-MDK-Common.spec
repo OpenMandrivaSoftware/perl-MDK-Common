@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 10mdk
+%define release 11mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -47,9 +47,17 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc index.html
 %{_bindir}/*
+%{perl_vendorlib}/perl_checker_fake_packages
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Dec 18 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-11mdk
+- perl_checker: many new features including 
+  - checking methods being available 
+  - checking unused functions
+  - saving parsed file in .perl_checker.cache
+  - new instruction "Basedir .." in .perl_checker (useful for gi/perl-install/standalone/.perl_checker)
+
 * Wed Dec 11 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-10mdk
 - perl_checker: add option "-t" enabling titi to precise tab-width=4
 - perl_checker: fix a bug in getting exported functions (fixes "unknown function gtkshow")

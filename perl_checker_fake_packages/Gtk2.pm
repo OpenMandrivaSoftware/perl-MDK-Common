@@ -21,14 +21,17 @@ sub can_default {}
 sub can_focus {}
 sub cancel_button {}
 sub child {}
+sub children {}
 sub clear {}
 sub collapse_all {}
 sub create_items {}
 sub create_pango_layout {}
 sub create_tag {}
 sub dir_list {}
+sub disable_activate {}
 sub draw_layout {}
 sub draw_rectangle {}
+sub entry {}
 sub expand {}
 sub expand_all {}
 sub fg_gc {}
@@ -121,6 +124,7 @@ sub set_tip {}
 sub set_title {}
 sub set_transient_for {}
 sub set_uposition {}
+sub set_use_arrows_always {}
 sub set_visibility {}
 sub set_wrap_mode {}
 sub shape_combine_mask {}
@@ -136,6 +140,7 @@ sub values {}
 sub vbox {}
 sub white_gc {}
 sub width {}
+sub widget {}
 sub window {}
 sub window_position {}
 sub Gtk2::x {}

@@ -5,4 +5,4 @@ let quiet = ref false
 let generate_pot = ref false
 let expand_tabs = ref (Some 8)
 let check_unused_global_vars = ref false
-
+let no_cache = ref false
