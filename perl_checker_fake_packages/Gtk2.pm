@@ -76,6 +76,7 @@ sub get_iter_at_offset {}
 sub get_iter_first {}
 sub get_language {}
 sub get_metrics {}
+sub get_modal {}
 sub get_model {}
 sub get_origin {}
 sub get_pango_context {}
@@ -116,6 +117,7 @@ sub put {}
 sub queue_draw {}
 sub realize {}
 sub render_to_drawable {}
+sub resize {}
 sub rgb_find_color {}
 sub saturate_and_pixelate {}
 sub scroll_to_cell {}
