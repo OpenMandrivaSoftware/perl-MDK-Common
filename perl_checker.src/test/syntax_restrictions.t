@@ -34,7 +34,7 @@ foreach ($xxx = 0; $xxx < 9; $xxx++) {}  write "for" instead of "foreach"
 
 foreach $xxx (@l) {}                     don't use for without "my"ing the iteration variable
 
-foreach ($xxx) {}                        you are using the special fpons trick to locally set $_ with a value, for this please use "for" instead of "foreach"
+foreach ($xxx) {}                        you are using the special trick to locally set $_ with a value, for this please use "for" instead of "foreach"
 
 unless ($xxx) {} else {}                 don't use "else" with "unless" (replace "unless" with "if")
 

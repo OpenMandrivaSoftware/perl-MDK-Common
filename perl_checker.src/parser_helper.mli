@@ -57,11 +57,10 @@ val from_array : Types.fromparser Types.any_spaces_pos -> Types.fromparser
 val get_pos_from_expr : Types.fromparser -> Types.pos
 val msg_with_rawpos : int * int -> string -> string
 val die_with_rawpos : int * int -> string -> 'a
-val warn : int * int -> string -> unit
+val warn : Types.warning list -> int * int -> string -> unit
 val die_rule : string -> 'a
-val warn_rule : string -> unit
-val debug : string -> unit
-val warn_verb : int -> string -> unit
+val warn_rule : Types.warning list -> string -> unit
+val warn_verb : Types.warning list -> int -> string -> unit
 val warn_too_many_space : int -> unit
 val warn_no_space : int -> unit
 val warn_cr : int -> unit
@@ -167,6 +166,7 @@ val anonymous_sub :
   Types.fromparser list Types.any_spaces_pos -> Types.fromparser
 val call_with_same_para_special : Types.fromparser -> Types.fromparser
 val remove_call_with_same_para_special : Types.fromparser -> Types.fromparser
+val check_My_under_condition : string -> Types.fromparser -> unit
 val cook_call_op :
   string -> Types.fromparser list -> int * int -> Types.fromparser
 val to_Call_op :
@@ -199,6 +199,9 @@ val po_comments : string list ref
 val po_comment : string Types.any_spaces_pos -> unit
 val check_format_a_la_printf : string -> int -> Types.maybe_context list
 val generate_pot : string -> unit
+val fake_string_from_String_l : (string * 'a) list -> string
+val fake_string_option_from_expr : Types.fromparser -> string option
+val check_system_call : string list -> unit
 val call_raw :
   bool -> Types.fromparser * Types.fromparser list -> Types.fromparser
 val call : Types.fromparser * Types.fromparser list -> Types.fromparser
@@ -230,16 +233,6 @@ val call_one_scalar_para :
   'a Types.any_spaces_pos ->
   'b Types.any_spaces_pos ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
-val call_op_if_infix :
-  Types.fromparser ->
-  Types.fromparser ->
-  'a Types.any_spaces_pos ->
-  'b Types.any_spaces_pos -> Types.fromparser Types.any_spaces_pos
-val call_op_unless_infix :
-  Types.fromparser ->
-  Types.fromparser ->
-  'a Types.any_spaces_pos ->
-  'b Types.any_spaces_pos -> Types.fromparser Types.any_spaces_pos
 val current_lexbuf : Lexing.lexbuf option ref
 val list2tokens : ((int * int) * 'a) list -> Lexing.lexbuf -> 'a
 val parse_tokens :
@@ -292,6 +285,16 @@ val mcontext_op_assign :
   Types.maybe_context
 val mtuple_context_concat :
   Types.maybe_context -> Types.maybe_context -> Types.maybe_context
+val call_op_if_infix :
+  Types.fromparser ->
+  Types.fromparser ->
+  'a Types.any_spaces_pos ->
+  'b Types.any_spaces_pos -> Types.fromparser Types.any_spaces_pos
+val call_op_unless_infix :
+  Types.fromparser ->
+  Types.fromparser ->
+  'a Types.any_spaces_pos ->
+  'b Types.any_spaces_pos -> Types.fromparser Types.any_spaces_pos
 val symops :
   Types.priority ->
   Types.maybe_context ->

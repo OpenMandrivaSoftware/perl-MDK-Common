@@ -105,3 +105,20 @@ type 'a prio_anyexpr = {
 
 type prio_expr_spaces_pos = fromparser prio_anyexpr any_spaces_pos
 type prio_lexpr_spaces_pos = fromparser list prio_anyexpr any_spaces_pos
+
+type warning =
+  | Warn_white_space
+  | Warn_suggest_simpler
+  | Warn_unused_global_vars
+  | Warn_void
+  | Warn_context
+  | Warn_strange
+  | Warn_traps
+  | Warn_complex_expressions
+  | Warn_normalized_expressions
+  | Warn_suggest_functional
+  | Warn_prototypes
+  | Warn_import_export
+  | Warn_names
+  | Warn_MDK_Common
+  | Warn_help_perl_checker

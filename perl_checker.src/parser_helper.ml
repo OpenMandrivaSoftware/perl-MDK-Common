@@ -215,17 +215,16 @@ let rec get_pos_from_expr = function
 
 let msg_with_rawpos (start, end_) msg = Info.pos2sfull_current start end_ ^ msg
 let die_with_rawpos raw_pos msg = failwith (msg_with_rawpos raw_pos msg)
-let warn raw_pos msg = print_endline_flush (msg_with_rawpos raw_pos msg)
+let warn warn_types raw_pos msg = if Flags.are_warning_types_set warn_types then print_endline_flush (msg_with_rawpos raw_pos msg)
 
 let die_rule msg = die_with_rawpos (Parsing.symbol_start(), Parsing.symbol_end()) msg
-let warn_rule msg = warn (Parsing.symbol_start(), Parsing.symbol_end()) msg
-let debug msg = if true then print_endline_flush msg
+let warn_rule warn_types msg = warn warn_types (Parsing.symbol_start(), Parsing.symbol_end()) msg
 
-let warn_verb pos msg = if not !Flags.quiet then warn (pos, pos) msg
-let warn_too_many_space start = warn_verb start "you should have only one space here"
-let warn_no_space	start = warn_verb start "you should have a space here"
-let warn_cr		start = warn_verb start "you should not have a carriage-return (\\n) here"
-let warn_space		start = warn_verb start "you should not have a space here"
+let warn_verb warn_types pos msg = if not !Flags.quiet then warn warn_types (pos, pos) msg
+let warn_too_many_space start = warn_verb [Warn_white_space] start "you should have only one space here"
+let warn_no_space	start = warn_verb [Warn_white_space] start "you should have a space here"
+let warn_cr		start = warn_verb [Warn_white_space] start "you should not have a carriage-return (\\n) here"
+let warn_space		start = warn_verb [Warn_white_space] start "you should not have a space here"
 
 let rec prio_less = function
   | P_none, _ | _, P_none -> internal_error "prio_less"
@@ -285,13 +284,13 @@ let prio_lo_check pri_out pri_in pos expr =
     | P_paren pri_in' ->
 	if pri_in' <> pri_out && 
 	   prio_less(pri_in', pri_out) && not_complex (un_parenthesize expr) then 
-	  warn pos "unneeded parentheses"
+	  warn [Warn_suggest_simpler] pos "unneeded parentheses"
     | _ -> ())
   else 
     (match expr with
     | Call_op ("print", [Deref (I_star, Ident (None, "STDOUT", _)); Deref(I_scalar, ident)], _) -> 
-	 warn pos (sprintf "use parentheses: replace \"print $%s ...\" with \"print($%s ...)\"" (string_of_Ident ident) (string_of_Ident ident))
-    | _ -> warn pos "missing parentheses (needed for clarity)")
+	 warn [Warn_traps] pos (sprintf "use parentheses: replace \"print $%s ...\" with \"print($%s ...)\"" (string_of_Ident ident) (string_of_Ident ident))
+    | _ -> warn [Warn_traps] pos "missing parentheses (needed for clarity)")
 
 let prio_lo pri_out in_ = prio_lo_check pri_out in_.any.priority in_.pos in_.any.expr ; in_.any.expr
 
@@ -347,7 +346,7 @@ let sp_cr esp =
   | Space_none -> ()
   | Space_0
   | Space_1
-  | Space_n -> warn_verb (get_pos_start esp) "you should have a carriage-return (\\n) here"
+  | Space_n -> warn_verb [Warn_white_space] (get_pos_start esp) "you should have a carriage-return (\\n) here"
   | Space_cr -> ()
 
 let sp_same esp1 esp2 =
@@ -393,10 +392,10 @@ let word_alone esp =
 	  Deref(I_func, word)
 	    
       | "hex" | "ref" -> 
-	  warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" f f) ;
+	  warn_rule [Warn_complex_expressions] (sprintf "please use \"%s $_\" instead of \"%s\"" f f) ;
 	  Call(Deref(I_func, word), [ Raw_string(" ", pos) ; var_dollar_ pos ])
       | "time" | "wantarray" | "fork" | "getppid" | "arch" -> 
-	  warn_rule (sprintf "please use %s() instead of %s" f f) ;
+	  warn_rule [Warn_complex_expressions] (sprintf "please use %s() instead of %s" f f) ;
 	  Deref(I_func, word)
       | _ -> word
       in
@@ -429,9 +428,9 @@ let check_parenthesized_first_argexpr_with_Ident ident esp =
   | Ident(Some _, _, _) ->
       (match esp.any.expr with
       | [e] when is_parenthesized e -> ()
-      | _ -> warn_rule "use parentheses around argument (otherwise it might cause syntax errors if the package is \"require\"d and not \"use\"d")
+      | _ -> warn_rule [Warn_suggest_simpler] "use parentheses around argument (otherwise it might cause syntax errors if the package is \"require\"d and not \"use\"d")
   | Ident(None, word, _) when List.mem word ["ref" ; "readlink"] ->
-      if esp.any.priority <> P_tok then warn_rule "use parentheses around argument"
+      if esp.any.priority <> P_tok then warn_rule [Warn_complex_expressions] "use parentheses around argument"
   | _ -> ());
   check_parenthesized_first_argexpr (string_of_Ident ident) esp
 
@@ -442,19 +441,19 @@ let check_hash_subscript esp =
 	char_is_alpha s.[0] && (String.length s = 1 || string_forall_with char_is_alphanumerical_ 1 s)
   in
   match esp.any.expr with
-  | List [String ([(s, List [])], _)] when can_be_raw_string s -> warn esp.pos (sprintf "{\"%s\"} can be written {%s}" s s)
-  | List [Raw_string(s, _)] when can_be_raw_string s -> warn esp.pos (sprintf "{'%s'} can be written {%s}" s s)
+  | List [String ([(s, List [])], _)] when can_be_raw_string s -> warn [Warn_suggest_simpler] esp.pos (sprintf "{\"%s\"} can be written {%s}" s s)
+  | List [Raw_string(s, _)] when can_be_raw_string s -> warn [Warn_suggest_simpler] esp.pos (sprintf "{'%s'} can be written {%s}" s s)
   | _ -> ()
 
 let check_arrow_needed esp1 esp2 =
   match esp1.any.expr with
   | Deref_with(I_array, I_scalar, List [List [Call _]], _) -> () (* "->" needed for (f())[0]->{XX} *)
-  | Deref_with _ -> warn esp2.pos "the arrow \"->\" is unneeded"
+  | Deref_with _ -> warn [Warn_suggest_simpler] esp2.pos "the arrow \"->\" is unneeded"
   | _ -> ()
 
 let check_scalar_subscripted esp =
   match esp.any with
-  | Deref(I_scalar, Deref _) -> warn_rule "for complex dereferencing, use \"->\""
+  | Deref(I_scalar, Deref _) -> warn_rule [Warn_complex_expressions] "for complex dereferencing, use \"->\""
   | _ -> ()
 
 let negatable_ops = collect (fun (a, b) -> [ a, b ; b, a ]) [
@@ -465,13 +464,13 @@ let negatable_ops = collect (fun (a, b) -> [ a, b ; b, a ]) [
 let check_negatable_expr esp =
   match un_parenthesize_full esp.any.expr with
   | Call_op("m//", var :: _, _) when not (is_var_dollar_ var) ->
-      warn_rule "!($var =~ /.../) is better written $var !~ /.../"
+      warn_rule [Warn_suggest_simpler] "!($var =~ /.../) is better written $var !~ /.../"
   | Call_op("!m//", var :: _, _) when not (is_var_dollar_ var) ->
-      warn_rule "!($var !~ /.../) is better written $var =~ /.../"
+      warn_rule [Warn_suggest_simpler] "!($var !~ /.../) is better written $var =~ /.../"
   | Call_op(op, _, _) ->
       (try
 	let neg_op = List.assoc op negatable_ops in
-        warn_rule (Printf.sprintf "!($foo %s $bar) is better written $foo %s $bar" op neg_op)
+        warn_rule [Warn_suggest_simpler] (Printf.sprintf "!($foo %s $bar) is better written $foo %s $bar" op neg_op)
       with Not_found -> ())
   | _ -> ()
 
@@ -495,42 +494,42 @@ let check_ternary_paras(cond, a, b) =
     | e -> dont_need_short_circuit_rec e
   in
   let check_ternary_para = function
-    | List [] -> warn_rule "you may use if_() here\n  beware that the short-circuit semantic of ?: is not kept\n  if you want to keep the short-circuit behaviour, replace () with @{[]} and there will be no warning anymore"
+    | List [] -> warn_rule [Warn_suggest_simpler; Warn_MDK_Common] "you may use if_() here\n  beware that the short-circuit semantic of ?: is not kept\n  if you want to keep the short-circuit behaviour, replace () with @{[]} and there will be no warning anymore"
     | _ -> ()
   in
   if dont_need_short_circuit a || is_same_fromparser cond a then check_ternary_para b;
   if dont_need_short_circuit b || is_same_fromparser cond b then check_ternary_para a;
-  if is_same_fromparser cond a && is_a_scalar a && is_a_scalar b then warn_rule "you can replace \"$foo ? $foo : $bar\" with \"$foo || $bar\"";
+  if is_same_fromparser cond a && is_a_scalar a && is_a_scalar b then warn_rule [Warn_suggest_simpler] "you can replace \"$foo ? $foo : $bar\" with \"$foo || $bar\"";
   [ cond; a; b ]
 
 let check_unneeded_var_dollar_ esp =
-  if is_var_dollar_ esp.any.expr then warn esp.pos "\"$_ =~ /regexp/\" can be written \"/regexp/\"" else
-  if is_var_number_match esp.any.expr then warn esp.pos "do not use the result of a match (eg: $1) to match another pattern"
+  if is_var_dollar_ esp.any.expr then warn [Warn_suggest_simpler] esp.pos "\"$_ =~ /regexp/\" can be written \"/regexp/\"" else
+  if is_var_number_match esp.any.expr then warn [Warn_complex_expressions] esp.pos "do not use the result of a match (eg: $1) to match another pattern"
 let check_unneeded_var_dollar_not esp =
-  if is_var_dollar_ esp.any.expr then warn esp.pos "\"$_ !~ /regexp/\" can be written \"!/regexp/\"" else
-  if is_var_number_match esp.any.expr then warn esp.pos "do not use the result of a match (eg: $1) to match another pattern"
+  if is_var_dollar_ esp.any.expr then warn [Warn_suggest_simpler] esp.pos "\"$_ !~ /regexp/\" can be written \"!/regexp/\"" else
+  if is_var_number_match esp.any.expr then warn [Warn_complex_expressions] esp.pos "do not use the result of a match (eg: $1) to match another pattern"
 let check_unneeded_var_dollar_s esp = 
   let expr = esp.any.expr in
-  if is_var_dollar_ expr then warn esp.pos "\"$_ =~ s/regexp/.../\" can be written \"s/regexp/.../\"" else
-  if is_var_number_match expr then die_with_rawpos esp.pos "do not modify the result of a match (eg: $1)" else
+  if is_var_dollar_ expr then warn [Warn_suggest_simpler] esp.pos "\"$_ =~ s/regexp/.../\" can be written \"s/regexp/.../\"" else
+  if is_var_number_match expr then warn [Warn_traps] esp.pos "do not modify the result of a match (eg: $1)" else
   let expr = match expr with
   | List [List [Call_op("=", [ expr; _], _)]] -> expr (* check $xx in ($xx = ...) =~ ... *)
   | _ -> expr in
-  if is_a_string expr || not (is_a_scalar expr) then warn esp.pos "you can only use s/// on a variable"
+  if is_a_string expr || not (is_a_scalar expr) then warn [Warn_complex_expressions] esp.pos "you can only use s/// on a variable"
 
 let check_my esp = if esp.any <> "my" then die_rule "syntax error"
-let check_foreach esp = if esp.any = "for"     then warn esp.pos "write \"foreach\" instead of \"for\""
-let check_for     esp = if esp.any = "foreach" then warn esp.pos "write \"for\" instead of \"foreach\""
+let check_foreach esp = if esp.any = "for"     then warn [Warn_normalized_expressions] esp.pos "write \"foreach\" instead of \"for\""
+let check_for     esp = if esp.any = "foreach" then warn [Warn_normalized_expressions] esp.pos "write \"for\" instead of \"foreach\""
 let check_for_foreach esp arg =
   match arg.any.expr with
   | List [ Deref(I_scalar, _) ] ->
-      if esp.any = "foreach" then warn esp.pos "you are using the special fpons trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
+      if esp.any = "foreach" then warn [Warn_normalized_expressions] esp.pos "you are using the special trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
   | List [ Deref_with(context, I_scalar, _, _) ] when context <> I_func -> 
-      if esp.any = "foreach" then warn esp.pos "you are using the special fpons trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
+      if esp.any = "foreach" then warn [Warn_normalized_expressions] esp.pos "you are using the special trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
   | List [ Deref(I_hash, _) ] ->
-      warn esp.pos "foreach with a hash is usually an error"
+      warn [Warn_traps] esp.pos "foreach with a hash is usually an error"
   | _ -> 
-      if esp.any = "for" then warn esp.pos "write \"foreach\" instead of \"for\""
+      if esp.any = "for" then warn [Warn_normalized_expressions] esp.pos "write \"foreach\" instead of \"for\""
 
 let check_block_sub esp_lines esp_BRACKET_END =
   match esp_lines.any with
@@ -541,7 +540,7 @@ let check_block_sub esp_lines esp_BRACKET_END =
       sp_p esp_BRACKET_END ;
 
       if esp_BRACKET_END.spaces <> Space_cr then
-	(if last l = Semi_colon then warn_verb (get_pos_end esp_lines) "spurious \";\" before closing block")
+	(if last l = Semi_colon then warn_verb [Warn_white_space] (get_pos_end esp_lines) "spurious \";\" before closing block")
 
 let check_block_ref esp_lines esp_BRACKET_END =
   let l = esp_lines.any in
@@ -550,11 +549,11 @@ let check_block_ref esp_lines esp_BRACKET_END =
   else sp_same esp_lines esp_BRACKET_END ;
 
   if esp_BRACKET_END.spaces <> Space_cr then
-    (if l <> [] && last l = Semi_colon then warn_verb (get_pos_end esp_lines) "spurious \";\" before closing block")
+    (if l <> [] && last l = Semi_colon then warn_verb [Warn_white_space] (get_pos_end esp_lines) "spurious \";\" before closing block")
 
 let check_unless_else elsif else_ =
-  if elsif.any <> [] then warn elsif.pos "don't use \"elsif\" with \"unless\" (replace \"unless\" with \"if\")";
-  if else_.any <> [] then warn else_.pos "don't use \"else\" with \"unless\" (replace \"unless\" with \"if\")"
+  if elsif.any <> [] then warn [Warn_complex_expressions] elsif.pos "don't use \"elsif\" with \"unless\" (replace \"unless\" with \"if\")";
+  if else_.any <> [] then warn [Warn_complex_expressions] else_.pos "don't use \"else\" with \"unless\" (replace \"unless\" with \"if\")"
 
 let check_my_our_paren { any = ((comma_closed, _), l) } after_esp = 
   (if l = [] then sp_0 else sp_1) after_esp ; 
@@ -566,7 +565,7 @@ let check_simple_pattern = function
 	st.[0] = '^' && st.[String.length st - 1] = '$' then
 	let st = skip_n_char_ 1 1 st in
 	if string_forall_with char_is_alphanumerical_ 0 st then
-	  warn_rule (sprintf "\"... =~ /^%s$/\" is better written \"... eq '%s'\"" st st)
+	  warn_rule [Warn_suggest_simpler] (sprintf "\"... =~ /^%s$/\" is better written \"... eq '%s'\"" st st)
   | _ -> ()
 
 let rec only_one esp =
@@ -580,7 +579,7 @@ let only_one_array_ref esp =
   let e = only_one esp in
   (match e with
   | Call_op("last_array_index", [Deref(I_array, e)], _) ->
-      warn esp.pos (sprintf "you can replace $#%s with -1" (string_of_Ident e))
+      warn [Warn_suggest_simpler] esp.pos (sprintf "you can replace $#%s with -1" (string_of_Ident e))
   | _ -> ());
   e
 
@@ -610,7 +609,7 @@ let deref_raw context e =
       let fq, ident = split_name_or_fq_name s in
       Ident(fq, ident, pos)
   | Deref(I_scalar, (Ident _ as ident)) ->
-      warn_rule (sprintf "%s{$%s} can be written %s$%s" (context2s context) (string_of_Ident ident) (context2s context) (string_of_Ident ident));
+      warn_rule [Warn_suggest_simpler] (sprintf "%s{$%s} can be written %s$%s" (context2s context) (string_of_Ident ident) (context2s context) (string_of_Ident ident));
       e
   | _ -> e
   in Deref(context, e)
@@ -623,7 +622,7 @@ let to_Method_call (object_, method_, para) =
   | Ident(Some _, _, _) -> Call(Deref(I_func, method_), maybe_to_Raw_string object_ :: para)
   | _ -> Method_call(maybe_to_Raw_string object_, maybe_to_Raw_string method_, para)
 let to_Deref_with(from_context, to_context, ref_, para) =
-  if is_not_a_scalar ref_ then warn_rule "bad deref";
+  if is_not_a_scalar ref_ then warn_rule [] "bad deref";
   Deref_with(from_context, to_context, ref_, para)
 
   
@@ -660,73 +659,73 @@ let remove_call_with_same_para_special = function
 
 let check_My_under_condition msg = function
   | List [ My_our("my", _, _) ] ->
-      warn_rule "this is stupid"
+      warn_rule [Warn_traps] "this is stupid"
   | List [ Call_op("=", [ My_our("my", _, _); _ ], _) ] ->
-      warn_rule msg
+      warn_rule [Warn_traps] msg
   | _ -> ()
 
 let cook_call_op op para pos =
   (match op with
   | "le" | "ge" | "eq" | "ne" | "gt" | "lt" | "cmp" ->
       if List.exists (function Num _ -> true | _ -> false) para then
-	warn_rule (sprintf "you should use a number operator, not the string operator \"%s\" (or replace the number with a string)" op)
+	warn_rule [Warn_traps] (sprintf "you should use a number operator, not the string operator \"%s\" (or replace the number with a string)" op)
   | "." ->
       if List.exists (function Call(Deref(I_func, Ident(None, "N_", _)), _) -> true | _ -> false) para then
-	warn_rule "N_(\"xxx\") . \"yyy\" is dumb since the string \"xxx\" will never get translated"
+	warn_rule [Warn_MDK_Common; Warn_traps] "N_(\"xxx\") . \"yyy\" is dumb since the string \"xxx\" will never get translated"
   | _ -> ());
 
   (match op, para with
   | "if", List [Call_op ("=", [ _; e ], _)] :: _ when is_always_true e || is_always_false e -> 
-      warn_rule "are you sure you did not mean \"==\" instead of \"=\"?"
+      warn_rule [Warn_traps] "are you sure you did not mean \"==\" instead of \"=\"?"
 
   | "foreach", [ _; Block [ expr ; Semi_colon ] ]
   | "foreach", [ _; Block [ expr ] ] -> 
       (match expr with
       | Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)) ; Deref(I_scalar, Ident(None, "_", _)) ]) ] ; _ ], _) ->
 	  let l = string_of_Ident l in
-	  warn_rule (sprintf "use \"push @%s, grep { ... } ...\" instead of \"foreach (...) { push @%s, $_ if ... }\"\n  or sometimes \"@%s = grep { ... } ...\"" l l l) 
+	  warn_rule [Warn_suggest_functional] (sprintf "use \"push @%s, grep { ... } ...\" instead of \"foreach (...) { push @%s, $_ if ... }\"\n  or sometimes \"@%s = grep { ... } ...\"" l l l) 
       | Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)); _ ]) ] ; _ ], _) ->
 	  let l = string_of_Ident l in
-	  warn_rule (sprintf "use \"push @%s, map { ... ? ... : () } ...\" instead of \"foreach (...) { push @%s, ... if ... }\"\n  or sometimes \"@%s = map { ... ? ... : () } ...\"\n  or sometimes \"@%s = map { if_(..., ...) } ...\"" l l l l)
+	  warn_rule [Warn_suggest_functional] (sprintf "use \"push @%s, map { ... ? ... : () } ...\" instead of \"foreach (...) { push @%s, ... if ... }\"\n  or sometimes \"@%s = map { ... ? ... : () } ...\"\n  or sometimes \"@%s = map { if_(..., ...) } ...\"" l l l l)
       | List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)); _ ]) ] ->
 	  let l = string_of_Ident l in
-	  warn_rule (sprintf "use \"push @%s, map { ... } ...\" instead of \"foreach (...) { push @%s, ... }\"\n  or sometimes \"@%s = map { ... } ...\"" l l l)
+	  warn_rule [Warn_suggest_functional] (sprintf "use \"push @%s, map { ... } ...\" instead of \"foreach (...) { push @%s, ... }\"\n  or sometimes \"@%s = map { ... } ...\"" l l l)
       | _ -> ())
 
   | "=", [My_our _; Ident(None, "undef", _)] -> 
-      warn pos "no need to initialize variable, it's done by default"
+      warn [Warn_suggest_simpler] pos "no need to initialize variable, it's done by default"
   | "=", [My_our _; List[]] -> 
-      if Info.is_on_same_line_current pos then warn pos "no need to initialize variables, it's done by default"
+      if Info.is_on_same_line_current pos then warn [Warn_suggest_simpler] pos "no need to initialize variables, it's done by default"
 
   | "=", [ Deref_with(I_array, I_scalar, id, Deref(I_array, id_)); _ ] when is_same_fromparser id id_ ->
-      warn_rule "\"$a[@a] = ...\" is better written \"push @a, ...\""
+      warn_rule [Warn_suggest_simpler] "\"$a[@a] = ...\" is better written \"push @a, ...\""
 
   | "=", [ Deref(I_star, String ([(sf1, List [])], _)); _ ] ->
-      warn_rule (sprintf "write *{'%s'} instead of *{\"%s\"}" sf1 sf1)
+      warn_rule [Warn_help_perl_checker] (sprintf "write *{'%s'} instead of *{\"%s\"}" sf1 sf1)
 
   | "||=", List [ List _ ] :: _
-  | "&&=", List [ List _ ] :: _ -> warn_rule "remove the parentheses"
+  | "&&=", List [ List _ ] :: _ -> warn_rule [Warn_complex_expressions] "remove the parentheses"
   | "||=", e :: _
-  | "&&=", e :: _ -> if is_not_a_scalar e then warn_rule (sprintf "\"%s\" is only useful with a scalar" op)
+  | "&&=", e :: _ -> if is_not_a_scalar e then warn_rule [Warn_traps] (sprintf "\"%s\" is only useful with a scalar" op)
 
   | "==", [Call_op("last_array_index", _, _); Num(n, _)] ->
-      warn_rule (sprintf "$#x == %s is better written @x == %d" n (1 + int_of_string n))
+      warn_rule [Warn_suggest_simpler] (sprintf "$#x == %s is better written @x == %d" n (1 + int_of_string n))
   | "==", [Call_op("last_array_index", _, _); Call_op("- unary", [Num (n, _)], _)] ->
-      warn_rule (sprintf "$#x == -%s is better written @x == %d" n (1 - int_of_string n))
+      warn_rule [Warn_suggest_simpler] (sprintf "$#x == -%s is better written @x == %d" n (1 - int_of_string n))
 
 
-  | "||", e :: _ when is_always_true  e -> warn_rule "<constant> || ... is the same as <constant>"
-  | "&&", e :: _ when is_always_false e -> warn_rule "<constant> && ... is the same as <constant>"
-  | "||", e :: _ when is_always_false e -> warn_rule "<constant> || ... is the same as ..."
-  | "&&", e :: _ when is_always_true  e -> warn_rule "<constant> && ... is the same as ..."
+  | "||", e :: _ when is_always_true  e -> warn_rule [Warn_strange] "<constant> || ... is the same as <constant>"
+  | "&&", e :: _ when is_always_false e -> warn_rule [Warn_strange] "<constant> && ... is the same as <constant>"
+  | "||", e :: _ when is_always_false e -> warn_rule [Warn_strange] "<constant> || ... is the same as ..."
+  | "&&", e :: _ when is_always_true  e -> warn_rule [Warn_strange] "<constant> && ... is the same as ..."
 
-  | "or",  e :: _ when is_always_true  (un_parenthesize_full e) -> warn_rule "<constant> or ... is the same as <constant>"
-  | "and", e :: _ when is_always_false (un_parenthesize_full e) -> warn_rule "<constant> and ... is the same as <constant>"
-  | "or",  e :: _ when is_always_false (un_parenthesize_full e) -> warn_rule "<constant> or ... is the same as ..."
-  | "and", e :: _ when is_always_true  (un_parenthesize_full e) -> warn_rule "<constant> and ... is the same as ..."
+  | "or",  e :: _ when is_always_true  (un_parenthesize_full e) -> warn_rule [Warn_strange] "<constant> or ... is the same as <constant>"
+  | "and", e :: _ when is_always_false (un_parenthesize_full e) -> warn_rule [Warn_strange] "<constant> and ... is the same as <constant>"
+  | "or",  e :: _ when is_always_false (un_parenthesize_full e) -> warn_rule [Warn_strange] "<constant> or ... is the same as ..."
+  | "and", e :: _ when is_always_true  (un_parenthesize_full e) -> warn_rule [Warn_strange] "<constant> and ... is the same as ..."
 
   | "or", [ List [ Deref(I_scalar, id) ]; List [ Call_op("=", [ Deref(I_scalar, id_); _], _) ] ] when is_same_fromparser id id_ ->
-      warn_rule "\"$foo or $foo = ...\" can be written \"$foo ||= ...\""
+      warn_rule [Warn_suggest_simpler] "\"$foo or $foo = ...\" can be written \"$foo ||= ...\""
 
   | "and", [ _cond ; expr ] -> check_My_under_condition "replace \"<cond> and my $foo = ...\" with \"my $foo = <cond> && ...\"" expr
   | "or",  [ _cond ; expr ] -> check_My_under_condition "replace \"<cond> or my $foo = ...\" with \"my $foo = !<cond> && ...\"" expr
@@ -736,11 +735,11 @@ let cook_call_op op para pos =
   match op, para with
   | "=", [ Deref(I_star, (Ident _ as f1)); Deref(I_star, (Ident _ as f2)) ] ->
       let s1, s2 = string_of_Ident f1, string_of_Ident f2 in
-      warn pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
+      warn [Warn_complex_expressions] pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
       sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
   | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Deref(I_star, (Ident _ as f2)) ] ->
       let s2 = string_of_Ident f2 in
-      warn pos (sprintf "\"*{'%s'} = *%s\" is better written \"*{'%s'} = \\&%s\"" sf1 s2 sf1 s2) ;
+      warn [Warn_help_perl_checker] pos (sprintf "\"*{'%s'} = *%s\" is better written \"*{'%s'} = \\&%s\"" sf1 s2 sf1 s2) ;
       sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
 
   | "=", [ Deref(I_star, (Ident _ as f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
@@ -760,7 +759,7 @@ let to_Call_op_ mcontext prio op para esp_start esp_end =
   let pos = raw_pos_range esp_start esp_end in
   new_any mcontext { priority = prio ; expr = cook_call_op op para pos } esp_start.spaces pos
 let to_Call_assign_op_ mcontext prio op left right esp_left esp_end = 
-  if not (is_lvalue left) then warn esp_left.pos "invalid lvalue";
+  if not (is_lvalue left) then warn [Warn_strange] esp_left.pos "invalid lvalue";
   to_Call_op_ mcontext prio op [ left ; right ] esp_left esp_end
 
 let followed_by_comma expr true_comma =
@@ -784,10 +783,10 @@ let check_format_a_la_printf s pos =
 	  | '%' -> contexts
 	  | 'd' -> M_int :: contexts
 	  | 's' | 'c' -> M_string :: contexts
-	  | c -> warn (pos + i', pos + i') (sprintf "invalid command %%%c" c); contexts
+	  | c -> warn [Warn_strange] (pos + i', pos + i') (sprintf "invalid command %%%c" c); contexts
 	in
 	check_format_a_la_printf_ contexts (i' + 2)
-      with Invalid_argument _ -> warn (pos + i', pos + i') "invalid command %" ; contexts
+      with Invalid_argument _ -> warn [Warn_strange] (pos + i', pos + i') "invalid command %" ; contexts
     with Not_found -> contexts
   in check_format_a_la_printf_ [] 0
   
@@ -851,18 +850,18 @@ let check_system_call = function
       let has_p = List.exists (str_begins_with "-p") l in
       let has_m = List.exists (str_begins_with "-m") l in
       if has_p && has_m then ()
-      else if has_p then warn_rule "you can replace system(\"mkdir -p ...\") with mkdir_p(...)"
-      else if has_m then warn_rule "you can replace system(\"mkdir -m <mode> ...\") with mkdir(..., <mode>)"
-      else warn_rule "you can replace system(\"mkdir ...\") with mkdir(...)"
+      else if has_p then warn_rule [Warn_suggest_simpler; Warn_MDK_Common] "you can replace system(\"mkdir -p ...\") with mkdir_p(...)"
+      else if has_m then warn_rule [Warn_suggest_simpler; Warn_MDK_Common] "you can replace system(\"mkdir -m <mode> ...\") with mkdir(..., <mode>)"
+      else warn_rule [Warn_suggest_simpler; Warn_MDK_Common] "you can replace system(\"mkdir ...\") with mkdir(...)"
   | _ -> ()
 
 let call_raw force_non_builtin_func (e, para) =
   let check_anonymous_block f = function
   | [ Anonymous_sub _ ; Deref (I_hash, _) ] ->
-      warn_rule ("a hash is not a valid parameter to function " ^ f)
+      warn_rule [Warn_strange] ("a hash is not a valid parameter to function " ^ f)
 
   | Anonymous_sub _ :: _ -> ()
-  | _ -> warn_rule (sprintf "always use \"%s\" with a block (eg: %s { ... } @list)" f f)
+  | _ -> warn_rule [Warn_complex_expressions] (sprintf "always use \"%s\" with a block (eg: %s { ... } @list)" f f)
   in
 
   match e with
@@ -870,21 +869,21 @@ let call_raw force_non_builtin_func (e, para) =
       (match f with
       | "join" ->
 	  (match un_parenthesize_full_l para with
-	  | e :: _ when not (is_a_scalar e) -> warn_rule "first argument of join() must be a scalar";
-	  | [_] -> warn_rule "not enough parameters"
-	  | [_; e] when is_a_scalar e -> warn_rule "join('...', $foo) is the same as $foo"
+	  | e :: _ when not (is_a_scalar e) -> warn_rule [Warn_traps] "first argument of join() must be a scalar";
+	  | [_] -> warn_rule [Warn_traps] "not enough parameters"
+	  | [_; e] when is_a_scalar e -> warn_rule [Warn_traps] "join('...', $foo) is the same as $foo"
 	  | _ -> ())
 
       | "length" ->
-	  if para = [] then warn_rule "length() with no parameter !?" else
-	  if is_not_a_scalar (List.hd para) then warn_rule "never use \"length @l\", it returns the length of the string int(@l)" ;
+	  if para = [] then warn_rule [Warn_complex_expressions] (sprintf "please use \"%s $_\" instead of \"%s\"" f f) else
+	  if is_not_a_scalar (List.hd para) then warn_rule [Warn_traps] "never use \"length @l\", it returns the length of the string int(@l)" ;
 
       | "open" ->
 	  (match para with
 	  | [ List(Ident(None, name, _) :: _) ]
 	  | Ident(None, name, _) :: _ ->
 	      if not (List.mem name [ "STDIN" ; "STDOUT" ; "STDERR" ]) then
-		warn_rule (sprintf "use a scalar instead of a bareword (eg: occurrences of %s with $%s)" name name)
+		warn_rule [Warn_complex_expressions] (sprintf "use a scalar instead of a bareword (eg: occurrences of %s with $%s)" name name)
 	  | _ -> ())
 
       | "N" | "N_" ->
@@ -897,9 +896,9 @@ let call_raw force_non_builtin_func (e, para) =
 	      let contexts = check_format_a_la_printf s pos_offset in
 	      if f = "N" then
 		if List.length para < List.length contexts then
-		  warn_rule "not enough parameters"
+		  warn_rule [Warn_traps; Warn_MDK_Common] "not enough parameters"
 		else if List.length para > List.length contexts then
-		  warn_rule "too many parameters" ;
+		  warn_rule [Warn_traps; Warn_MDK_Common] "too many parameters" ;
 	      (*if String.contains s '\t' then warn_rule "tabulation in translated string must be written \\\\t";*)
 	      (*if count_matching_char s '\n' > 10 then warn_rule "long string";*)
 	  | [ List(String _ :: _) ] -> die_rule "don't use interpolated translated string, use %s or %d instead"
@@ -907,7 +906,7 @@ let call_raw force_non_builtin_func (e, para) =
 
       | "if_" ->
 	  (match para with
-	  | [ List [ _ ] ] -> warn_rule "not enough parameters";
+	  | [ List [ _ ] ] -> warn_rule [Warn_traps; Warn_MDK_Common] "not enough parameters";
 	  | _ -> ())
 
       | "map" ->
@@ -915,15 +914,15 @@ let call_raw force_non_builtin_func (e, para) =
 
 	  | Anonymous_sub(None, Block [ List [ Call(Deref(I_func, Ident(None, "if_", _)),
 						    [ List [ _ ; Deref(I_scalar, Ident(None, "_", _)) ] ]) ] ], _) :: _ ->
-						      warn_rule "you can replace \"map { if_(..., $_) }\" with \"grep { ... }\""
+						      warn_rule [Warn_suggest_simpler; Warn_MDK_Common] "you can replace \"map { if_(..., $_) }\" with \"grep { ... }\""
 	  | _ -> check_anonymous_block f para)
 
       | "grep" ->
 	  (match para with
 	  | [ Anonymous_sub(None, Block [ List [ Call_op("not", [ Call(Deref(I_func, Ident(None, "member", _)), [ List(Deref(I_scalar, Ident(None, "_", _)) :: _) ]) ], _) ] ], _); _ ] ->
-	      warn_rule "you can replace \"grep { !member($_, ...) } @l\" with \"difference2([ @l ], [ ... ])\""
+	      warn_rule [Warn_suggest_simpler; Warn_MDK_Common] "you can replace \"grep { !member($_, ...) } @l\" with \"difference2([ @l ], [ ... ])\""
 	  | [ Anonymous_sub(None, Block [ List [ Call(Deref(I_func, Ident(None, "member", _)), [ List(Deref(I_scalar, Ident(None, "_", _)) :: _) ]) ] ], _); _ ] ->
-	      warn_rule "you can replace \"grep { member($_, ...) } @l\" with \"intersection([ @l ], [ ... ])\""
+	      warn_rule [Warn_suggest_simpler; Warn_MDK_Common] "you can replace \"grep { member($_, ...) } @l\" with \"intersection([ @l ], [ ... ])\""
 	  | _ -> check_anonymous_block f para)
 
       | "any" ->
@@ -931,7 +930,7 @@ let call_raw force_non_builtin_func (e, para) =
 	    [Anonymous_sub (None, Block 
 			      [ List [ Call_op("eq", [Deref(I_scalar, Ident(None, "_", _)); _ ], _) ] ], 
 			    _); _ ] ->
-	      warn_rule "you can replace \"any { $_ eq ... } @l\" with \"member(..., @l)\""
+	      warn_rule [Warn_suggest_simpler; Warn_MDK_Common] "you can replace \"any { $_ eq ... } @l\" with \"member(..., @l)\""
 	  | _ -> check_anonymous_block f para)		
 
       | "grep_index" | "map_index" | "partition" | "uniq_"
@@ -943,7 +942,7 @@ let call_raw force_non_builtin_func (e, para) =
       | "member" ->
 	  (match para with
 	    [ List [ _; Call(Deref(I_func, Ident(None, "keys", _)), _) ] ] ->
-	      warn_rule "you can replace \"member($xxx, keys %yyy)\" with \"exists $yyy{$xxx}\""
+	      warn_rule [Warn_suggest_simpler; Warn_MDK_Common] "you can replace \"member($xxx, keys %yyy)\" with \"exists $yyy{$xxx}\""
 	  | _ -> ())
 
       | "pop" | "shift" ->
@@ -951,14 +950,14 @@ let call_raw force_non_builtin_func (e, para) =
 	  | [] 
 	  | [ Deref(I_array, _) ] 
 	  | [ List [ Deref(I_array, _) ] ] -> ()
-	  | _ -> warn_rule (f ^ " is expecting an array and nothing else"))
+	  | _ -> warn_rule [Warn_traps] (f ^ " is expecting an array and nothing else"))
 
       | "push" | "unshift" ->
 	  (match para with
 	  | Deref(I_array, _) :: l 
 	  | [ List (Deref(I_array, _) :: l) ] -> 
-	      if l = [] then warn_rule ("you must give some arguments to " ^ f)
-	  | _ -> warn_rule (f ^ " is expecting an array"))
+	      if l = [] then warn_rule [Warn_traps] ("you must give some arguments to " ^ f)
+	  | _ -> warn_rule [Warn_traps] (f ^ " is expecting an array"))
 
       | "system" ->
 	  (match un_parenthesize_full_l para with
@@ -967,7 +966,7 @@ let call_raw force_non_builtin_func (e, para) =
 	      | Some s ->
 		  if List.exists (String.contains s) [ '\'' ; char_quote ] &&
 	            not (List.exists (String.contains s) [ '<' ; '>' ; '&' ; ';']) then
-		    warn_rule "instead of quoting parameters you should give a list of arguments";
+		    warn_rule [Warn_complex_expressions] "instead of quoting parameters you should give a list of arguments";
 		  check_system_call (split_at ' ' s)
 	      | None -> ())
 	  | l -> 
@@ -1037,7 +1036,7 @@ let call_one_scalar_para { any = e ; pos = pos } para esp_start esp_end =
 	  if e = "shift" || e = "pop" then 
 	    [] (* can't decide here *)
 	  else
-	    (if not (List.mem e [ "length" ]) then warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" e e) ;
+	    (if not (List.mem e [ "length" ]) then warn_rule [Warn_complex_expressions] (sprintf "please use \"%s $_\" instead of \"%s\"" e e) ;
 	     [var_dollar_ (raw_pos2pos pos)])
     | _ -> para
   in
@@ -1072,13 +1071,13 @@ let to_String parse strict { any = l ; pos = pos } =
   let l' = parse_interpolated parse l in
   (match l' with
   | [ "", List [Deref(I_scalar, Ident(None, ident, _))]] -> 
-      if ident <> "!" && strict then warn pos (sprintf "%s is better written without the double quotes" (variable2s(I_scalar, ident)))
+      if ident <> "!" && strict then warn [Warn_suggest_simpler] pos (sprintf "%s is better written without the double quotes" (variable2s(I_scalar, ident)))
   | [ "", List [Deref(I_hash, _)]] -> 
-      warn pos "don't use a hash in string context"
+      warn [Warn_traps] pos "don't use a hash in string context"
   | [ "", List [Deref(I_array, _)]] -> 
       ()
   | [("", _)] -> 
-      if strict then warn pos "double quotes are unneeded"
+      if strict then warn [Warn_suggest_simpler] pos "double quotes are unneeded"
   | _ -> ());
   String(l', raw_pos2pos pos)
 
@@ -1087,9 +1086,9 @@ let from_PATTERN parse { any = (s, opts) ; pos = pos } =
   (match List.rev re with
   | (s, List []) :: _ ->
       if str_ends_with s ".*" then
-	warn_rule (sprintf "you can remove \"%s\" at the end of your regexp" ".*")
+	warn_rule [Warn_suggest_simpler] (sprintf "you can remove \"%s\" at the end of your regexp" ".*")
       else if str_ends_with s ".*$" then
-	warn_rule (sprintf "you can remove \"%s\" at the end of your regexp" ".*$")
+	warn_rule [Warn_suggest_simpler] (sprintf "you can remove \"%s\" at the end of your regexp" ".*$")
   | _ -> ());
   let pattern = [ String(re, raw_pos2pos pos) ; Raw_string(opts, raw_pos2pos pos) ] in
   check_simple_pattern pattern;
@@ -1213,7 +1212,7 @@ let mcontext_lmaybe esp = if esp.any = [] then [] else [esp.mcontext]
 
 let mcontext_check_raw wanted_mcontext mcontext =
   if not (mcontext_lower mcontext wanted_mcontext) then
-    warn_rule (sprintf "context %s is not compatible with context %s" (mcontext2s mcontext) (mcontext2s wanted_mcontext))
+    warn_rule [Warn_context] (sprintf "context %s is not compatible with context %s" (mcontext2s mcontext) (mcontext2s wanted_mcontext))
 
 let mcontext_check wanted_mcontext esp =
   (match wanted_mcontext with
@@ -1221,7 +1220,7 @@ let mcontext_check wanted_mcontext esp =
   | _ ->
     match un_parenthesize_full esp.any.expr with
     | Call(Deref(I_func, Ident(None, "grep", _)), _) -> 
-	warn_rule (if wanted_mcontext = M_bool then
+	warn_rule [Warn_suggest_simpler; Warn_help_perl_checker] (if wanted_mcontext = M_bool then
 	  "in boolean context, use \"any\" instead of \"grep\"" else
 	  "you may use \"find\" instead of \"grep\"")
     | _ -> ());
@@ -1231,7 +1230,7 @@ let mcontext_check_unop_l wanted_mcontext esp =
   mcontext_check wanted_mcontext { esp with any = { esp.any with expr = List esp.any.expr  } }
 
 let mcontext_check_non_none esp =
-  if esp.mcontext = M_none then warn_rule "() context not accepted here"
+  if esp.mcontext = M_none then warn_rule [Warn_context] "() context not accepted here"
 
 let mcontext_check_none msg expr esp =
   let rec mcontext_check_none_rec msg expr = function
@@ -1253,8 +1252,8 @@ let mcontext_check_none msg expr esp =
 	match expr with
 	| [List [Num("1", _)]; Semi_colon] -> () (* allow "1;" for package return value. It would be much better to check we are at toplevel, but hell i don't want to wire this information up to here *)
 	| [List [Call_op ("<>", [Ident (None, "STDIN", _)], _)]; Semi_colon] -> () (* allow <STDIN> to ask "press return" *)
-	| [List [Call(Deref(I_func, Ident(None, "map", _)), _)]; Semi_colon] -> warn_rule "if you don't use the return value, use \"foreach\" instead of \"map\""
-	| _ -> warn esp.pos msg
+	| [List [Call(Deref(I_func, Ident(None, "map", _)), _)]; Semi_colon] -> warn_rule [Warn_void] "if you don't use the return value, use \"foreach\" instead of \"map\""
+	| _ -> warn [Warn_void] esp.pos msg
   in
   mcontext_check_none_rec msg expr esp.mcontext
 
@@ -1298,7 +1297,7 @@ let call_op_if_infix left right esp_start esp_end =
   | List [Call_op("=", [Deref(context, _); _], _)], _ when non_scalar_context context -> ()
   | List [Call_op("=", [v; _], _)],
     List [Call_op("not", [v'], _)] when is_same_fromparser v v' ->
-      warn_rule "\"$foo = ... if !$foo\" can be written \"$foo ||= ...\""
+      warn_rule [Warn_suggest_simpler] "\"$foo = ... if !$foo\" can be written \"$foo ||= ...\""
   | _ -> ());
 
   mcontext_check_none "value is dropped" [left] esp_start;
@@ -1313,12 +1312,12 @@ let call_op_unless_infix left right esp_start esp_end =
   (match left, right with
   | List [Call_op("=", [Deref(context, _); _], _)], _ when non_scalar_context context -> ()
   | List [Call_op("=", [v; _], _)], List [v'] when is_same_fromparser v v' ->
-      warn_rule "\"$foo = ... unless $foo\" can be written \"$foo ||= ...\""
+      warn_rule [Warn_suggest_simpler] "\"$foo = ... unless $foo\" can be written \"$foo ||= ...\""
   | _ -> ());
   (match right with
   | List [Call_op(op, _, _)] ->
       (match op with
-      | "&&" | "||" | "not" | "ne" | "?:" -> warn_rule "don't use \"unless\" when the condition is complex, use \"if\" instead"
+      | "&&" | "||" | "not" | "ne" | "?:" -> warn_rule [Warn_complex_expressions] "don't use \"unless\" when the condition is complex, use \"if\" instead"
       | _ -> ());
   | _ -> ());
 
@@ -1337,7 +1336,7 @@ let symops pri para_context return_context op_str left op right =
   in
   if op_str <> "==" && op_str <> "!=" && para_context = M_float then
     (match un_parenthesize_full left.any.expr with
-    | Call_op("last_array_index", _, _) -> warn_rule "change your expression to use @xxx instead of $#xxx"
+    | Call_op("last_array_index", _, _) -> warn_rule [Warn_complex_expressions] "change your expression to use @xxx instead of $#xxx"
     | _ -> ());
 
   if not skip_context_check then

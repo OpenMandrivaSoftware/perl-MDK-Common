@@ -156,7 +156,7 @@ sideff: /* An expression which may have a side-effect */
 decl:
 | FORMAT BAREWORD ASSIGN {to_Call_op M_none "format" [Raw_string($2.any, get_pos $2) ; to_String false (new_1esp (fst $1.any) $1)] $1 $3}
 | FORMAT ASSIGN {new_esp M_none Too_complex $1 $2}
-| func_decl semi_colon {if snd $1.any = None then die_rule "there is no need to pre-declare in Perl!" else (warn_rule "please don't use prototype pre-declaration" ; new_esp M_special Too_complex $1 $2) }
+| func_decl semi_colon {if snd $1.any = None then die_rule "there is no need to pre-declare in Perl!" else (warn_rule [Warn_normalized_expressions] "please don't use prototype pre-declaration" ; new_esp M_special Too_complex $1 $2) }
 | func_decl BRACKET BRACKET_END {sp_n($2); sp_0_or_cr($3); let name, proto = $1.any in new_esp M_none (sub_declaration (name, proto) [] Real_sub_declaration) $1 $3}
 | func_decl BRACKET lines BRACKET_END {sp_n($2); check_block_sub $3 $4; new_esp M_none (sub_declaration $1.any $3.any Real_sub_declaration) $1 $4}
 | func_decl BRACKET BRACKET expr BRACKET_END            BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_esp M_none (sub_declaration $1.any [hash_ref $4] Real_sub_declaration) $1 $6}
@@ -182,7 +182,7 @@ use_revision:
 
 func_decl:
 | SUB word { new_esp M_none ($2.any, None) $1 $2}
-| SUB BAREWORD_PAREN PAREN PAREN_END { warn_rule "remove carriage return between \"sub\" and the function name"; new_esp M_none (Ident(None, $2.any, get_pos $2), Some "") $1 $4 }
+| SUB BAREWORD_PAREN PAREN PAREN_END { warn_rule [Warn_white_space] "remove carriage return between \"sub\" and the function name"; new_esp M_none (Ident(None, $2.any, get_pos $2), Some "") $1 $4 }
 | FUNC_DECL_WITH_PROTO {new_1esp (Ident(fst3 $1.any, snd3 $1.any, get_pos $1), Some (ter3 $1.any)) $1 }
 
 listexpr: /* Basic list expressions */
@@ -242,15 +242,15 @@ term:
 | term PATTERN_MATCH PATTERN_SUBST {sp_n($2); sp_p($3); check_unneeded_var_dollar_s  ($1); to_Call_op_ (M_mixed[M_none; M_int]) P_expr "s///" ($1.any.expr :: from_PATTERN_SUBST $3) $1 $3}
 | term PATTERN_MATCH_NOT PATTERN_SUBST {die_with_rawpos $2.pos "use =~ instead of !~ and negate the return value"}
 
-| term PATTERN_MATCH     QR_PATTERN {warn $3.pos "use m/.../ or /.../ instead of qr/.../ when you do a pattern matching"; to_Call_op_ M_array P_expr "m//"  ($1.any.expr :: from_PATTERN $3) $1 $3}
-| term PATTERN_MATCH_NOT QR_PATTERN {warn $3.pos "use m/.../ or /.../ instead of qr/.../ when you do a pattern matching"; to_Call_op_ M_int   P_expr "!m//" ($1.any.expr :: from_PATTERN $3) $1 $3}
+| term PATTERN_MATCH     QR_PATTERN {warn [Warn_traps] $3.pos "use m/.../ or /.../ instead of qr/.../ when you do a pattern matching"; to_Call_op_ M_array P_expr "m//"  ($1.any.expr :: from_PATTERN $3) $1 $3}
+| term PATTERN_MATCH_NOT QR_PATTERN {warn [Warn_traps] $3.pos "use m/.../ or /.../ instead of qr/.../ when you do a pattern matching"; to_Call_op_ M_int   P_expr "!m//" ($1.any.expr :: from_PATTERN $3) $1 $3}
 | term PATTERN_MATCH     scalar { new_pesp M_array P_expr (Call(Too_complex, [$1.any.expr ; $3.any ])) $1 $3}
 | term PATTERN_MATCH_NOT scalar { new_pesp M_int   P_expr (Call(Too_complex, [$1.any.expr ; $3.any ])) $1 $3}
 
-| term PATTERN_MATCH     RAW_STRING {warn $3.pos "use a regexp, not a string"; to_Call_op_ M_array P_expr "m//"  [ $1.any.expr; to_Raw_string $3 ] $1 $3}
-| term PATTERN_MATCH_NOT RAW_STRING {warn $3.pos "use a regexp, not a string"; to_Call_op_ M_int   P_expr "!m//" [ $1.any.expr; to_Raw_string $3 ] $1 $3}
-| term PATTERN_MATCH     STRING {warn $3.pos "use a regexp, not a string"; to_Call_op_ M_array P_expr "m//"  [ $1.any.expr; to_String false $3 ] $1 $3}
-| term PATTERN_MATCH_NOT STRING {warn $3.pos "use a regexp, not a string"; to_Call_op_ M_int   P_expr "!m//" [ $1.any.expr; to_String false $3 ] $1 $3}
+| term PATTERN_MATCH     RAW_STRING {warn [Warn_complex_expressions] $3.pos "use a regexp, not a string"; to_Call_op_ M_array P_expr "m//"  [ $1.any.expr; to_Raw_string $3 ] $1 $3}
+| term PATTERN_MATCH_NOT RAW_STRING {warn [Warn_complex_expressions] $3.pos "use a regexp, not a string"; to_Call_op_ M_int   P_expr "!m//" [ $1.any.expr; to_Raw_string $3 ] $1 $3}
+| term PATTERN_MATCH     STRING {warn [Warn_complex_expressions] $3.pos "use a regexp, not a string"; to_Call_op_ M_array P_expr "m//"  [ $1.any.expr; to_String false $3 ] $1 $3}
+| term PATTERN_MATCH_NOT STRING {warn [Warn_complex_expressions] $3.pos "use a regexp, not a string"; to_Call_op_ M_int   P_expr "!m//" [ $1.any.expr; to_String false $3 ] $1 $3}
 
 
 | term QUESTION_MARK term COLON term {sp_p($2); sp_p($3); sp_p($4); sp_p($5); mcontext_check M_bool $1; to_Call_op_ (mcontext_merge $3.mcontext $5.mcontext) P_ternary "?:" (check_ternary_paras(prio_lo P_ternary $1, prio_lo_after P_ternary $3, prio_lo_after P_ternary $5)) $1 $5}
@@ -263,13 +263,13 @@ term:
     sp_0($2); 
     match $1.any with
     | "+" ->
-	warn_rule "don't use unary +" ;
+	warn_rule [Warn_normalized_expressions] "don't use unary +" ;
 	to_Call_op_ (mcontext_float_or_int [$2.mcontext]) P_tight "+ unary" [$2.any.expr] $1 $2
     | "-" ->
 	(match $2.any.expr with
 	| Ident(_, _, pos) when $2.spaces = Space_0 ->
 	    let s = "-" ^ string_of_Ident $2.any.expr in
-	    warn_rule (Printf.sprintf "don't use %s, use '%s' instead" s s);
+	    warn_rule [Warn_complex_expressions] (Printf.sprintf "don't use %s, use '%s' instead" s s);
 	    new_pesp M_string P_tok (Raw_string(s, pos)) $1 $2
 	| _ -> to_Call_op_ (mcontext_float_or_int [$2.mcontext]) P_tight "- unary" [$2.any.expr] $1 $2)
     | _ -> die_rule "syntax error"
@@ -280,7 +280,7 @@ term:
 | DECR term    {sp_0($2); mcontext_check M_int $2; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "--" [$2.any.expr] $1 $2}
 | term INCR    {sp_0($2); mcontext_check M_int $1; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "++ post" [$1.any.expr] $1 $2}
 | term DECR    {sp_0($2); mcontext_check M_int $1; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "-- post" [$1.any.expr] $1 $2}
-| NOT argexpr  {warn_rule "don't use \"not\", use \"!\" instead"; mcontext_check_unop_l M_bool $2; to_Call_op_ M_bool P_and "not" ($2.any.expr) $1 $2}
+| NOT argexpr  {warn_rule [Warn_normalized_expressions] "don't use \"not\", use \"!\" instead"; mcontext_check_unop_l M_bool $2; to_Call_op_ M_bool P_and "not" ($2.any.expr) $1 $2}
 
 /* Constructors for anonymous data */
 
@@ -340,7 +340,7 @@ term:
 | word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_pesp M_unknown (if $7.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ hash_ref $4 ] $4 $4) :: $7.any.expr)) $1 $7} /* map { { foo } } @bar */
 | word BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); new_pesp M_unknown (if $8.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ hash_ref $4; Semi_colon ] $4 $4) :: $8.any.expr)) $1 $8} /* map { { foo }; } @bar */
 
-| term ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); if $4.any.expr = [] then warn $4.pos "remove these unneeded parentheses"; new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, $4.any.expr)) $1 $4} /* $foo->bar(list) */
+| term ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); if $4.any.expr = [] then warn [Warn_suggest_simpler] $4.pos "remove these unneeded parentheses"; new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, $4.any.expr)) $1 $4} /* $foo->bar(list) */
 | term ARROW word_or_scalar {sp_0($2); sp_0($3); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, [])) $1 $3} /* $foo->bar */
 
 | NEW word { sp_n($2); new_pesp (M_ref M_unknown) P_expr (to_Method_call ($2.any, Ident(None, "new", get_pos $1), [])) $1 $2} /* new Class */
@@ -405,7 +405,7 @@ restricted_subscripted: /* Some kind of subscripted expression */
 | restricted_subscripted arrayref                 {sp_0($2); new_esp M_unknown_scalar  (to_Deref_with(I_array, I_scalar, $1.any, only_one_array_ref $2)) $1 $2} /* $foo->[$bar][$baz] */
 | restricted_subscripted parenthesized            {sp_0($2); new_esp M_unknown (to_Deref_with(I_func , I_scalar, $1.any, List($2.any.expr))) $1 $2} /* $foo->{bar}(@args) */
 
-| restricted_subscripted ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); if $4.any.expr = [] then warn $4.pos "remove these unneeded parentheses"; new_esp M_unknown (to_Method_call($1.any, $3.any, $4.any.expr)) $1 $4} /* $foo->bar(list) */
+| restricted_subscripted ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); if $4.any.expr = [] then warn [Warn_suggest_simpler] $4.pos "remove these unneeded parentheses"; new_esp M_unknown (to_Method_call($1.any, $3.any, $4.any.expr)) $1 $4} /* $foo->bar(list) */
 | restricted_subscripted ARROW word_or_scalar {sp_0($2); sp_0($3); new_esp M_unknown (to_Method_call($1.any, $3.any, [])) $1 $3} /* $foo->bar */
 
 arrayref:

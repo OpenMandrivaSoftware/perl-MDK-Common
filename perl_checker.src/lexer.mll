@@ -62,8 +62,8 @@ let pos lexbuf = lexeme_start lexbuf, lexeme_end lexbuf
 let pos2sfull_with start end_ = Info.pos2sfull (!current_file, start, end_)
 let pos2sfull lexbuf = pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf)
 
-let warn_with_pos (start, end_) err = print_endline_flush (pos2sfull_with start end_ ^ err)
-let warn lexbuf err = warn_with_pos (pos lexbuf) err
+let warn_with_pos warn_types (start, end_) err = if Flags.are_warning_types_set warn_types then print_endline_flush (pos2sfull_with start end_ ^ err)
+let warn warn_types lexbuf err = warn_with_pos warn_types (pos lexbuf) err
 let die lexbuf err = failwith (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
 
 let rec concat_bareword_paren accu = function
@@ -81,7 +81,7 @@ let rec concat_bareword_paren accu = function
       | BAREWORD("N_", _) :: PAREN(_) :: _ ->
 	  concat_bareword_paren (e :: accu) l
       | _ -> 
-	  warn_with_pos pos "N(...) must follow the #-PO: comment, with nothing in between" ;
+	  warn_with_pos [Warn_MDK_Common] pos "N(...) must follow the #-PO: comment, with nothing in between" ;
 	  concat_bareword_paren accu l)
   | [] -> List.rev accu
   | e :: l -> 
@@ -267,7 +267,7 @@ let current_string_start_line = ref 0
 
 let die_in_string lexbuf err = failwith (pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ err)
 let warn_escape_unneeded lexbuf c = 
-  let s = String.make 1 c in warn lexbuf ("you can replace \\" ^ s ^ " with " ^ s)
+  let s = String.make 1 c in warn [Warn_suggest_simpler] lexbuf ("you can replace \\" ^ s ^ " with " ^ s)
 let next_interpolated toks =
   let r = Stack.top building_current_string in
   Queue.push (!r, toks) (Stack.top building_current_interpolated_string) ;
@@ -301,7 +301,7 @@ let ins_to_string t lexbuf =
     (match !string_escape_useful, s with
     | Right c, [ _, [] ] ->
 	let s = String.make 1 c in
-	warn_with_pos pos ("you can replace \"xxx\\" ^ s ^ "xxx\" with 'xxx" ^ s ^ "xxx', that way you don't need to escape <" ^ s ^ ">")
+	warn_with_pos [Warn_suggest_simpler] pos ("you can replace \"xxx\\" ^ s ^ "xxx\" with 'xxx" ^ s ^ "xxx', that way you don't need to escape <" ^ s ^ ">")
     | _ -> 
 	if !string_quote_escape then
 	  let full_s = String.concat "" (List.map fst s) in
@@ -311,7 +311,7 @@ let ins_to_string t lexbuf =
 	    if c = ')' then nb - 1 else nb
 	  ) 0 full_s in
 	  if nb = 0 then
-	    warn_with_pos pos "you can replace \"xxx\\\"xxx\" with qq(xxx\"xxx), that way you don't need to escape <\">"
+	    warn_with_pos [Warn_suggest_simpler] pos "you can replace \"xxx\\\"xxx\" with qq(xxx\"xxx), that way you don't need to escape <\">"
     );
 
   not_ok_for_match := lexeme_end lexbuf; 
@@ -326,8 +326,8 @@ let next t lexbuf = next_s (lexeme lexbuf) t lexbuf
 let ins_re re_delimited_string lexbuf =
   let s, pos = ins re_delimited_string lexbuf in
   List.iter (fun (s, _) ->
-    if str_contains s "[^\\s]" then warn lexbuf "you can replace [^\\s] with \\S";
-    if str_contains s "[^\\w]" then warn lexbuf "you can replace [^\\w] with \\W"
+    if str_contains s "[^\\s]" then warn [Warn_suggest_simpler] lexbuf "you can replace [^\\s] with \\S";
+    if str_contains s "[^\\w]" then warn [Warn_suggest_simpler] lexbuf "you can replace [^\\w] with \\W"
   ) s ;
   s, pos
 
@@ -404,8 +404,8 @@ let set_delimit_char lexbuf op =
   let c = lexeme_char lexbuf (String.length op) in
   delimit_char := c;
   match c with
-  | '@' -> warn lexbuf ("don't use " ^ op ^ "@...@, replace @ with / ! , or |")
-  | ':' -> warn lexbuf ("don't use " ^ op ^ ":...:, replace : with / ! , or |")
+  | '@' -> warn [Warn_complex_expressions] lexbuf ("don't use " ^ op ^ "@...@, replace @ with / ! , or |")
+  | ':' -> warn [Warn_complex_expressions] lexbuf ("don't use " ^ op ^ ":...:, replace : with / ! , or |")
   | _ -> ()
 
 let set_delimit_char_open lexbuf op =
@@ -417,9 +417,9 @@ let set_delimit_char_open lexbuf op =
     | _ -> internal_error "set_delimit_char_open"
   in
   if op = "qx" then 
-    warn lexbuf (Printf.sprintf "don't use qx%c...%c, use `...` instead" char_open char_close)
+    warn [Warn_complex_expressions] lexbuf (Printf.sprintf "don't use qx%c...%c, use `...` instead" char_open char_close)
   else if char_open = '{' then
-    warn lexbuf ("don't use " ^ op ^ "{...}, use " ^ op ^ "(...) instead");
+    warn [Warn_complex_expressions] lexbuf ("don't use " ^ op ^ "{...}, use " ^ op ^ "(...) instead");
   delimit_char_open := char_open;
   delimit_char_close := char_close
 }
@@ -498,7 +498,7 @@ rule token = parse
 | "=" | "+=" | "-=" | "*=" | ".=" | "|=" | "&=" | "^=" | "||=" | "&&=" { ASSIGN(lexeme lexbuf, pos lexbuf) }
 
 | "<<=" | ">>=" | "**=" { 
-    warn lexbuf (Printf.sprintf "don't use \"%s\", use the expanded version instead" (lexeme lexbuf)) ;
+    warn [Warn_complex_expressions] lexbuf (Printf.sprintf "don't use \"%s\", use the expanded version instead" (lexeme lexbuf)) ;
     ASSIGN(lexeme lexbuf, pos lexbuf) 
   }
 
@@ -634,7 +634,7 @@ rule token = parse
   set_delimit_char lexbuf "qw" ;
   current_string_start_line := !current_file_current_line;
   let s, pos = raw_ins delimited_string lexbuf in
-  warn_with_pos pos (Printf.sprintf "don't use qw%c...%c, use qw(...) instead" !delimit_char !delimit_char) ;
+  warn_with_pos [Warn_complex_expressions] pos (Printf.sprintf "don't use qw%c...%c, use qw(...) instead" !delimit_char !delimit_char) ;
   QUOTEWORDS(s, pos)
 }
 
@@ -918,7 +918,7 @@ and string_escape = parse
     | Qq -> if c <> !delimit_char_open && c <> !delimit_char_close then warn_escape_unneeded lexbuf c
     | Here_doc -> warn_escape_unneeded lexbuf c
     | Delimited -> if c = !delimit_char then 
-          warn lexbuf ("change the delimit character " ^ String.make 1 !delimit_char ^ " to get rid of this escape")
+          warn [Warn_suggest_simpler] lexbuf ("change the delimit character " ^ String.make 1 !delimit_char ^ " to get rid of this escape")
         else warn_escape_unneeded lexbuf c);
     let s = if c = '"' then String.make 1 c else "\\" ^ String.make 1 c in
     next_s s (Stack.pop next_rule) lexbuf 
@@ -938,7 +938,7 @@ and re_string_escape = parse
 | _  {
      let c = lexeme_char lexbuf 0 in 
      if c = !delimit_char then 
-       warn lexbuf ("change the delimit character " ^ String.make 1 !delimit_char ^ " to get rid of this escape")
+       warn [Warn_suggest_simpler] lexbuf ("change the delimit character " ^ String.make 1 !delimit_char ^ " to get rid of this escape")
      else warn_escape_unneeded lexbuf c ;
      next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf 
   }
@@ -956,7 +956,7 @@ and string_interpolate_scalar = parse
 | ident "->"? '{'
 | '"' { putback lexbuf 1; next_s "$" (Stack.pop next_rule) lexbuf }
 | eof {                   next_s "$" (Stack.pop next_rule) lexbuf }
-| _ { warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); next_s ("$" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| _ { warn [Warn_strange] lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); next_s ("$" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 
 and delimited_string_interpolate_scalar = parse (* needed for delimited string like m!foo$! where $! should not be taken as is... *)
 | '$' ident
@@ -978,7 +978,7 @@ and delimited_string_interpolate_scalar = parse (* needed for delimited string l
 | eof { next_s "$" (Stack.pop next_rule) lexbuf }
 | _ { 
     let c = lexeme_char lexbuf 0 in
-    if c <> !delimit_char && c <> '|' && c<>')' && c<>'/' && c<>' ' then warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); 
+    if c <> !delimit_char && c <> '|' && c<>')' && c<>'/' && c<>' ' then warn [Warn_strange] lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); 
     putback lexbuf 1;
     next_s "$" (Stack.pop next_rule) lexbuf
   }
@@ -991,7 +991,7 @@ and string_interpolate_array = parse
 | [ '@' '*' '<' '>' ']' '.' '(' ' ' ] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 | '"' { putback lexbuf 1; next_s "@" (Stack.pop next_rule) lexbuf }
 | eof {                   next_s "@" (Stack.pop next_rule) lexbuf }
-| _ { warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| _ { warn [Warn_strange] lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 
 and delimited_string_interpolate_array = parse
 | '$' ident
@@ -1003,7 +1003,7 @@ and delimited_string_interpolate_array = parse
 | eof { next_s "@" (Stack.pop next_rule) lexbuf }
 | _ { 
     let c = lexeme_char lexbuf 0 in
-    if c <> !delimit_char then warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf));
+    if c <> !delimit_char then warn [Warn_strange] lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf));
     putback lexbuf 1;
     next_s "@" (Stack.pop next_rule) lexbuf
   }

@@ -36,7 +36,7 @@ let rec get_imported state current_package (package_name, (imports, pos)) =
 	  try
 	    sndter3 (List.assoc var (get_imports state package_used))
 	  with Not_found ->
-	    warn_with_pos pos (sprintf "name %s is not defined in package %s" (variable2s var) package_name) ;
+	    warn_with_pos [Warn_import_export] pos (sprintf "name %s is not defined in package %s" (variable2s var) package_name) ;
 	    ref Access_various, None
       in
       var, (package_name, b, prototype)
@@ -59,12 +59,12 @@ let rec get_imported state current_package (package_name, (imports, pos)) =
 	    | I_raw, tag -> 
 		(try 
 		  List.assoc tag exports.export_tags
-		with Not_found -> warn_with_pos pos (sprintf "package %s doesn't export tag %s" package_name tag) ; [])
+		with Not_found -> warn_with_pos [Warn_import_export] pos (sprintf "package %s doesn't export tag %s" package_name tag) ; [])
 	    | variable ->
 		if List.mem variable exports.export_ok || List.mem variable exports.export_auto then
 		  [ variable ]
 		else
-		  (warn_with_pos pos (sprintf "package %s doesn't export %s" package_name (variable2s variable)) ; [])
+		  (warn_with_pos [Warn_import_export] pos (sprintf "package %s doesn't export %s" package_name (variable2s variable)) ; [])
 		  ) l
 	in
 	List.map get_var_by_name imports_vars
@@ -99,8 +99,8 @@ let check_para_comply_with_prototype para proto =
   | None -> ()
   | Some(pos, para) -> 
       match do_para_comply_with_prototype para proto with
-      | -1 -> warn_with_pos pos "not enough parameters"
-      |  1 -> warn_with_pos pos "too many parameters"
+      | -1 -> warn_with_pos [Warn_prototypes] pos "not enough parameters"
+      |  1 -> warn_with_pos [Warn_prototypes] pos "too many parameters"
       | _ -> ()
 
 let is_anonymous_variable_name s = String.length s > 1 && s.[0] = '_'
@@ -192,18 +192,18 @@ let is_global_var context ident =
 let check_variable (context, var) vars para = 
   match var with
   | Ident(_, s, pos) when context <> I_func && is_anonymous_variable_name s && s <> "__FILE__" && s <> "__LINE__" ->
-      warn_with_pos pos (sprintf "variable %s must not be used\n  (variable with name _XXX are reserved for unused variables)" (variable2s(context, string_of_Ident var)))
+      warn_with_pos [Warn_normalized_expressions] pos (sprintf "variable %s must not be used\n  (variable with name _XXX are reserved for unused variables)" (variable2s(context, string_of_Ident var)))
   | Ident(Some pkg, _, _) when uses_external_package pkg || List.mem pkg !ignored_packages -> ()
   | Ident(None, ident, pos) ->
       if is_my_declared vars (context, ident) || is_our_declared vars (context, ident) || is_var_declared vars (context, ident) para || is_global_var context ident
       then () 
-      else warn_with_pos pos (if context = I_func then "unknown function " ^ ident else "undeclared variable " ^ variable2s(context, ident))
+      else warn_with_pos [Warn_names] pos (if context = I_func then "unknown function " ^ ident else "undeclared variable " ^ variable2s(context, ident))
   | Ident(Some fq, name, pos) -> 
       if (fq = "CORE") && is_global_var context name || is_global_var_declared vars (context, fq, name) para
       then ()
       else 
 	if context = I_func then 
-	  warn_with_pos pos ("unknown function " ^ string_of_Ident var)
+	  warn_with_pos [Warn_names] pos ("unknown function " ^ string_of_Ident var)
 	else
 	  lpush vars.state.global_vars_used ((context, fq, name), pos)
   | _ -> ()
@@ -216,7 +216,7 @@ let declare_My vars (mys, pos) =
   ) mys in
   let l_pre = List.hd vars.my_vars in
   List.iter (fun v ->
-    if List.mem_assoc v l_pre then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
+    if List.mem_assoc v l_pre then warn_with_pos [Warn_names] pos (sprintf "redeclared variable %s" (variable2s v))
   ) l_new ;
   { vars with my_vars = (List.map (fun v -> v, (pos, ref Access_none, None)) l_new @ l_pre) :: List.tl vars.my_vars }
 
@@ -225,7 +225,7 @@ let declare_Our vars (ours, pos) =
   | [] -> vars (* we're at the toplevel, already declared in vars_declared *)
   | l_pre :: other ->
       List.iter (fun v ->
-	if List.mem_assoc v l_pre && v <> (I_scalar, "_") then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
+	if List.mem_assoc v l_pre && v <> (I_scalar, "_") then warn_with_pos [Warn_names] pos (sprintf "redeclared variable %s" (variable2s v))
       ) ours ;
       { vars with our_vars = (List.map (fun v -> v, (pos, ref Access_none, None)) ours @ l_pre) :: other }
 
@@ -246,11 +246,11 @@ let check_unused_local_variables vars =
       match s with
       | "BEGIN" | "END" | "DESTROY" -> ()
       | "_" when context = I_array ->
-	  warn_with_pos pos "if the function doesn't take any parameters, please use the empty prototype.\nexample \"sub foo() { ... }\""
+	  warn_with_pos [Warn_normalized_expressions] pos "if the function doesn't take any parameters, please use the empty prototype.\nexample \"sub foo() { ... }\""
       | _ ->
 	  if s.[0] != '_' || s = "_" then
 	    let msg = if !used = Access_write_only then sprintf "variable %s assigned, but not read" else sprintf "unused variable %s" in
-	    warn_with_pos pos (msg (variable2s v))
+	    warn_with_pos [Warn_names] pos (msg (variable2s v))
   ) (List.hd vars.my_vars)
 
 let check_variables vars t = 
@@ -287,7 +287,7 @@ let check_variables vars t =
 	(* special warning if @_ is unbound *)
 	check_variable (I_func, ident) vars None ;
 	if not (is_my_declared vars (I_array, "_")) then
-	  warn_with_pos pos (sprintf "replace %s(@_) with &%s" (string_of_Ident ident) (string_of_Ident ident)) ;
+	  warn_with_pos [Warn_suggest_simpler] pos (sprintf "replace %s(@_) with &%s" (string_of_Ident ident) (string_of_Ident ident)) ;
 	Some vars
 
     | Call(Deref(I_func, Ident(None, "require", _)), [Ident _]) -> Some vars
@@ -308,7 +308,7 @@ let check_variables vars t =
 	let vars = check_variables_ vars l in
 	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref Access_various, None)] :: vars.our_vars } in
 	let vars' = check_variables_ vars' expr in
-	if List.hd(vars'.my_vars) <> [] then warn_with_pos pos "you can't declare variables in foreach infix";
+	if List.hd(vars'.my_vars) <> [] then warn_with_pos [Warn_traps] pos "you can't declare variables in foreach postfix";
 	Some vars
 
     | Call_op("foreach my", [my; expr; Block block], _) ->
@@ -379,7 +379,7 @@ let check_variables vars t =
 	(* check e first *)
 	let vars = check_variables_ vars e in
 	List.iter (fun (context, var) ->
-	  if non_scalar_context context then warn_with_pos pos (sprintf "%s takes all the arguments, %s is undef in any case" (variable2s (context, var)) (variable2s (last mys)))
+	  if non_scalar_context context then warn_with_pos [Warn_prototypes] pos (sprintf "%s takes all the arguments, %s is undef in any case" (variable2s (context, var)) (variable2s (last mys)))
 	) (removelast mys) ; (* mys is never empty *)
 	Some(declare_My_our vars (my_or_our, mys, pos))
 
@@ -387,7 +387,7 @@ let check_variables vars t =
     | Call_op(op, List (My_our _ :: _) :: _, pos) 
     | Call_op(op, My_our _ :: _, pos)
     | Call_op(op, Call_op("local", _, _) :: _, pos) ->
-	if op <> "=" then warn_with_pos pos (sprintf "applying %s on a new initialized variable is wrong" op);
+	if op <> "=" then warn_with_pos [Warn_traps] pos (sprintf "applying %s on a new initialized variable is wrong" op);
 	None
 
     | Call_op("=", [ Deref(context, (Ident _ as var)) ; para], _) ->
@@ -429,8 +429,8 @@ let check_variables vars t =
 	in
 	(try
 	  if not (uses_external_package pkg || List.mem pkg !ignored_packages || search pkg || method_ = "bootstrap") then 
-	    warn_with_pos pos (sprintf "unknown method %s starting in package %s" method_ pkg);
-	with Not_found -> warn_with_pos pos (sprintf "unknown package %s" pkg));
+	    warn_with_pos [Warn_import_export] pos (sprintf "unknown method %s starting in package %s" method_ pkg);
+	with Not_found -> warn_with_pos [Warn_import_export] pos (sprintf "unknown package %s" pkg));
 	Some vars
 
     | Method_call(o, Raw_string(method_, pos), para) ->
@@ -443,16 +443,16 @@ let check_variables vars t =
 	    match List.filter (fun (_, n) -> n = 0) l_and with
 	    | [] ->
 		(match uniq (List.map snd l_and) with
-		| [-1] -> warn_with_pos pos "not enough parameters"
-		| [ 1] -> warn_with_pos pos "too many parameters"
-		| _ -> warn_with_pos pos "not enough or too many parameters") ;
+		| [-1] -> warn_with_pos [Warn_prototypes] pos "not enough parameters"
+		| [ 1] -> warn_with_pos [Warn_prototypes] pos "too many parameters"
+		| _ -> warn_with_pos [Warn_prototypes] pos "not enough or too many parameters") ;
 		l_and
 	    | l -> l
 	  in
 	  List.iter (fun (used, _) -> used := Access_various) l_and
 	with Not_found -> 
 	  if not (List.mem method_ [ "isa"; "can" ]) then
-	    warn_with_pos pos ("unknown method " ^ method_)) ;
+	    warn_with_pos [Warn_names] pos ("unknown method " ^ method_)) ;
 	Some vars
 	
     | _ -> None
@@ -462,7 +462,7 @@ let check_variables vars t =
 
 let check_tree state package =
   let vars = { my_vars = [[]]; our_vars = []; locally_imported = []; required_vars = []; current_package = package; state = state; is_toplevel = true; write_only = false } in
-  if !Flags.verbose then print_endline_flush_always ("checking package " ^ package.package_name) ;
+  if !Flags.verbose then print_endline_flush ("checking package " ^ package.package_name) ;
   let vars = check_variables vars package.body in
   check_unused_local_variables vars ;
   ()
@@ -501,7 +501,7 @@ let add_file_to_files per_files file =
 let check_unused_vars package =
   Hashtbl.iter (fun (context, name) (pos, is_used, _proto) ->
     if not (!is_used != Access_various || List.mem name ["BEGIN"; "END"; "DESTROY"; "ISA"; "AUTOLOAD"; "EXPORT"; "EXPORT_OK"; "EXPORT_TAGS"]) then
-      warn_with_pos pos (sprintf "unused %s%s::%s" (if context = I_func then "function " else "variable " ^ context2s context) package.package_name name)
+      warn_with_pos [Warn_unused_global_vars] pos (sprintf "unused %s%s::%s" (if context = I_func then "function " else "variable " ^ context2s context) package.package_name name)
   ) package.vars_declared
 
 let arrange_global_vars_declared global_vars_declared state =

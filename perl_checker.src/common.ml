@@ -228,6 +228,13 @@ let rec lfix_point f e =
   if e = e' then e :: lfix_point f e' else [e]
 *)
 
+let fluid_let ref value f =
+  let previous_val = !ref in
+  ref := value ;
+  let v = f() in
+  ref := previous_val ;
+  v
+
 let do0_withenv doit f env l =
   let r_env = ref env in
   doit (fun e -> r_env := f !r_env e) l ;
@@ -882,9 +889,7 @@ let rec updir dir nb =
 let (string_of_ref : 'a ref -> string) = fun r ->
   Printf.sprintf "0x%x" (Obj.magic r : int)
 
-let print_endline_flush_quiet = ref false
-let print_endline_flush s = if not !print_endline_flush_quiet then (print_endline s ; flush stdout)
-let print_endline_flush_always s = print_endline s ; flush stdout
+let print_endline_flush s = print_endline s ; flush stdout
 
 let is_int n = n = floor n
 

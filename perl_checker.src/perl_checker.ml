@@ -22,7 +22,7 @@ let set_basedir per_files file =
 
 let rec parse_file from_basedir require_name per_files file =
   try
-    if !Flags.verbose then print_endline_flush_always ("parsing " ^ file) ;
+    if !Flags.verbose then print_endline_flush ("parsing " ^ file) ;
     let build_time = Unix.time() in
     let command = 
       match !Flags.expand_tabs with
@@ -42,7 +42,7 @@ let rec parse_file from_basedir require_name per_files file =
       let required_packages = collect (fun package -> package.required_packages) per_file.packages in
       required_packages, per_files
     with Failure s -> (
-      print_endline_flush_always s ;
+      print_endline_flush s ;
       exit 1
      )
   with 
@@ -67,7 +67,7 @@ and parse_package_if_needed per_files (package_name, pos) =
     | Some required_packages -> required_packages, per_files
     | None -> parse_file (dir = !basedir) (Some package_name) per_files file
   with Not_found -> 
-    warn_with_pos_always pos (Printf.sprintf "can't find package %s" package_name) ;
+    print_endline_flush (Info.pos2sfull pos ^ Printf.sprintf "can't find package %s" package_name) ;
     [], per_files
 
 let rec parse_required_packages state already_done = function
@@ -94,12 +94,33 @@ let parse_options =
     "-v", Arg.Set Flags.verbose, "  be verbose" ;
     "-q", Arg.Set Flags.quiet, "  be quiet" ;
     "-t", Arg.Int (fun i -> Flags.expand_tabs := Some i), "  set the tabulation width (default is 8)" ;
-    "--check-unused", Arg.Set Flags.check_unused_global_vars, "  check unused global functions & variables" ;
     "--restrict-to-files", Arg.Set restrict_to_files, "  only display warnings concerning the file(s) given on command line" ;
     "--no-cache", Arg.Set Flags.no_cache, "  do not use cache" ;
-    "--generate-pot", Arg.String generate_pot_chosen, "" ;
+    "--generate-pot", Arg.String generate_pot_chosen, 
+    "\n" ;
+
+    "--check-unused-global-vars", Arg.Set Flags.check_unused_global_vars, "  disable unused global functions & variables check" ^
+    "\nBasic warnings:";
+    "--no-check-white-space", Arg.Clear Flags.check_white_space, "  disable white space check" ;
+    "--no-suggest-simpler", Arg.Clear Flags.check_suggest_simpler, "  disable simpler code suggestion" ;
+    "--no-suggest-functional", Arg.Clear Flags.suggest_functional, "  disable Functional Programming suggestions" ^
+    "\nNormalisation warnings:";
+    "--no-check-strange", Arg.Clear Flags.check_strange, "  disable strange code check" ;
+    "--no-check-complex-expressions", Arg.Clear Flags.check_complex_expressions, "  disable complex expressions check" ;
+    "--no-check-normalized-expressions", Arg.Clear Flags.normalized_expressions, "  don't warn about non normalized expressions" ;
+    "--no-help-perl-checker", Arg.Clear Flags.check_help_perl_checker, "  beware, perl_checker doesn't understand all perl expressions, so those warnings *are* important" ^
+    "\nCommon warnings:";
+    "--no-check-void", Arg.Clear Flags.check_void, "  disable dropped value check" ;
+    "--no-check-names", Arg.Clear Flags.check_names, "  disable variable & function usage check" ;
+    "--no-check-prototypes", Arg.Clear Flags.check_prototypes, "  disable prototypes check" ;
+    "--no-check-import-export", Arg.Clear Flags.check_import_export, "  disable inter modules check" ^
+    "\nImportant warnings:";
+    "--no-check-context", Arg.Clear Flags.check_context, "  disable context check" ;
+    "--no-check-traps", Arg.Clear Flags.check_traps, "  disable traps (errors) check" ^
+    "\n";
+
   ] in
-  let usage = "Usage: perl_checker [-v] [-q] <files>\nOptions are:" in
+  let usage = "Usage: perl_checker [<options>] <files>\nOptions are:" in
   Arg.parse options (lpush args_r) usage;
 
   let files = if !args_r = [] && Build.debugging then ["../t.pl"] else !args_r in
@@ -110,10 +131,11 @@ let parse_options =
 
   if !Flags.generate_pot then Parser_helper.generate_pot !pot_file else (
 
-  if !restrict_to_files then Common.print_endline_flush_quiet := true ;
-  let per_files, required_packages = parse_required_packages per_files [] required_packages in
+  let per_files, required_packages = 
+    fluid_let Flags.quiet (!restrict_to_files || !Flags.quiet)
+      (fun () ->
+	parse_required_packages per_files [] required_packages) in
   let l_required_packages = List.map fst required_packages in
-  if !restrict_to_files then Common.print_endline_flush_quiet := false ;
 
   write_packages_cache per_files !basedir ;
 
@@ -133,7 +155,8 @@ let parse_options =
     let package_name_to_file_name = hashtbl_collect (fun _ per_file -> List.map (fun pkg -> pkg.package_name, per_file.file_name) per_file.packages) per_files in
     Hashtbl.iter (fun _ pkg -> 
       let file_name = List.assoc pkg.package_name package_name_to_file_name in
-      get_vars_declaration global_vars_declared file_name pkg
+      fluid_let Flags.quiet (!restrict_to_files || !Flags.quiet)
+	(fun () -> get_vars_declaration global_vars_declared file_name pkg)
     ) state.per_packages ;
     arrange_global_vars_declared global_vars_declared state
   in

@@ -52,6 +52,7 @@ val fix_point : ('a -> 'a) -> 'a -> 'a
 val fix_point_withenv : ('a -> 'b -> 'b * 'a) -> 'a -> 'b -> 'b * 'a
 val fix_point_ : int -> ('a -> 'a) -> 'a -> 'a * int
 val group_by_2 : 'a list -> ('a * 'a) list
+val fluid_let : 'a ref -> 'a -> (unit -> 'b) -> 'b
 val do0_withenv :
   (('a -> unit) -> 'b -> 'c) -> ('d -> 'a -> 'd) -> 'd -> 'b -> 'd
 val do0_withenv2 :
@@ -219,9 +220,7 @@ val expand_symlinks : string -> string
 val mtime : string -> float
 val updir : string -> int -> string
 val string_of_ref : 'a ref -> string
-val print_endline_flush_quiet : bool ref
 val print_endline_flush : string -> unit
-val print_endline_flush_always : string -> unit
 val is_int : float -> bool
 val compare_lists : ('a -> 'b -> int) -> 'a list -> 'b list -> int
 val compare_best : int -> int -> int

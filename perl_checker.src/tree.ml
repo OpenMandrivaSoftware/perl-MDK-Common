@@ -51,8 +51,7 @@ let ignore_package pkg =
   lpush ignored_packages pkg
 
 let die_with_pos pos msg = failwith (Info.pos2sfull pos ^ msg)
-let warn_with_pos pos msg = print_endline_flush (Info.pos2sfull pos ^ msg)
-let warn_with_pos_always pos msg = print_endline_flush_always (Info.pos2sfull pos ^ msg)
+let warn_with_pos warn_types pos msg = if Flags.are_warning_types_set warn_types then print_endline_flush (Info.pos2sfull pos ^ msg)
 
 let s2context s = 
   match s.[0] with
@@ -77,13 +76,13 @@ let get_current_package t =
       in
       bundled_packages [] (string_of_Ident ident) [] body
   | _ -> 
-      if str_ends_with !Info.current_file ".pm" then warn_with_pos (!Info.current_file, 0, 0) (sprintf "module %s does not have \"package xxxx;\" on its first line" (Info.absolute_file_to_file !Info.current_file)) ;
+      if str_ends_with !Info.current_file ".pm" then warn_with_pos [Warn_normalized_expressions] (!Info.current_file, 0, 0) (sprintf "module %s does not have \"package xxxx;\" on its first line" (Info.absolute_file_to_file !Info.current_file)) ;
       [ None, t ]
 
 let from_qw_raw = function
   | String([s, List []], pos) -> [ s, pos ]
   | String(_, pos) ->
-      warn_with_pos pos "not recognised yet" ;
+      warn_with_pos [] pos "not recognised yet" ;
       []
   | Raw_string(s, pos) ->
       [ s, pos ]
@@ -93,9 +92,9 @@ let from_qw_raw = function
 	| String([s, List []], pos)
 	| Raw_string(s, pos) -> Some(s, pos)
 	| Ident(_, _, pos) as ident -> Some(string_of_Ident ident, pos)
-	| e -> warn_with_pos (get_pos_from_expr e) "not recognised yet"; None
+	| e -> warn_with_pos [] (get_pos_from_expr e) "not recognised yet"; None
       ) l)) []
-  | e -> warn_with_pos (get_pos_from_expr e) "not recognised yet"; []
+  | e -> warn_with_pos [] (get_pos_from_expr e) "not recognised yet"; []
 
 let from_qw e =
   List.map (fun (s, pos) -> 
@@ -103,7 +102,7 @@ let from_qw e =
     let context =
       match context with
       | I_raw -> if s'.[0] = ':' then I_raw else I_func
-      | I_func -> warn_with_pos pos "weird, exported name with a function context especially given"; I_func
+      | I_func -> warn_with_pos [Warn_import_export] pos "weird, exported name with a function context especially given"; I_func
       | _ -> context 
     in context, s'
   ) (from_qw_raw e)
@@ -113,12 +112,12 @@ let get_exported t =
     match e with
     | List [ Call_op("=", [ Deref(I_array, Ident(None, "EXPORT", _)); Call _ ], pos) ]
     | List [ Call_op("=", [ My_our("our", [(I_array, "EXPORT")], _);  Call _ ], pos) ] ->
-	if exports.special_export = None then warn_with_pos pos "unrecognised @EXPORT" ;
+	if exports.special_export = None then warn_with_pos [Warn_import_export] pos "unrecognised @EXPORT" ;
 	exports
 
     | List [ Call_op("=", [ Deref(I_array, Ident(None, "EXPORT", _)); v ], pos)]
     | List [ Call_op("=", [ My_our("our", [(I_array, "EXPORT")], _); v ], pos)] ->
-	if exports.export_auto <> [] then warn_with_pos pos "weird, @EXPORT set twice" ;
+	if exports.export_auto <> [] then warn_with_pos [Warn_import_export] pos "weird, @EXPORT set twice" ;
 	{ exports with export_auto = from_qw v }
 
     | Perl_checker_comment("RE-EXPORT-ALL", _) -> { exports with special_export = Some Re_export_all }
@@ -126,7 +125,7 @@ let get_exported t =
 
     | List [ Call_op("=", [ Deref(I_array, Ident(None, "EXPORT_OK", _)); v ], pos)]
     | List [ Call_op("=", [ My_our("our", [(I_array, "EXPORT_OK")], _);  v ], pos)] ->
-	if exports.export_ok <> [] then warn_with_pos pos "weird, @EXPORT_OK set twice" ;
+	if exports.export_ok <> [] then warn_with_pos [Warn_import_export] pos "weird, @EXPORT_OK set twice" ;
 	(match v with
 	| Call(Deref(I_func, Ident(None, "map", _)), 
 	       [ Anonymous_sub(_, Block [List [Deref(I_array, Deref(I_scalar, Ident (None, "_", _)))]], _);
@@ -152,10 +151,10 @@ let get_exported t =
 	        ) (group_by_2 l)
 	    | _ -> raise Not_found
 	  in
-	  if exports.export_tags <> [] then warn_with_pos pos "weird, %EXPORT_TAGS set twice" ;
+	  if exports.export_tags <> [] then warn_with_pos [Warn_import_export] pos "weird, %EXPORT_TAGS set twice" ;
 	  { exports with export_tags = export_tags }
 	with _ ->
-	  warn_with_pos pos "unrecognised %EXPORT_TAGS" ;
+	  warn_with_pos [Warn_import_export] pos "unrecognised %EXPORT_TAGS" ;
 	  exports)
 
       (* $EXPORT_TAGS{all} = [ map { @$_ } values %EXPORT_TAGS ]; *)
@@ -280,8 +279,8 @@ let get_proto perl_proto body =
   map_option (fun (mys, pos, _) ->
     let scalars, others = break_at (fun (context, _) -> context <> I_scalar) mys in
     (match others with
-    | (I_array, _) :: _ :: _ -> warn_with_pos pos "an array must be the last variable in a prototype"
-    | (I_hash, _) :: _ :: _ -> warn_with_pos pos "an hash must be the last variable in a prototype"
+    | (I_array, _) :: _ :: _ -> warn_with_pos [Warn_prototypes] pos "an array must be the last variable in a prototype"
+    | (I_hash, _) :: _ :: _ -> warn_with_pos [Warn_prototypes] pos "an hash must be the last variable in a prototype"
     | _ -> ());
     let is_optional (_, s) = 
       String.length s > 2 &&                (s.[0] = 'o' || s.[0] = 'b') && s.[1] = '_' ||
@@ -289,7 +288,7 @@ let get_proto perl_proto body =
     in
     let must_have, optional = break_at is_optional scalars in
     if not (List.for_all is_optional optional) then
-      warn_with_pos pos "an non-optional argument must not follow an optional argument";
+      warn_with_pos [Warn_prototypes] pos "an non-optional argument must not follow an optional argument";
     let min = List.length must_have in    
     { proto_nb_min = min; proto_nb_max = if others = [] then Some(min + List.length optional) else None }
   ) (has_proto perl_proto body)
@@ -315,7 +314,7 @@ let get_vars_declaration global_vars_declared file_name package =
 
     | List [ Method_call(Raw_string(pkg, pos), Raw_string("bootstrap", _), _) ] ->
 	if pkg <> package.package_name then
-	  warn_with_pos pos "strange bootstrap (the package name is not the same as the current package)"
+	  warn_with_pos [Warn_import_export] pos "strange bootstrap (the package name is not the same as the current package)"
 	else
 	  if not (read_xs_extension_from_c global_vars_declared file_name package pos) then 
 	    if not (read_xs_extension_from_so global_vars_declared package pos) then
@@ -388,9 +387,9 @@ let get_global_info_from_package from_basedir require_name build_time t =
     let isa, exporter = get_isa t in
     (match exporter with
     | None ->
-	if exporting_something() then warn_with_pos (!Info.current_file, 0, 0) "you must have \"@ISA = qw(Exporter)\" to EXPORT something"
+	if exporting_something() then warn_with_pos [Warn_import_export] (!Info.current_file, 0, 0) "you must have \"@ISA = qw(Exporter)\" to EXPORT something"
     | Some pos ->
-	if not (exporting_something()) then warn_with_pos pos "Inheritating from Exporter without EXPORTing anything");
+	if not (exporting_something()) then warn_with_pos [Warn_import_export] pos "Inheritating from Exporter without EXPORTing anything");
 
     let uses = List.rev (get_uses t) in
     let required_packages = List.map (fun (s, (_, pos)) -> s, pos) uses in
