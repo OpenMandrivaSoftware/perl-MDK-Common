@@ -191,7 +191,11 @@ let get_uses t =
     | Use(Ident _ as pkg, _) when uses_external_package (string_of_Ident pkg) -> uses
     | Use(Ident(_, _, pos) as ident, l) ->
 	let package = string_of_Ident ident in
-	let para = if l = [] then None else Some(collect from_qw l) in
+	let para = match l with
+	| [] -> None
+	| [ Num(_, _) ] -> None (* don't care about the version number *)
+	| _ -> Some(collect from_qw l)
+	in
 	(package, (para, pos)) :: uses
     | _ -> uses
   ) [] t
