@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 4mdk
+%define release 1mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon May 10 2004 Pixel <pixel@mandrakesoft.com> 1.1.12-1mdk
+- many perl_checker enhancements and cleanup
+
 * Wed Apr  7 2004 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.11-4mdk
 - pixel:
   o add perl_checker.html

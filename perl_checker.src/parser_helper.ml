@@ -337,7 +337,7 @@ let sp_same esp1 esp2 =
   else if esp2.spaces <> Space_0 then sp_p esp1
 
 let function_to_context word_alone = function
-  | "map" | "grep" | "grep_index" | "map_index" -> M_array
+  | "map" | "grep" | "grep_index" | "map_index" | "uniq" | "uniq_" -> M_array
   | "partition" -> M_tuple [ M_ref M_array ; M_ref M_array ]
   | "find" -> M_unknown_scalar
   | "any" | "every" -> M_bool
@@ -836,7 +836,7 @@ let call_raw force_non_builtin_func (e, para) =
 	  | [ List(String _ :: _) ] -> die_rule "don't use interpolated translated string, use %s or %d instead"
 	  |  _ -> die_rule (sprintf "%s() must be used with a string" f))
 
-      | "map" | "grep" | "grep_index" | "map_index" | "partition"
+      | "map" | "grep" | "grep_index" | "map_index" | "partition" | "uniq_"
       | "find"
       | "any" | "every"
       | "find_index"

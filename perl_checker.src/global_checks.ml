@@ -268,7 +268,7 @@ let check_variables vars t =
 	Some vars
 
     | Call(Deref(I_func, Ident(None, func, func_pos)), Anonymous_sub(_, Block f, pos) :: l) 
-      when List.mem func [ "grep" ; "map" ; "substInFile" ; "map_index" ; "each_index" ; "partition" ; "find_index" ; "grep_index" ; "find" ; "any" ; "every" ] ->
+      when List.mem func [ "grep" ; "map" ; "substInFile" ; "map_index" ; "each_index" ; "partition" ; "find_index" ; "grep_index" ; "find" ; "any" ; "every" ; "uniq_" ] ->
 	let vars = List.fold_left check_variables_ vars l in
 	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref Access_various, None)] :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' f in
