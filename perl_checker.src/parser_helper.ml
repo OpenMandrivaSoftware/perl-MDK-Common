@@ -245,11 +245,13 @@ let prio_lo_check pri_out pri_in pos expr =
     | _ -> warn pos "missing parentheses (needed for clarity)")
 
 let prio_lo pri_out in_ = prio_lo_check pri_out in_.any.priority in_.pos in_.any.expr ; in_.any.expr
-    
+
 let prio_lo_after pri_out in_ =
   if in_.any.priority = P_call_no_paren then in_.any.expr else prio_lo pri_out in_
 
 let prio_lo_concat esp = prio_lo P_mul { esp with any = { esp.any with priority = P_paren_wanted esp.any.priority } }
+
+let hash_ref esp = Ref(I_hash, prio_lo P_loose esp)
 
 let sp_0 esp =
   match esp.spaces with

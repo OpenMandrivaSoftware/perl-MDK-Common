@@ -78,6 +78,9 @@ val prio_lo_after :
 val prio_lo_concat :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
   Types.fromparser
+val hash_ref :
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
+  Types.fromparser
 val sp_0 : 'a Types.any_spaces_pos -> unit
 val sp_0_or_cr : 'a Types.any_spaces_pos -> unit
 val sp_1 : 'a Types.any_spaces_pos -> unit
