@@ -77,7 +77,7 @@
 %left       BIT_AND
 %nonassoc   EQ_OP EQ_OP_STR
 %nonassoc   LT GT COMPARE_OP COMPARE_OP_STR
-%nonassoc   UNIOP
+%nonassoc   UNIOP ONE_SCALAR_PARA
 %left       BIT_SHIFT
 %left       PLUS CONCAT
 %left       MULT MULT_L_STR
@@ -393,6 +393,7 @@ restricted_subscripted: /* Some kind of subscripted expression */
 | word_paren parenthesized {new_esp M_unknown (call(Deref(I_func, $1.any), $2.any.expr)) $1 $2}
 | scalar bracket_subscript             {sp_0($2); check_scalar_subscripted $1; new_esp M_unknown_scalar (to_Deref_with(I_hash , I_scalar, from_scalar $1, $2.any               )) $1 $2} /* $foo{bar} */
 | scalar arrayref                      {sp_0($2); check_scalar_subscripted $1; new_esp M_unknown_scalar (to_Deref_with(I_array, I_scalar, from_scalar $1, only_one_array_ref $2)) $1 $2} /* $array[$element] */
+| scalar ARROW simple_subscript {sp_0($2); sp_0($3); new_esp $3.mcontext (to_Deref_with_arrow $2 (fst $3.any, I_scalar, $1.any, snd $3.any)) $1 $3}
 | restricted_subscripted ARROW simple_subscript {sp_0($2); sp_0($3); new_esp $3.mcontext (to_Deref_with_arrow $2 (fst $3.any, I_scalar, $1.any, snd $3.any)) $1 $3} /* somehref->{bar} */
 | restricted_subscripted simple_subscript        {sp_0($2); new_esp $2.mcontext (to_Deref_with(fst $2.any, I_scalar, $1.any, snd $2.any)) $1 $2}
 
@@ -447,12 +448,12 @@ bracket_subscript:
 | COMPACT_HASH_SUBSCRIPT {sp_0($1); new_1esp (to_Raw_string $1) $1 }
 
 variable:
-| scalar   %prec PREC_HIGH {$1}
-| star     %prec PREC_HIGH {$1}
-| hash     %prec PREC_HIGH {$1}
-| array    %prec PREC_HIGH {$1}
-| arraylen %prec PREC_HIGH {$1} /* $#x, $#{ something } */
-| func     %prec PREC_HIGH {$1} /* &foo; */
+| scalar   {$1}
+| star     {$1}
+| hash     {$1}
+| array    {$1}
+| arraylen {$1} /* $#x, $#{ something } */
+| func     {$1} /* &foo; */
 
 word:
 | bareword { $1 }
