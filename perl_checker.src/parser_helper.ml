@@ -702,8 +702,11 @@ let cook_call_op op para pos =
   | "||=", e :: _
   | "&&=", e :: _ -> if is_not_a_scalar e then warn_rule (sprintf "\"%s\" is only useful with a scalar" op)
 
-  | "==", [Call_op("last_array_index", _, _); Num("0", _)] ->
-      warn_rule "$#x == 0 is better written @x == 1"
+  | "==", [Call_op("last_array_index", _, _); Num(n, _)] ->
+      warn_rule (sprintf "$#x == %s is better written @x == %d" n (1 + int_of_string n))
+  | "==", [Call_op("last_array_index", _, _); Call_op("- unary", [Num (n, _)], _)] ->
+      warn_rule (sprintf "$#x == -%s is better written @x == %d" n (1 - int_of_string n))
+
 
   | "||", e :: _ when is_always_true  e -> warn_rule "<constant> || ... is the same as <constant>"
   | "&&", e :: _ when is_always_false e -> warn_rule "<constant> && ... is the same as <constant>"
