@@ -5,11 +5,19 @@ open Printf
 let bpos = -1, -1
 
 let raw_pos2pos(a, b) = !Info.current_file, a, b
-let pos_range (_, (_, (a1, b1))) (_, (_, (a2, b2))) = raw_pos2pos((if a1 = -1 then a2 else a1), (if b2 = -1 then b1 else b2))
-let sp_pos_range (_, (space, (a1, b1))) (_, (_, (a2, b2))) = space, ((if a1 = -1 then a2 else a1), (if b2 = -1 then b1 else b2))
-let get_pos (_, (_, pos)) = raw_pos2pos pos
+let raw_pos_range { pos = (a1, b1) } { pos = (a2, b2) } = (if a1 = -1 then a2 else a1), (if b2 = -1 then b1 else b2)
+let pos_range esp1 esp2 = raw_pos2pos (raw_pos_range esp1 esp2)
+let get_pos pesp = raw_pos2pos pesp.pos
+let get_pos_start { pos = (start, _) } = start
+let get_pos_end { pos = (_, end_) } = end_
 let var_dollar_ pos = Deref(I_scalar, Ident(None, "_", pos))
 let var_STDOUT = Deref(I_star, Ident(None, "STDOUT", raw_pos2pos bpos))
+
+let new_any any spaces pos = { any = any ; spaces = spaces ; pos = pos }
+let new_esp e esp_start esp_end = new_any e esp_start.spaces (raw_pos_range esp_start esp_end)
+let new_pesp prio e esp_start esp_end = new_any { priority = prio ; expr = e } esp_start.spaces (raw_pos_range esp_start esp_end)
+let default_esp e = new_any e Space_none bpos
+let default_pesp prio e = new_any { priority = prio ; expr = e } Space_none bpos
 
 let split_name_or_fq_name full_ident =
   match split_at2 ':'':' full_ident with
@@ -138,13 +146,13 @@ let rec is_same_fromparser a b =
 
   | _ -> false
 
-let from_scalar (e, _) =
-  match e with
+let from_scalar esp =
+  match esp.any with
   | Deref(I_scalar, ident) -> ident
   | _ -> internal_error "from_scalar"
 
-let from_array (e, _) =
-  match e with
+let from_array esp =
+  match esp.any with
   | Deref(I_array, ident) -> ident
   | _ -> internal_error "from_array"
 
@@ -163,6 +171,8 @@ let warn_cr		start = warn_verb start "you should not have a carriage-return (\\n
 let warn_space		start = warn_verb start "you should not have a space here"
 
 let rec prio_less = function
+  | P_none, _ | _, P_none -> internal_error "prio_less"
+
   | P_paren_wanted prio1, prio2
   | prio1, P_paren_wanted prio2 -> prio_less(prio1, prio2)
 
@@ -211,76 +221,76 @@ let rec prio_less = function
   | P_paren _, _ -> true
   | P_tok, _ -> true
 
-let prio_lo pri_out ((pri_in, e), (_, pos)) =
-  if prio_less(pri_in, pri_out) then
-    (match pri_in with
+let prio_lo pri_out in_ =
+  if prio_less(in_.any.priority, pri_out) then
+    (match in_.any.priority with
     | P_paren (P_paren_wanted _) -> ()
     | P_paren pri_in' ->
 	if pri_in' <> pri_out && 
-	   prio_less(pri_in', pri_out) && not_complex (un_parenthesize e) then 
-	  warn pos "unneeded parentheses"
+	   prio_less(pri_in', pri_out) && not_complex (un_parenthesize in_.any.expr) then 
+	  warn in_.pos "unneeded parentheses"
     | _ -> ())
-  else warn pos "missing parentheses (needed for clarity)" ;
-  e
+  else warn in_.pos "missing parentheses (needed for clarity)" ;
+  in_.any.expr
     
-let prio_lo_after pri_out ((pri_in, e), _ as para) =
-  if pri_in = P_call_no_paren then e else prio_lo pri_out para
+let prio_lo_after pri_out in_ =
+  if in_.any.priority = P_call_no_paren then in_.any.expr else prio_lo pri_out in_
 
-let prio_lo_concat ((pri_in, e), both) = prio_lo P_mul ((P_paren_wanted pri_in, e), both)
+let prio_lo_concat esp = prio_lo P_mul { esp with any = { esp.any with priority = P_paren_wanted esp.any.priority } }
 
-let sp_0(_, (spaces, (start, _))) =
-  match spaces with
+let sp_0 esp =
+  match esp.spaces with
   | Space_none -> ()
   | Space_0 -> ()
   | Space_1
-  | Space_n -> warn_space start
-  | Space_cr -> warn_cr start
+  | Space_n -> warn_space (get_pos_start esp)
+  | Space_cr -> warn_cr (get_pos_start esp)
 
-let sp_0_or_cr(_, (spaces, (start, _))) =
-  match spaces with
+let sp_0_or_cr esp =
+  match esp.spaces with
   | Space_none -> ()
   | Space_0 -> ()
   | Space_1
-  | Space_n -> warn_space start
+  | Space_n -> warn_space (get_pos_start esp)
   | Space_cr -> ()
 
-let sp_1(_, (spaces, (start, _))) =
-  match spaces with
+let sp_1 esp =
+  match esp.spaces with
   | Space_none -> ()
-  | Space_0 -> warn_no_space start
+  | Space_0 -> warn_no_space (get_pos_start esp)
   | Space_1 -> ()
-  | Space_n -> warn_too_many_space start
-  | Space_cr -> warn_cr start
+  | Space_n -> warn_too_many_space (get_pos_start esp)
+  | Space_cr -> warn_cr (get_pos_start esp)
 
-let sp_n(_, (spaces, (start, _))) =
-  match spaces with
+let sp_n esp =
+  match esp.spaces with
   | Space_none -> ()
-  | Space_0 -> warn_no_space start
+  | Space_0 -> warn_no_space (get_pos_start esp)
   | Space_1 -> ()
   | Space_n -> ()
-  | Space_cr -> warn_cr start
+  | Space_cr -> warn_cr (get_pos_start esp)
 
-let sp_p(_, (spaces, (start, _))) =
-  match spaces with
+let sp_p esp =
+  match esp.spaces with
   | Space_none -> ()
-  | Space_0 -> warn_no_space start
+  | Space_0 -> warn_no_space (get_pos_start esp)
   | Space_1 -> ()
   | Space_n -> ()
   | Space_cr -> ()
 
-let sp_cr(_, (spaces, (start, _))) =
-  match spaces with
+let sp_cr esp =
+  match esp.spaces with
   | Space_none -> ()
   | Space_0
   | Space_1
-  | Space_n -> warn_verb start "you should have a carriage-return (\\n) here"
+  | Space_n -> warn_verb (get_pos_start esp) "you should have a carriage-return (\\n) here"
   | Space_cr -> ()
 
-let sp_same (_, (spaces1, _) as ter1) (_, (spaces2, _) as ter2) =
-  if spaces1 <> Space_0 then sp_p ter2
-  else if spaces2 <> Space_0 then sp_p ter1
+let sp_same esp1 esp2 =
+  if esp1.spaces <> Space_0 then sp_p esp2
+  else if esp2.spaces <> Space_0 then sp_p esp1
 
-let check_word_alone (word, _) =
+let check_word_alone word =
   match word with
   | Ident(None, f, pos) ->
       (match f with
@@ -303,60 +313,60 @@ let check_word_alone (word, _) =
       | _ -> word)
   | _ -> word
 
-let check_parenthesized_first_argexpr word ((_, e), (_, (start, _)) as ex) =
+let check_parenthesized_first_argexpr word esp =
   let want_space = word.[0] = '-' in
   if word = "return" then () else
-  match e with
+  match esp.any.expr with
   | [ Call_op(_, (e' :: l), _) ]
   | e' :: l ->
       if is_parenthesized e' then
 	if l = [] then 
-	  (if want_space then sp_n else sp_0) ex
+	  (if want_space then sp_n else sp_0) esp
 	else 
 	  (* eg: join (" ", @l) . "\n" *)
-	  die_with_rawpos (start, start) "please remove the space before the function call"
+	  die_with_rawpos (get_pos_start esp, get_pos_start esp) "please remove the space before the function call"
       else
-	sp_p(ex)
+	sp_p esp
   | _ -> 
       if word = "time" then die_rule "please use time() instead of time";
-      sp_p(ex)
+      sp_p esp
 
-let check_parenthesized_first_argexpr_with_Ident ident ((prio, e), _ as ex) =
-  if prio = P_tok then ();
+let check_parenthesized_first_argexpr_with_Ident ident esp =
+  if esp.any.priority = P_tok then ();
   (match ident with
   | Ident(Some _, _, _) ->
-      (match e with
+      (match esp.any.expr with
       | [e] when is_parenthesized e -> ()
       | _ -> warn_rule "use parentheses around argument (otherwise it might cause syntax errors if the package is \"require\"d and not \"use\"d")
   | Ident(None, word, _) when List.mem word ["ref" ; "readlink"] ->
-      if prio <> P_tok then warn_rule "use parentheses around argument"
+      if esp.any.priority <> P_tok then warn_rule "use parentheses around argument"
   | _ -> ());
-  check_parenthesized_first_argexpr (string_of_Ident ident) ex
+  check_parenthesized_first_argexpr (string_of_Ident ident) esp
 
-let check_hash_subscript ((_, e), (_, pos)) =
+let check_hash_subscript esp =
   let can_be_raw_string = function
     | "" | "x" | "y" -> false (* special case for {'y'} otherwise the emacs mode goes wild, special case for {'x'} to have the same as {'y'} (since they usually go together) *)
     | s -> 
 	char_is_alpha s.[0] && (String.length s = 1 || string_forall_with char_is_alphanumerical_ 1 s)
   in
-  match e with
-  | List [String ([(s, List [])], _)] when can_be_raw_string s -> warn pos (sprintf "{\"%s\"} can be written {%s}" s s)
-  | List [Raw_string(s, _)] when can_be_raw_string s -> warn pos (sprintf "{'%s'} can be written {%s}" s s)
+  match esp.any.expr with
+  | List [String ([(s, List [])], _)] when can_be_raw_string s -> warn esp.pos (sprintf "{\"%s\"} can be written {%s}" s s)
+  | List [Raw_string(s, _)] when can_be_raw_string s -> warn esp.pos (sprintf "{'%s'} can be written {%s}" s s)
   | _ -> ()
 
-let check_arrow_needed ((_, e), _) ter =
-  match e with
+let check_arrow_needed esp1 esp2 =
+  match esp1.any.expr with
   | Deref_with(I_array, I_scalar, List [List [Call _]], _) -> () (* "->" needed for (f())[0]->{XX} *)
-  | Deref_with _ -> warn (sndsnd ter) "the arrow \"->\" is unneeded"
+  | Deref_with _ -> warn esp2.pos "the arrow \"->\" is unneeded"
   | _ -> ()
 
-let check_scalar_subscripted (e, _) =
-  match e with
+let check_scalar_subscripted esp =
+  match esp.any with
   | Deref(I_scalar, Deref _) -> warn_rule "for complex dereferencing, use \"->\""
   | _ -> ()
 
-let check_negatable_expr ((_, e), _) =
-  match un_parenthesize_full e with
+let check_negatable_expr esp =
+  match un_parenthesize_full esp.any.expr with
   | Call_op("m//", var :: _, _) when not (is_var_dollar_ var) ->
       warn_rule "!($var =~ /.../) is better written $var !~ /.../"
   | Call_op("!m//", var :: _, _) when not (is_var_dollar_ var) ->
@@ -392,49 +402,50 @@ let check_ternary_paras(cond, a, b) =
   if is_same_fromparser cond a && dont_need_short_circuit b && is_a_scalar a && is_a_scalar b then warn_rule "you can replace \"$foo ? $foo : $bar\" with \"$foo || $bar\"";
   [ cond; a; b ]
 
-let check_unneeded_var_dollar_    ((_, e), (_, pos)) =
-  if is_var_dollar_ e then warn pos "\"$_ =~ /regexp/\" can be written \"/regexp/\"" else
-  if is_var_number_match e then warn pos "do not use the result of a match (eg: $1) to match another pattern"
-let check_unneeded_var_dollar_not ((_, e), (_, pos)) =
-  if is_var_dollar_ e then warn pos "\"$_ !~ /regexp/\" can be written \"!/regexp/\"" else
-  if is_var_number_match e then warn pos "do not use the result of a match (eg: $1) to match another pattern"
-let check_unneeded_var_dollar_s   ((_, e), (_, pos)) = 
-  if is_var_dollar_ e then warn pos "\"$_ =~ s/regexp/.../\" can be written \"s/regexp/.../\"" else
-  if is_var_number_match e then die_with_rawpos pos "do not modify the result of a match (eg: $1)"
+let check_unneeded_var_dollar_ esp =
+  if is_var_dollar_ esp.any.expr then warn esp.pos "\"$_ =~ /regexp/\" can be written \"/regexp/\"" else
+  if is_var_number_match esp.any.expr then warn esp.pos "do not use the result of a match (eg: $1) to match another pattern"
+let check_unneeded_var_dollar_not esp =
+  if is_var_dollar_ esp.any.expr then warn esp.pos "\"$_ !~ /regexp/\" can be written \"!/regexp/\"" else
+  if is_var_number_match esp.any.expr then warn esp.pos "do not use the result of a match (eg: $1) to match another pattern"
+let check_unneeded_var_dollar_s esp = 
+  if is_var_dollar_ esp.any.expr then warn esp.pos "\"$_ =~ s/regexp/.../\" can be written \"s/regexp/.../\"" else
+  if is_var_number_match esp.any.expr then die_with_rawpos esp.pos "do not modify the result of a match (eg: $1)"
 
-let check_MULT_is_x (s, _) = if s <> "x" then die_rule "syntax error"
-let check_my (s, _) = if s <> "my" then die_rule "syntax error"
-let check_foreach (s, (_, pos)) = if s = "for"     then warn pos "write \"foreach\" instead of \"for\""
-let check_for     (s, (_, pos)) = if s = "foreach" then warn pos "write \"for\" instead of \"foreach\""
-let check_for_foreach (s, (_, pos)) ((_, expr), _) =
-  match expr with
+let check_MULT_is_x esp = if esp.any <> "x" then die_rule "syntax error"
+let check_my esp = if esp.any <> "my" then die_rule "syntax error"
+let check_foreach esp = if esp.any = "for"     then warn esp.pos "write \"foreach\" instead of \"for\""
+let check_for     esp = if esp.any = "foreach" then warn esp.pos "write \"for\" instead of \"foreach\""
+let check_for_foreach esp arg =
+  match arg.any.expr with
   | List [ Deref(I_scalar, _) ] ->
-      if s = "foreach" then warn pos "you are using the special fpons trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
+      if esp.any = "foreach" then warn esp.pos "you are using the special fpons trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
   | List [ Deref_with(context, I_scalar, _, _) ] when context <> I_func -> 
-      if s = "foreach" then warn pos "you are using the special fpons trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
+      if esp.any = "foreach" then warn esp.pos "you are using the special fpons trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
   | _ -> 
-      if s = "for" then warn pos "write \"foreach\" instead of \"for\""
+      if esp.any = "for" then warn esp.pos "write \"foreach\" instead of \"for\""
 
-let check_block_sub (l, (_, (_, end_)) as ter_lines) (_, (space, _) as ter_BRACKET_END) =  
-  if l = [] then
-    sp_0_or_cr ter_BRACKET_END
-  else (
-    (if l <> [] && List.hd l = Semi_colon then sp_0 else sp_p) ter_lines ;
-    sp_p ter_BRACKET_END ;
+let check_block_sub esp_lines esp_BRACKET_END =
+  match esp_lines.any with
+  | [] -> 
+      sp_0_or_cr esp_BRACKET_END
+  | l ->
+      (if List.hd l = Semi_colon then sp_0 else sp_p) esp_lines ;
+      sp_p esp_BRACKET_END ;
 
-    if space <> Space_cr then
-      (if l <> [] && last l = Semi_colon then warn_verb end_ "spurious \";\" before closing block")
-  )
+      if esp_BRACKET_END.spaces <> Space_cr then
+	(if last l = Semi_colon then warn_verb (get_pos_end esp_lines) "spurious \";\" before closing block")
 
-let check_block_ref (l, (_, (_, end_)) as ter_lines) (_, (space, _) as ter_BRACKET_END) =
+let check_block_ref esp_lines esp_BRACKET_END =
+  let l = esp_lines.any in
   if l <> [] && List.hd l = Semi_colon 
-  then (sp_0 ter_lines ; sp_p ter_BRACKET_END)
-  else sp_same ter_lines ter_BRACKET_END ;
+  then (sp_0 esp_lines ; sp_p esp_BRACKET_END)
+  else sp_same esp_lines esp_BRACKET_END ;
 
-  if space <> Space_cr then
-    (if l <> [] && last l = Semi_colon then warn_verb end_ "spurious \";\" before closing block")
+  if esp_BRACKET_END.spaces <> Space_cr then
+    (if l <> [] && last l = Semi_colon then warn_verb (get_pos_end esp_lines) "spurious \";\" before closing block")
 
-let check_my_our_paren (((comma_closed, _), _), _) = 
+let check_my_our_paren { any = ((comma_closed, _), _) } = 
   if not comma_closed then die_rule "syntax error"
 
 let check_simple_pattern = function
@@ -446,25 +457,25 @@ let check_simple_pattern = function
 	  warn_rule (sprintf "\"... =~ /^%s$/\" is better written \"... eq '%s'\"" st st)
   | _ -> ()
 
-let rec only_one (l, (spaces, pos)) =
-  match l with
-  | [List l'] -> only_one (l', (spaces, pos))
+let rec only_one esp =
+  match esp.any with
+  | [List l'] -> only_one { esp with any = l' }
   | [e] -> e
-  | [] -> die_with_rawpos pos "you must give one argument"
-  | _  -> die_with_rawpos pos "you must give only one argument"
+  | [] -> die_with_rawpos esp.pos "you must give one argument"
+  | _  -> die_with_rawpos esp.pos "you must give only one argument"
 
-let only_one_array_ref (l, (spaces, pos)) =
-  let e = only_one (l, (spaces, pos)) in
+let only_one_array_ref esp =
+  let e = only_one esp in
   (match e with
   | Call_op("last_array_index", [Deref(I_array, e)], _) ->
-      warn pos (sprintf "you can replace $#%s with -1" (string_of_Ident e))
+      warn esp.pos (sprintf "you can replace $#%s with -1" (string_of_Ident e))
   | _ -> ());
   e
 
-let only_one_in_List ((_, e), both) =
-  match e with
-  | List l -> only_one(l, both)
-  | _ -> e
+let only_one_in_List esp =
+  match esp.any.expr with
+  | List l -> only_one { esp with any = l }
+  | e -> e
   
 let rec is_only_one_in_List = function
   | [List l] -> is_only_one_in_List l
@@ -492,8 +503,8 @@ let deref_raw context e =
   | _ -> e
   in Deref(context, e)
 
-let to_Ident ((fq, name), (_, pos)) = Ident(fq, name, raw_pos2pos pos)
-let to_Raw_string (s, (_, pos)) = Raw_string(s, raw_pos2pos pos)
+let to_Ident { any = (fq, name); pos = pos } = Ident(fq, name, raw_pos2pos pos)
+let to_Raw_string { any = s; pos = pos } = Raw_string(s, raw_pos2pos pos)
 let to_Method_call (object_, method_, para) = 
   match method_ with
   | Ident(Some "SUPER", name, pos) -> Method_call(maybe_to_Raw_string object_, Raw_string(name, pos), para)
@@ -504,11 +515,11 @@ let to_Deref_with(from_context, to_context, ref_, para) =
   Deref_with(from_context, to_context, ref_, para)
 
   
-let to_Local ((_, e), (_, pos)) =
+let to_Local esp =
   let l = 
-    match e with
+    match esp.any.expr with
     | List[List l] -> l
-    | _ -> [e]
+    | e -> [e]
   in
   let local_vars, local_exprs = fpartition (function
     | Deref(I_star as context, Ident(None, ident, _))
@@ -522,19 +533,35 @@ let to_Local ((_, e), (_, pos)) =
     | Deref_with(I_hash, I_scalar, Deref_with(I_hash, I_scalar, Ident _, _), _)
     | Deref_with(I_hash, I_scalar, Deref_with(I_hash, I_scalar, Deref(I_scalar, Ident _), _), _) ->
 	None
-    | _ -> die_with_rawpos pos "bad argument to \"local\""
+    | _ -> die_with_rawpos esp.pos "bad argument to \"local\""
   ) l in
-  if local_vars = [] then Call_op("local", local_exprs, raw_pos2pos pos)
-  else if local_exprs = [] then My_our("local", local_vars, raw_pos2pos pos)
-  else die_with_rawpos pos "bad argument to \"local\""
-
-let op prio s (_, both) = prio, (((), both), s)
-let op_p prio s e = sp_p e ; op prio s e
+  if local_vars = [] then Call_op("local", local_exprs, raw_pos2pos esp.pos)
+  else if local_exprs = [] then My_our("local", local_vars, raw_pos2pos esp.pos)
+  else die_with_rawpos esp.pos "bad argument to \"local\""
 
 let sub_declaration (name, proto) body = Sub_declaration(name, proto, Block body)
-let anonymous_sub (body, (_, pos)) = Anonymous_sub (Block body, raw_pos2pos pos)
+let anonymous_sub body = Anonymous_sub (Block body.any, raw_pos2pos body.pos)
 
-let cook_call_op(op, para, pos) =
+let cook_call_op op para pos =
+  (match op with
+  | "==" | "!=" | "<=" | ">=" | ">"  | "<"  | "<=>" ->
+      if List.exists (function 
+	| Undef
+	| List [] -> op <> "==" && op <> "!=" (* allowing @l == () *)
+	| e -> is_not_a_scalar_or_array e) para then
+	warn_rule "don't do this"
+      else if List.exists is_a_string para then
+	warn_rule (sprintf "you should use a string operator, not the number operator \"%s\"" op)
+  | "le" | "ge" | "eq" | "ne" | "gt" | "lt" | "cmp" ->
+      if List.exists is_not_a_scalar para then
+	warn_rule "don't do this"
+      else if List.exists (function Num _ -> true | _ -> false) para then
+	warn_rule (sprintf "you should use a number operator, not the string operator \"%s\" (or replace the number with a string)" op)
+  | "||=" | "&&=" ->
+      (match List.hd para with
+      | List [ List _ ] -> warn_rule "remove the parentheses"
+      | e -> if is_not_a_scalar e then warn_rule (sprintf "\"%s\" is only useful with a scalar" op))
+  | _ -> ());
   let call = Call_op(op, para, raw_pos2pos pos) in
   match op, para with
   | "=", [My_our _; Ident(None, "undef", _)] -> 
@@ -573,43 +600,24 @@ let cook_call_op(op, para, pos) =
   | _ -> 
       call
 
-let call_op_((prio, (prev_ter, op)), ter, para) (sp, pos) = 
-  (match op with
-  | "==" | "!=" | "<=" | ">=" | ">"  | "<"  | "<=>" ->
-      if List.exists (function 
-	| Undef
-	| List [] -> op <> "==" && op <> "!=" (* allowing @l == () *)
-	| e -> is_not_a_scalar_or_array e) para then
-	warn_rule "don't do this"
-      else if List.exists is_a_string para then
-	warn_rule (sprintf "you should use a string operator, not the number operator \"%s\"" op)
-  | "le" | "ge" | "eq" | "ne" | "gt" | "lt" | "cmp" ->
-      if List.exists is_not_a_scalar para then
-	warn_rule "don't do this"
-      else if List.exists (function Num _ -> true | _ -> false) para then
-	warn_rule (sprintf "you should use a number operator, not the string operator \"%s\" (or replace the number with a string)" op)
-  | "||=" | "&&=" ->
-      (match List.hd para with
-      | List [ List _ ] -> warn_rule "remove the parentheses"
-      | e -> if is_not_a_scalar e then warn_rule (sprintf "\"%s\" is only useful with a scalar" op))
-  | _ -> ());
-  sp_same prev_ter ter ;
-  (prio, cook_call_op(op, para, pos)), (sp, pos)
+let to_Call_op op para esp_start esp_end = 
+  let pos = raw_pos_range esp_start esp_end in
+  new_any (cook_call_op op para pos) esp_start.spaces pos
+let to_Call_op_ prio op para esp_start esp_end = 
+  let pos = raw_pos_range esp_start esp_end in
+  new_any { priority = prio ; expr = cook_call_op op para pos } esp_start.spaces pos
 
-let to_Call_op(op, para) (sp, pos) = Call_op(op, para, raw_pos2pos pos), (sp, pos)
-let to_Call_op_(prio, op, para) (sp, pos) = (prio, Call_op(op, para, raw_pos2pos pos)), (sp, pos)
-
-let followed_by_comma ((_,e), _) (true_comma, _) =
-  if true_comma then e else
-    match split_last e with
+let followed_by_comma pesp true_comma =
+  if true_comma.any then pesp.any.expr else
+    match split_last pesp.any.expr with
     | l, Ident(None, s, pos) -> l @ [Raw_string(s, pos)]
-    | _ -> e
+    | _ -> pesp.any.expr
 
 
 let pot_strings = Hashtbl.create 16
 let pot_strings_and_file = Hashtbl.create 16
 let po_comments = ref []
-let po_comment (s, _) = lpush po_comments s
+let po_comment esp = lpush po_comments esp.any
 
 let check_format_a_la_printf s pos =
   let rec check_format_a_la_printf_ i =
@@ -733,7 +741,7 @@ let call_func is_a_func (e, para) =
 let call(e, para) = call_func false (e, para)
 
 
-let call_one_scalar_para (e, (_, pos)) para =
+let call_one_scalar_para { any = e ; pos = pos } para esp_start esp_end =
   let para =
     match para with
     | [] ->
@@ -741,19 +749,20 @@ let call_one_scalar_para (e, (_, pos)) para =
 	  [var_dollar_ (raw_pos2pos pos)]
     | _ -> para
   in
-  P_mul, call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)
+  new_pesp P_mul (call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)) esp_start esp_end
 
 
-let call_op_if_infix left right (sp, pos) =
+let call_op_if_infix left right esp_start esp_end =
   (match left, right with
   | List [Call_op("=", [Deref(context, _); _], _)], _ when non_scalar_context context -> ()
   | List [Call_op("=", [v; _], _)],
     List [Call_op("not", [v'], _)] when is_same_fromparser v v' ->
       warn_rule "\"$foo = ... if !$foo\" can be written \"$foo ||= ...\""
   | _ -> ());
-  Call_op("if infix", [ left ; right], raw_pos2pos pos), (sp, pos)
+  let pos = raw_pos_range esp_start esp_end in
+  new_any (Call_op("if infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
 
-let call_op_unless_infix left right (sp, pos) =
+let call_op_unless_infix left right esp_start esp_end =
   (match left, right with
   | List [Call_op("=", [Deref(context, _); _], _)], _ when non_scalar_context context -> ()
   | List [Call_op("=", [v; _], _)], List [v'] when is_same_fromparser v v' ->
@@ -765,7 +774,8 @@ let call_op_unless_infix left right (sp, pos) =
       | "&&" | "||" | "not" | "ne" | "?:" -> warn_rule "don't use \"unless\" when the condition is complex, use \"if\" instead"
       | _ -> ());
   | _ -> ());
-  Call_op("unless infix", [ left ; right], raw_pos2pos pos), (sp, pos)
+  let pos = raw_pos_range esp_start esp_end in
+  new_any (Call_op("unless infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
 
 
 let (current_lexbuf : Lexing.lexbuf option ref) = ref None
@@ -792,7 +802,7 @@ let parse_interpolated parse l =
   | pl, ("", List []) -> pl
   | _ -> l'
 
-let to_String parse strict (l, (_, pos)) = 
+let to_String parse strict { any = l ; pos = pos } = 
   let l' = parse_interpolated parse l in
   (match l' with
   | [ "", List [Deref(I_scalar, Ident(None, ident, _))]] -> 
@@ -806,7 +816,7 @@ let to_String parse strict (l, (_, pos)) =
   | _ -> ());
   String(l', raw_pos2pos pos)
 
-let from_PATTERN parse ((s, opts), (_, pos)) = 
+let from_PATTERN parse { any = (s, opts) ; pos = pos } = 
   let re = parse_interpolated parse s in
   (match List.rev re with
   | (s, List []) :: _ ->
@@ -817,7 +827,7 @@ let from_PATTERN parse ((s, opts), (_, pos)) =
   | _ -> ());
   [ String(re, raw_pos2pos pos) ; 
     Raw_string(opts, raw_pos2pos pos) ]
-let from_PATTERN_SUBST parse ((s1, s2, opts), (_, pos)) = 
+let from_PATTERN_SUBST parse { any = (s1, s2, opts) ; pos = pos } = 
   [ String(parse_interpolated parse s1, raw_pos2pos pos) ; 
     String(parse_interpolated parse s2, raw_pos2pos pos) ; 
     Raw_string(opts, raw_pos2pos pos) ]

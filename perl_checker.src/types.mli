@@ -65,3 +65,19 @@ type priority =
 
 | P_paren_wanted of priority
 | P_paren of priority
+
+| P_none
+
+type 'a any_spaces_pos = {
+    any : 'a ;
+    spaces : spaces ;
+    pos : int * int ;
+  }
+
+type 'a prio_anyexpr = {
+    priority : priority ;
+    expr : 'a
+  }
+
+type prio_expr_spaces_pos = fromparser prio_anyexpr any_spaces_pos
+type prio_lexpr_spaces_pos = fromparser list prio_anyexpr any_spaces_pos
