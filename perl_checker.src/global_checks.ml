@@ -435,7 +435,7 @@ let add_package_to_state state package =
   let package =
     try
       let existing_package = Hashtbl.find state.per_package package.package_name in
-      print_endline_flush (existing_package.file_name ^ " vs " ^ package.file_name); 
+      (*print_endline_flush (existing_package.file_name ^ " vs " ^ package.file_name); *)
       let vars_declared = existing_package.vars_declared in
       Hashtbl.iter (fun var pos -> Hashtbl.replace vars_declared var pos) package.vars_declared ;
       let p = if existing_package.build_time > package.build_time then existing_package else package in
