@@ -522,6 +522,14 @@ let hashtbl_exists f h =
     false
   with Found -> true
 
+let memoize f =
+  let hash = Hashtbl.create 16 in
+  fun k ->
+    try Hashtbl.find hash k
+    with Not_found ->
+      let v = f k in
+      Hashtbl.add hash k v ; v
+
 let array_shift a = Array.sub a 1 (Array.length a - 1)
 let array_last_n n a = 
   let len = Array.length a in
@@ -827,15 +835,6 @@ let expand_symlinks file =
 	  with _ -> file
         ) (file ^ "/" ^ piece)) "" l
   | _ -> internal_error (Printf.sprintf "expand_symlinks: %s is relative\n" file)
-
-let file_to_absolute_file file =
-  let abs_file = 
-    if file.[0] = '/' then file else 
-    let cwd = Unix.getcwd() in
-    if file = "." then cwd else cwd ^ "/" ^ file
-  in
-  expand_symlinks abs_file
-
 
 let mtime f = int_of_float ((Unix.stat f).Unix.st_mtime)
 

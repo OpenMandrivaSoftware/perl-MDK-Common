@@ -155,6 +155,7 @@ val hashtbl_keys : ('a, 'b) Hashtbl.t -> 'a list
 val hashtbl_to_list : ('a, 'b) Hashtbl.t -> ('a * 'b) list
 val hashtbl_collect : ('a -> 'b -> 'c list) -> ('a, 'b) Hashtbl.t -> 'c list
 val hashtbl_exists : ('a -> 'b -> bool) -> ('a, 'b) Hashtbl.t -> bool
+val memoize : ('a -> 'a) -> 'a -> 'a
 val array_shift : 'a array -> 'a array
 val array_last_n : int -> 'a array -> 'a array
 val array_collect : ('a -> 'b list) -> 'a array -> 'b list
@@ -211,7 +212,6 @@ val words : string -> string list
 val to_CamelCase : string -> string option
 val concat_symlink : string -> string -> string
 val expand_symlinks : string -> string
-val file_to_absolute_file : string -> string
 val mtime : string -> int
 val updir : string -> int -> string
 val string_of_ref : 'a ref -> string

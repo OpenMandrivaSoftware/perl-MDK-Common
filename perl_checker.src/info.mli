@@ -5,6 +5,8 @@ val current_file : string ref
 val start_a_new_file : string -> unit
 val add_a_file : string -> int list -> unit
 val get_lines_starts_for_file : string -> int list
+val file_to_absolute_file : string -> string
+val absolute_file_to_file : string -> string
 val raw_pos2raw_line : string -> int -> int * int
 val pos2line : string * int * int -> string * int * int * int
 val pos2s : string * int * int -> string

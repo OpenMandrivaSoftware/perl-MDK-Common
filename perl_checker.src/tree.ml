@@ -42,7 +42,7 @@ type per_file = {
 
 let anonymous_package_count = ref 0
 let empty_exports = { export_ok = []; export_auto = []; export_tags = []; special_export = None }
-let use_lib = ref (List.map file_to_absolute_file (readlines (Unix.open_process_in "perl -le 'print foreach @INC'")))
+let use_lib = ref (List.map Info.file_to_absolute_file (readlines (Unix.open_process_in "perl -le 'print foreach @INC'")))
 
 let ignore_package pkg = 
   if !Flags.verbose then print_endline_flush ("ignoring package " ^ pkg);
@@ -75,7 +75,7 @@ let get_current_package t =
       in
       bundled_packages [] (string_of_Ident ident) [] body
   | _ -> 
-      if str_ends_with !Info.current_file ".pm" then warn_with_pos (!Info.current_file, 0, 0) (sprintf "module %s does not have \"package xxxx;\" on its first line" !Info.current_file) ;
+      if str_ends_with !Info.current_file ".pm" then warn_with_pos (!Info.current_file, 0, 0) (sprintf "module %s does not have \"package xxxx;\" on its first line" (Info.absolute_file_to_file !Info.current_file)) ;
       [ None, t ]
 
 let from_qw_raw = function
@@ -185,7 +185,7 @@ let get_uses t =
   List.fold_left (fun uses e ->
     match e with
     | Use(Ident(None, "lib", _), [libs]) ->
-	use_lib := List.map file_to_absolute_file (List.map snd (from_qw libs)) @ !use_lib ;
+	use_lib := List.map Info.file_to_absolute_file (List.map snd (from_qw libs)) @ !use_lib ;
 	uses
     | Use(Ident _ as pkg, _) when uses_external_package (string_of_Ident pkg) -> uses
     | Use(Ident(_, _, pos) as ident, l) ->

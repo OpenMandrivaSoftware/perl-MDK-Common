@@ -17,6 +17,32 @@ let add_a_file file file_lines_starts = Hashtbl.replace lines_starts file file_l
 let get_lines_starts_for_file file =
   if file = !current_file then !current_file_lines_starts else Hashtbl.find lines_starts file
 
+let cwd = expand_symlinks (Unix.getcwd())
+
+let file_to_absolute_file file =
+  let abs_file = 
+    if file.[0] = '/' then file else 
+    if file = "." then cwd else cwd ^ "/" ^ file
+  in
+  expand_symlinks abs_file
+
+let absolute_file_to_file = 
+  let s1 = Filename.dirname cwd in
+  if String.length s1 < 4 then (fun x -> x) else
+  let s2 = Filename.dirname cwd in
+  let short_cwd = if String.length s2 < 4 then s1 else s2 in
+  memoize (fun abs_file ->
+    if str_begins_with abs_file (short_cwd ^ "/") then
+      let rec to_file rel cwd =
+	if str_begins_with abs_file (cwd ^ "/") then
+	  rel ^ skip_n_char_ (String.length cwd + 1) 0 abs_file
+	else
+	  to_file ("../" ^ rel) (Filename.dirname cwd)
+      in
+      to_file "" cwd  
+    else
+      abs_file)
+
 let raw_pos2raw_line file a =
   let starts = map_index (fun a b -> a,b) (rev (get_lines_starts_for_file file)) in
   let ((offset, line), _) = find (fun (_,(e,_)) -> e > a) (combine starts (tl starts @ [999999999, 999999999])) in
@@ -31,7 +57,7 @@ let pos2s (file, a, b) = sprintf "(%s, %d, %d)" file a b
 let pos2sfull pos = 
   try
     let (file, line, n1,n2) = pos2line pos in
-    sprintf "File \"%s\", line %d, character %d-%d\n" file (line + 1) n1 n2
+    sprintf "File \"%s\", line %d, character %d-%d\n" (absolute_file_to_file file) (line + 1) n1 n2
   with Not_found -> failwith ("bad position " ^ pos2s pos)
 
 let is_on_same_line file (a,b) =

@@ -103,7 +103,7 @@ let parse_options =
   Arg.parse options (lpush args_r) usage;
 
   let files = if !args_r = [] then ["../t.pl"] else !args_r in
-  let files = List.map file_to_absolute_file files in
+  let files = List.map Info.file_to_absolute_file files in
 
   let required_packages, per_files = collect_withenv (parse_file true None) (default_per_files()) files in
   let required_packages = uniq_ (fun (a,_) (b,_) -> a = b) required_packages in
