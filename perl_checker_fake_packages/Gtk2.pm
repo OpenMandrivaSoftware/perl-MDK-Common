@@ -254,6 +254,7 @@ sub get_resize_mode { my ($_container) = @_ }
 sub remove { my ($_container, $_widget) = @_ }
 sub set_border_width { my ($_container, $_border_width) = @_ }
 sub set_focus_child { my ($_container, $_child) = @_ }
+sub set_focus_vadjustment { my ($_container, $_adjustment) = @_ }
 sub set_reallocate_redraws { my ($_container, $_needs_redraws) = @_ }
 sub set_resize_mode { my ($_container, $_resize_mode) = @_ }
 
@@ -479,8 +480,35 @@ sub new_from_pixmap { my ($_class, $_source, $_mask, $_fg, $_bg, $_x, $_y) = @_ 
 
 package Gtk2::Gdk::Display;
 our @ISA = qw();
+sub beep { my ($_display) = @_ }
+sub close { my ($_display) = @_ }
+sub get_core_pointer { my ($_display) = @_ }
+sub get_default { my ($_class) = @_ }
+sub get_default_screen { my ($_display) = @_ }
+sub get_event { my ($_display) = @_ }
+sub get_n_screens { my ($_display) = @_ }
+sub get_name { my ($_display) = @_ }
+sub get_pointer { my ($_display) = @_ }
+sub get_screen { my ($_display, $_screen_num) = @_ }
+sub get_window_at_pointer { my ($_display) = @_ }
 sub grab { my ($_display) = @_ }
+sub keyboard_ungrab { my ($_display, $_time_) = @_ }
+sub list_devices { my ($_display) = @_ }
+sub open { my ($_class, $_display_name) = @_ }
+sub peek_event { my ($_display) = @_ }
+sub pointer_is_grabbed { my ($_display) = @_ }
+sub pointer_ungrab { my ($_display, $_time_) = @_ }
+sub put_event { my ($_display, $_event) = @_ }
+sub set_double_click_time { my ($_display, $_msec) = @_ }
+sub sync { my ($_display) = @_ }
 sub ungrab { my ($_display) = @_ }
+
+package Gtk2::Gdk::DisplayManager;
+our @ISA = qw();
+sub get { my ($_class) = @_ }
+sub get_default_display { my ($_display_manager) = @_ }
+sub list_displays { my ($_display_manager) = @_ }
+sub set_default_display { my ($_display_manager, $_display) = @_ }
 
 package Gtk2::Gdk::DragContext;
 our @ISA = qw();
@@ -518,6 +546,7 @@ sub targets { my ($_dc) = @_ }
 package Gtk2::Gdk::Drawable;
 our @ISA = qw();
 sub XID { my ($_drawable) = @_ }
+sub XSetInputFocus { my ($_drawable) = @_ }
 sub XWINDOW { my ($_drawable) = @_ }
 sub draw_arc { my ($_drawable, $_gc, $_filled, $_x, $_y, $_width, $_height, $_angle1, $_angle2) = @_ }
 sub draw_drawable { my ($_drawable, $_gc, $_src, $_xsrc, $_ysrc, $_xdest, $_ydest, $_width, $_height) = @_ }
@@ -954,6 +983,7 @@ sub set_state_wildcarded { my ($_source, $_setting) = @_ }
 
 package Gtk2::Image;
 our @ISA = qw();
+sub get_pixbuf { my ($_image) = @_ }
 sub get_pixmap { my ($_image) = @_ }
 sub get_stock { my ($_image) = @_ }
 sub get_storage_type { my ($_image) = @_ }
@@ -1377,7 +1407,6 @@ sub new_with_label { my ($_class, $_o_member_or_listref, $_o_label) = @_ }
 sub new_with_label_from_widget { my ($_class, $_group, $_o_label) = @_ }
 sub new_with_mnemonic { my ($_class, $_o_member_or_listref, $_o_label) = @_ }
 sub new_with_mnemonic_from_widget { my ($_class, $_group, $_o_label) = @_ }
-sub news_from_widget { my ($_class, $_group, $_o_label) = @_ }
 sub set_group { my ($_radio_button, $_member_or_listref) = @_ }
 
 package Gtk2::RadioMenuItem;
@@ -1419,6 +1448,24 @@ sub parse_string { my ($_class, $_rc_string) = @_ }
 sub reparse_all { my ($_class) = @_ }
 sub reparse_all_for_settings { my ($_settings, $_force_load) = @_ }
 sub set_default_files { my ($_class, @_more_paras) = @_ }
+
+package Gtk2::RcStyle;
+our @ISA = qw();
+sub base { my ($_style, $_state, $_o_newcolor) = @_ }
+sub bg { my ($_style, $_state, $_o_newcolor) = @_ }
+sub bg_pixmap_name { my ($_style) = @_ }
+sub color_flags { my ($_style, $_state, $_o_newval) = @_ }
+sub colors { my ($_style, $_state, $_o_newcolor) = @_ }
+sub copy { my ($_orig) = @_ }
+sub fg { my ($_style, $_state, $_o_newcolor) = @_ }
+sub get_font_desc { my ($_rcstyle) = @_ }
+sub members { my ($_style) = @_ }
+sub name { my ($_style) = @_ }
+sub new { my ($_class) = @_ }
+sub set_font_desc { my ($_rcstyle, $_fd) = @_ }
+sub text { my ($_style, $_state, $_o_newcolor) = @_ }
+sub xthickness { my ($_style) = @_ }
+sub ythickness { my ($_style) = @_ }
 
 package Gtk2::Requisition;
 our @ISA = qw();
@@ -1794,7 +1841,7 @@ sub get_cursor_visible { my ($_text_view) = @_ }
 sub get_default_attributes { my ($_text_view) = @_ }
 sub get_editable { my ($_text_view) = @_ }
 sub get_indent { my ($_text_view) = @_ }
-sub get_iter_at_location { my ($_text_view, $_iter, $_x, $_y) = @_ }
+sub get_iter_at_location { my ($_text_view, $_x, $_y) = @_ }
 sub get_iter_location { my ($_text_view, $_iter) = @_ }
 sub get_justification { my ($_text_view) = @_ }
 sub get_left_margin { my ($_text_view) = @_ }
@@ -1914,7 +1961,7 @@ sub get_string_from_iter { my ($_tree_model, $_iter) = @_ }
 sub get_value { my ($_tree_model, $_iter, $_column) = @_ }
 sub iter_children { my ($_tree_model, $_parent) = @_ }
 sub iter_has_child { my ($_tree_model, $_iter) = @_ }
-sub iter_n_children { my ($_tree_model, $_iter) = @_ }
+sub iter_n_children { my ($_tree_model, $_o_iter) = @_ }
 sub iter_next { my ($_tree_model, $_iter) = @_ }
 sub iter_nth_child { my ($_tree_model, $_parent, $_n) = @_ }
 sub iter_parent { my ($_tree_model, $_child) = @_ }
@@ -2013,14 +2060,19 @@ sub append_column { my ($_tree_view, $_column) = @_ }
 sub collapse_all { my ($_tree_view) = @_ }
 sub collapse_row { my ($_tree_view, $_path) = @_ }
 sub columns_autosize { my ($_tree_view) = @_ }
+sub enable_model_drag_dest { my ($_tree_view, $_actions, @_more_paras) = @_ }
+sub enable_model_drag_source { my ($_tree_view, $_start_button_mask, $_actions, @_more_paras) = @_ }
 sub expand_all { my ($_tree_view) = @_ }
 sub expand_row { my ($_tree_view, $_path, $_open_all) = @_ }
 sub expand_to_path { my ($_tree_view, $_path) = @_ }
 sub get_background_area { my ($_tree_view, $_path, $_column) = @_ }
+sub get_bin_window { my ($_tree_view) = @_ }
 sub get_cell_area { my ($_tree_view, $_path, $_column) = @_ }
 sub get_column { my ($_tree_view, $_n) = @_ }
 sub get_columns { my ($_tree_view) = @_ }
 sub get_cursor { my ($_tree_view) = @_ }
+sub get_dest_row_at_pos { my ($_tree_view, $_drag_x, $_drag_y) = @_ }
+sub get_drag_dest_row { my ($_tree_view) = @_ }
 sub get_enable_search { my ($_tree_view) = @_ }
 sub get_hadjustment { my ($_tree_view) = @_ }
 sub get_headers_visible { my ($_tree_view) = @_ }
@@ -2035,6 +2087,7 @@ sub get_visible_rect { my ($_tree_view) = @_ }
 sub insert_column { my ($_tree_view, $_column, $_position) = @_ }
 sub insert_column_with_attributes { my ($_tree_view, $_position, $_title, $_cell, @_more_paras) = @_ }
 sub insert_column_with_data_func { my ($_tree_view, $_position, $_title, $_cell, $_func, $_o_data) = @_ }
+sub map_expanded_rows { my ($_tree_view, $_func, $_o_data) = @_ }
 sub move_column_after { my ($_tree_view, $_column, $_base_column) = @_ }
 sub new { my ($_class, $_o_model) = @_ }
 sub new_with_model { my ($_class, $_model) = @_ }
@@ -2043,8 +2096,11 @@ sub row_activated { my ($_tree_view, $_path, $_column) = @_ }
 sub row_expanded { my ($_tree_view, $_path) = @_ }
 sub scroll_to_cell { my ($_tree_view, $_path, $_o_column, $_o_use_align, $_o_row_align, $_o_col_align) = @_ }
 sub scroll_to_point { my ($_tree_view, $_tree_x, $_tree_y) = @_ }
+sub set_column_drag_function { my ($_tree_view, $_func, $_o_data) = @_ }
 sub set_cursor { my ($_tree_view, $_path, $_o_focus_column, $_o_start_editing) = @_ }
 sub set_cursor_on_cell { my ($_tree_view, $_path, $_focus_column, $_focus_cell, $_start_editing) = @_ }
+sub set_destroy_count_func { my ($_tree_view, $_func, $_o_data) = @_ }
+sub set_drag_dest_row { my ($_tree_view, $_path, $_pos) = @_ }
 sub set_enable_search { my ($_tree_view, $_enable_search) = @_ }
 sub set_expander_column { my ($_tree_view, $_column) = @_ }
 sub set_hadjustment { my ($_tree_view, $_adjustment) = @_ }
@@ -2054,7 +2110,12 @@ sub set_model { my ($_tree_view, $_model) = @_ }
 sub set_reorderable { my ($_tree_view, $_reorderable) = @_ }
 sub set_rules_hint { my ($_tree_view, $_setting) = @_ }
 sub set_search_column { my ($_tree_view, $_column) = @_ }
+sub set_search_equal_func { my ($_tree_view, $_func, $_o_data) = @_ }
 sub set_vadjustment { my ($_tree_view, $_adjustment) = @_ }
+sub tree_to_widget_coords { my ($_tree_view, $_tx, $_ty) = @_ }
+sub unset_rows_drag_dest { my ($_tree_view) = @_ }
+sub unset_rows_drag_source { my ($_tree_view) = @_ }
+sub widget_to_tree_coords { my ($_tree_view, $_wx, $_wy) = @_ }
 
 package Gtk2::TreeViewColumn;
 our @ISA = qw();
@@ -2172,12 +2233,14 @@ sub drag_source_set_icon_stock { my ($_widget, $_stock_id) = @_ }
 sub drag_source_unset { my ($_widget) = @_ }
 sub drag_unhighlight { my ($_widget) = @_ }
 sub drawable { my ($_widget, @_more_paras) = @_ }
+sub get_clipboard { my ($_widget, $_o_selection) = @_ }
 sub get_colormap { my ($_widget) = @_ }
 sub get_default_style { my ($_class) = @_ }
 sub get_display { my ($_widget) = @_ }
 sub get_events { my ($_widget) = @_ }
 sub get_extension_events { my ($_widget) = @_ }
 sub get_flags { my ($_widget, @_more_paras) = @_ }
+sub get_modifier_style { my ($_widget) = @_ }
 sub get_name { my ($_widget) = @_ }
 sub get_pango_context { my ($_widget) = @_ }
 sub get_parent { my ($_widget) = @_ }
@@ -2222,6 +2285,7 @@ sub set_uposition { my ($_widget, $_x, $_y) = @_ }
 sub show { my ($_widget) = @_ }
 sub show_all { my ($_widget) = @_ }
 sub show_now { my ($_widget) = @_ }
+sub size_request { my ($_widget) = @_ }
 sub state { my ($_widget) = @_ }
 sub style { my ($_widget) = @_ }
 sub toplevel { my ($_widget, @_more_paras) = @_ }
