@@ -23,7 +23,7 @@ sub import {
 
 	no strict 'refs';
 	my $v = caller() . '::' . $_;
-	my $lv = "$foo __ $_";
+	my $lv = "$name __ $_";
 	*$v = *$lv;
 	eval { undef = $$lv; tie $$lv, 'MDK::Common::Globals', $_ };
     }
