@@ -1,0 +1,40 @@
+# do not change here, change in MDK/Common.pm
+%define version THEVERSION
+%define release 0.1mdk
+%define perl_sitelib %(eval "`perl -V:installsitelib`"; echo $installsitelib)
+
+Summary: Various simple functions
+Name: perl-MDK-Common
+Version: %{version}
+Release: %{release}
+Source0: %{name}.tar.bz2
+License: GPL
+Group: Development/Perl
+BuildRoot: %{_tmppath}/%{name}-buildroot
+
+%description
+Various simple functions created for DrakX
+
+%prep
+%setup -n %{name}
+
+%build
+make test
+
+%install
+rm -rf $RPM_BUILD_ROOT
+make install PREFIX="$RPM_BUILD_ROOT/usr"
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+%doc COPYING
+%{_bindir}/*
+%{perl_sitelib}/MDK
+
+%changelog
+* Tue Jul 24 2001 Pixel <pixel@mandrakesoft.com> 1.0-0.1mdk
+- first version
+
