@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 17mdk
+%define release 18mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -50,6 +50,15 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Thu Nov  7 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-18mdk
+- perl_checker: many more warnings
+  - warn unneeded parentheses after an infix foreach/if/unless
+  - error when "unless" is used with complex expressions
+  - force $_ to be localised when "while (<FILEHANDLE>)" is used
+  - force FILEHANDLE to be localised when "open FILEHANDLE, ..." is used
+  - warn about one-character long functions (esp. for &N and &_)
+  - warn when N("...") is misused
+
 * Thu Oct 17 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-17mdk
 - add a check for function call PKG::f instead of PKG::f()
 - ensure a missing "=cut" doesn't make perl_checker go crazy (eg: when titi adds some doc)
