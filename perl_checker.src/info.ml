@@ -29,4 +29,10 @@ let pos2sfull pos =
     sprintf "File \"%s\", line %d, character %d-%d\n" file (line + 1) n1 n2
   with Not_found -> failwith ("bad position " ^ pos2s pos)
 
+let is_on_same_line file (a,b) =
+  let line_a, _ = raw_pos2raw_line file a in
+  let line_b, _ = raw_pos2raw_line file b in
+  line_a = line_b
+
+let is_on_same_line_current (a,b) = is_on_same_line !current_file (a,b)
 let pos2sfull_current a b = pos2sfull (!current_file, a, b)

@@ -35,7 +35,7 @@ type fromparser =
    | Method_call of fromparser * fromparser * fromparser list
    | Method_callP of fromparser * fromparser * fromparser list
 
-   | Anonymous_sub of fromparser
+   | Anonymous_sub of fromparser list
    | My of fromparser
    | Local of fromparser
    | Use of fromparser * fromparser list

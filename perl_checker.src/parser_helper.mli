@@ -1,5 +1,7 @@
 val bpos : int * int
 val raw_pos2pos : 'a * 'b -> string * 'a * 'b
+val pos_range :
+  'a * ('b * (int * int)) -> 'c * ('d * (int * int)) -> 'b * (int * int)
 val get_pos : 'a * ('b * ('c * 'd)) -> string * 'c * 'd
 val var_dollar_ : Types.fromparser
 val var_STDOUT : Types.fromparser
@@ -13,6 +15,7 @@ val msg_with_pos : int * int -> string -> string
 val die_with_pos : int * int -> string -> 'a
 val warn : int * int -> string -> unit
 val die_rule : string -> 'a
+val warn_rule : string -> unit
 val debug : string -> unit
 val warn_too_many_space : int -> unit
 val warn_no_space : int -> unit
@@ -39,6 +42,23 @@ val sp_cr : 'a * (Types.spaces * (int * 'b)) -> unit
 val sp_same :
   'a * (Types.spaces * (int * 'b)) ->
   'c * (Types.spaces * (int * 'd)) -> unit
+val check_word_alone : Types.fromparser * 'a -> Types.fromparser
+val check_parenthesized_first_argexpr :
+  string ->
+  ('a * Types.fromparser list) * (Types.spaces * (int * 'b)) -> unit
+val check_foreach : string * ('a * (int * int)) -> unit
+val check_for : string * ('a * (int * int)) -> unit
+val check_package : Types.fromparser list -> unit
+val check_my : string -> Types.fromparser list -> 'a * (int * int) -> unit
+val check_block_sub :
+  Types.fromparser list * (Types.spaces * (int * int)) ->
+  'a * (Types.spaces * (int * 'b)) -> unit
+val check_block_ref :
+  Types.fromparser list * (Types.spaces * (int * int)) ->
+  'a * (Types.spaces * (int * 'b)) -> unit
+val to_Ident :
+  (string option * string) * ('a * (int * int)) -> Types.fromparser
+val to_String : string * ('a * (int * int)) -> Types.fromparser
 val op : 'a -> 'b -> 'c * 'd -> 'a * ((unit * 'd) * 'b)
 val op_p :
   'a ->
@@ -47,20 +67,8 @@ val op_p :
   'a * ((unit * (Types.spaces * (int * 'd))) * 'b)
 val call_op :
   ('a * (('b * (Types.spaces * (int * 'c))) * string)) *
-  ('d * (Types.spaces * (int * 'e))) * Types.fromparser list ->
+  ('d * (Types.spaces * (int * int))) * Types.fromparser list ->
   'a * Types.fromparser
-val check_lines_after_BRACKET :
-  Types.fromparser list * (Types.spaces * (int * 'a)) -> unit
-val check_word_alone : Types.fromparser * 'a -> Types.fromparser
-val check_parenthesized_first_argexpr :
-  string ->
-  ('a * Types.fromparser list) * (Types.spaces * (int * 'b)) -> unit
-val check_foreach : string * ('a * (int * int)) -> unit
-val check_for : string * ('a * (int * int)) -> unit
-val check_package : Types.fromparser list -> unit
-val to_Ident :
-  (string option * string) * ('a * (int * int)) -> Types.fromparser
-val to_String : string * ('a * (int * int)) -> Types.fromparser
 val only_one : Types.fromparser list * ('a * (int * int)) -> Types.fromparser
 val only_one_in_List :
   ('a * Types.fromparser) * ('b * (int * int)) -> Types.fromparser

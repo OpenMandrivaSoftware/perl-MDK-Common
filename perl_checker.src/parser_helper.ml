@@ -5,6 +5,7 @@ open Printf
 let bpos = -1, -1
 
 let raw_pos2pos(a, b) = !Info.current_file, a, b
+let pos_range (_, (space, (a1, b1))) (_, (_, (a2, b2))) = space, ((if a1 = -1 then a2 else a1), (if b2 = -1 then b1 else b2))
 let get_pos (_, (_, pos)) = raw_pos2pos pos
 let var_dollar_ = Deref(I_scalar, Ident(None, "_", raw_pos2pos bpos))
 let var_STDOUT = Deref(I_star, Ident(None, "STDOUT", raw_pos2pos bpos))
@@ -44,6 +45,7 @@ let die_with_pos raw_pos msg = failwith      (msg_with_pos raw_pos msg)
 let warn         raw_pos msg = prerr_endline (msg_with_pos raw_pos msg)
 
 let die_rule msg = die_with_pos (Parsing.symbol_start(), Parsing.symbol_end()) msg
+let warn_rule msg = warn (Parsing.symbol_start(), Parsing.symbol_end()) msg
 let debug msg = if false then prerr_endline msg
 
 let warn_too_many_space start = warn (start, start) "you should have only one space here"
@@ -167,16 +169,6 @@ let sp_same (_, (spaces1, _) as ter1) (_, (spaces2, _) as ter2) =
   if spaces1 <> Space_0 then sp_p ter2
   else if spaces2 <> Space_0 then sp_p ter1
 
-let op prio s (_, both) = prio, (((), both), s)
-let op_p prio s e = sp_p e ; op prio s e
-
-let call_op((prio, (prev_ter, op)), ter, para) = 
-  sp_same prev_ter ter ;
-  prio, Call_op(op, para)
-
-let check_lines_after_BRACKET (l, both) =
-  (match l with Semi_colon :: _ -> sp_0 | _ -> sp_p)(l, both)
-
 let check_word_alone (word, _) =
   if string_of_Ident word = "time" then die_rule "please use time() instead of time";
   word
@@ -205,8 +197,43 @@ let check_package t =
   | Package _ :: _ -> ()
   | _ -> warn (0, 0) (sprintf "module %s does not have \"package xxxx;\" on its first line" !Info.current_file)
 
+let check_my op para (_, pos) =
+  match op, para with
+  | "=", [List [My _]; Ident(None, "undef", _)] -> warn pos "no need to initialize variable, it's done by default"
+  | "=", [List [My _]; List[]] -> 
+      if Info.is_on_same_line_current pos then warn pos "no need to initialize variables, it's done by default"
+  | _ -> ()
+
+let check_block_sub (l, (_, (_, end_)) as ter_lines) (_, (space, _) as ter_BRACKET_END) =  
+  if l = [] then
+    sp_0_or_cr ter_BRACKET_END
+  else (
+    (if l <> [] && List.hd l = Semi_colon then sp_0 else sp_p) ter_lines ;
+    sp_p ter_BRACKET_END ;
+
+    if space <> Space_cr then
+      (if l <> [] && last l = Semi_colon then warn (end_, end_) "spurious \";\" before closing block")
+  )
+
+let check_block_ref (l, (_, (_, end_)) as ter_lines) (_, (space, _) as ter_BRACKET_END) =
+  if l <> [] && List.hd l = Semi_colon 
+  then (sp_0 ter_lines ; sp_p ter_BRACKET_END)
+  else sp_same ter_lines ter_BRACKET_END ;
+
+  if space <> Space_cr then
+    (if l <> [] && last l = Semi_colon then warn (end_, end_) "spurious \";\" before closing block")
+
+
 let to_Ident ((fq, name), (_, pos)) = Ident(fq, name, raw_pos2pos pos)
 let to_String (s, (_, pos)) = String(s, raw_pos2pos pos)
+
+let op prio s (_, both) = prio, (((), both), s)
+let op_p prio s e = sp_p e ; op prio s e
+
+let call_op((prio, (prev_ter, op)), ter, para) = 
+  sp_same prev_ter ter ;
+  check_my op para (snd ter);
+  prio, Call_op(op, para)
 
 let rec only_one (l, (spaces, pos)) =
   match l with
