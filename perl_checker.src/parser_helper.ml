@@ -982,9 +982,10 @@ let mcontext_check_raw wanted_mcontext esp f_lower f_greater f_err =
      f_err())
 
 let mcontext_check wanted_mcontext esp =
-  (match un_parenthesize_full esp.any.expr with
-  | Call(Deref(I_func, Ident(None, "grep", _)), _) -> warn_rule "in scalar context, use \"any\" instead of \"grep\""
-  | _ -> ());
+  if wanted_mcontext <> M_list && wanted_mcontext <> M_array then
+    (match un_parenthesize_full esp.any.expr with
+    | Call(Deref(I_func, Ident(None, "grep", _)), _) -> warn_rule "in scalar context, use \"any\" instead of \"grep\""
+    | _ -> ());
   mcontext_check_raw wanted_mcontext esp (fun () -> ()) (fun () -> ()) (fun () -> ())
 
 let mcontext_symops wanted_mcontext esp1 esp2 =
