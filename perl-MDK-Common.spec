@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 3mdk
+%define release 1mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Sep 19 2003 Pixel <pixel@mandrakesoft.com> 1.1.7-1mdk
+- read_gnomekderc() & update_gnomekderc() will now handle key=value where key
+can contain spaces
+
 * Mon Sep  1 2003 Pixel <pixel@mandrakesoft.com> 1.1.6-3mdk
 - MDK::Common::System::list_users() should list user 500 if it exists
 

@@ -360,7 +360,7 @@ sub read_gnomekderc {
     my %h;
     foreach (MDK::Common::File::cat_($file), "[NOCATEGORY]\n") {
 	if (/^\s*\[\Q$category\E\]/i ... /^\[/) {
-	    $h{$1} = $2 if /^\s*(\w*?)=(.*)/;
+	    $h{$1} = $2 if /^\s*([^=]*?)=(.*)/;
 	}
     }
     %h;
@@ -378,7 +378,7 @@ sub update_gnomekderc {
 		chomp $s; $s .= "\n";
 		$s .= "$_->[0]=$_->[1]\n" foreach values %subst;
 		%subst = ();
-	    } elsif (/^\s*(\w*?)=/) {
+	    } elsif (/^\s*([^=]*?)=/) {
 		if (my $e = delete $subst{lc($1)}) {
 		    $_ = "$1=$e->[1]\n";
 		}
