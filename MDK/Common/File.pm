@@ -187,7 +187,7 @@ sub cp_with_option {
 	    MDK::Common::System::syscall_('mknod', $dest, $stat[2], $stat[6]) or die "mknod failed (dev $dest): $!";
 	} else {
 	    open(my $F, $src) or die "can't open $src for reading: $!\n";
-	    open(my $G, "> $dest");
+	    open(my $G, "> $dest") or die "can't cp to file $dest: !\n";
 	    local $_; while (<$F>) { print $G $_ }
 	    chmod((stat($src))[2], $dest);
 	}
