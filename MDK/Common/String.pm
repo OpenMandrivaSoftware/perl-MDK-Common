@@ -131,16 +131,18 @@ sub warp_text {
 
     my @l;
     foreach (split "\n", $text) {
+	my ($beg) = /^(\s*)/;
 	my $t = '';
 	foreach (split /\s+/, $_) {
 	    if (length "$t $_" > $width) {
-		push @l, $t;
+		push @l, "$beg$t";
+                $beg = '';
 		$t = $_;
 	    } else {
-		$t = "$t $_";
+		$t = $t ? "$t $_" : $_;
 	    }
 	}
-	push @l, $t;
+	push @l, "$beg$t";
     }
     @l;
 }
