@@ -723,16 +723,11 @@ let call_one_scalar_para (e, (_, pos)) para =
   let para =
     match para with
     | [] ->
-	  warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" e e) ;
+	  if not (List.mem e [ "length" ]) then warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" e e) ;
 	  [var_dollar_ (raw_pos2pos pos)]
     | _ -> para
   in
-  let pri =
-    match e with
-    | "defined" -> P_expr
-    | _ -> P_add
-  in
-  pri, call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)
+  P_mul, call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)
 
 
 let call_op_if_infix left right (sp, pos) =

@@ -261,14 +261,6 @@ term:
 | term DECR    {sp_0($2); to_Call_op_(P_tight, "-- post", [sndfst $1]) (sp_pos_range $1 $2)}
 | NOT argexpr  {warn_rule "don't use \"not\", use \"!\" instead"; to_Call_op_(P_and, "not", sndfst $2) (sp_pos_range $1 $2)}
 
-| ONE_SCALAR_PARA RAW_STRING               {call_one_scalar_para $1 [to_Raw_string $2], sp_pos_range $1 $2}
-| ONE_SCALAR_PARA STRING                   {call_one_scalar_para $1 [to_String true $2], sp_pos_range $1 $2}
-| ONE_SCALAR_PARA variable                 {call_one_scalar_para $1 [fst $2], sp_pos_range $1 $2}
-| ONE_SCALAR_PARA restricted_subscripted   {call_one_scalar_para $1 [fst $2], sp_pos_range $1 $2}
-| ONE_SCALAR_PARA parenthesized            {call_one_scalar_para $1 (sndfst $2), sp_pos_range $1 $2}
-| ONE_SCALAR_PARA word_paren parenthesized {call_one_scalar_para $1 [call(Deref(I_func, fst $2), sndfst $3)], sp_pos_range $1 $3}
-| ONE_SCALAR_PARA {call_one_scalar_para $1 [], snd $1}
-
 /* Constructors for anonymous data */
 
 | ARRAYREF ARRAYREF_END {sp_0($2); (P_expr, Ref(I_array, List[])), sp_pos_range $1 $2}
@@ -296,8 +288,16 @@ term:
 | array arrayref {(P_expr, to_Deref_with(I_array, I_array, from_array $1, List(fst $2))), sp_pos_range $1 $2} /* array slice: @array[vals] */
 | array BRACKET expr BRACKET_END {sp_0($2); sp_0($3); sp_0($4); (P_expr, to_Deref_with(I_hash, I_array, from_array $1, sndfst $3)), sp_pos_range $1 $4} /* hash slice: @hash{@keys} */
 
-
 /* function_calls */
+| ONE_SCALAR_PARA RAW_STRING               {call_one_scalar_para $1 [to_Raw_string $2], sp_pos_range $1 $2}
+| ONE_SCALAR_PARA STRING                   {call_one_scalar_para $1 [to_String true $2], sp_pos_range $1 $2}
+| ONE_SCALAR_PARA variable                 {call_one_scalar_para $1 [fst $2], sp_pos_range $1 $2}
+| ONE_SCALAR_PARA restricted_subscripted   {call_one_scalar_para $1 [fst $2], sp_pos_range $1 $2}
+| ONE_SCALAR_PARA parenthesized            {call_one_scalar_para $1 (sndfst $2), sp_pos_range $1 $2}
+| ONE_SCALAR_PARA word_paren parenthesized {call_one_scalar_para $1 [call(Deref(I_func, fst $2), sndfst $3)], sp_pos_range $1 $3}
+| ONE_SCALAR_PARA {call_one_scalar_para $1 [], snd $1}
+| ONE_SCALAR_PARA word argexpr {check_parenthesized_first_argexpr_with_Ident (fst $2) $3; call_one_scalar_para $1 [call(Deref(I_func, fst $2), sndfst $3)], sp_pos_range $1 $3} /* ref foo $a, $b */
+
 | func parenthesized {sp_0($2); (P_tok, call_func true (fst $1, sndfst $2)), sp_pos_range $1 $2} /* &foo(@args) */
 | word argexpr {check_parenthesized_first_argexpr_with_Ident (fst $1) $2; (P_call_no_paren, call(Deref(I_func, fst $1), sndfst $2)), sp_pos_range $1 $2} /* foo $a, $b */
 | word_paren parenthesized {sp_0($2); (P_tok, call(Deref(I_func, fst $1), sndfst $2)), sp_pos_range $1 $2} /* foo(@args) */

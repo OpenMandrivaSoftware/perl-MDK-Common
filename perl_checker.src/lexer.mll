@@ -431,7 +431,10 @@ rule token = parse
 | "printf"   { PRINT(lexeme lexbuf, pos lexbuf) }
 | "new"      { NEW(pos lexbuf) }
 | "format"   { let _ = raw_here_doc_next_line "." in FORMAT(pos lexbuf) }
-| "defined"  { ONE_SCALAR_PARA(lexeme lexbuf, pos lexbuf) }
+| "defined"
+| "length" 
+| "exists" 
+| "ref"      { ONE_SCALAR_PARA(lexeme lexbuf, pos lexbuf) }
 
 | "split"
 | "grep"  { (* ok_for_match! *) BAREWORD(lexeme lexbuf, pos lexbuf) }
