@@ -228,6 +228,7 @@ sub steal {}
 sub style {}
 sub thaw_updates {}
 sub time {}
+sub to_string {}
 sub toggle_expansion {}
 sub type {}
 sub unref {}
