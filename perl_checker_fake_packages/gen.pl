@@ -1,216 +1,105 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 
+use strict;
 use MDK::Common;
 
-sub gtk2 {
-    my (@files) = @_;
+my ($current_package, $current_prefix, $current_name);
 
-    my @subroutines = (
-      [ 'set_size_request',             ' { my ($_self, $_x, $_y) = @_ }' ],
-      [ 'set_popdown_strings',          ' {}' ],
-      [ 'signal_emit',                  ' {}' ],
-      [ 'signal_emit_by_name',          ' {}' ],
-      [ 'signal_connect',               ' { my ($_target, $_name, $_callback, $o_data) = @_ }' ],
-      [ 'signal_connect_swapped',       ' { my ($_target, $_name, $_callback, $o_data) = @_ }' ],
-      [ 'signal_connect_after',         ' { my ($_target, $_name, $_callback, $o_data) = @_ }' ],
-      [ 'signal_handler_block',         ' { my ($_target, $_closure) = @_ }' ],
-      [ 'signal_handler_unblock',       ' { my ($_target, $_closure) = @_ }' ],
-      [ 'signal_disconnect',            ' { my ($_target, $_closure) = @_ }' ],
-      [ 'signal_is_connected',          ' { my ($_target, $_closure) = @_ }' ],
-      [ 'signal_stop_emission_by_name', ' { my ($_target, $_detailed_signal) = @_ }' ],
-      [ 'timeout_add',                  ' { my ($_class, $_interval, $_func, $o_data) = @_ }' ],
-      [ 'timeout_remove',               ' { my ($_class, $_id) = @_ }' ],
-      [ 'idle_add',                     ' { my ($_class, $_func, $o_data) = @_ }' ],
-      [ 'idle_remove',                  ' { my ($_class, $_id) = @_ }' ],
-      [ 'create_items',                 ' { my ($_factory, $_entries, $o_callback_data) = @_ }' ],
-      [ 'style',                        ' { my ($_widget, $o_style) = @_ }' ],
-      [ 'visible',                      ' { my ($_widget, $o_bool) = @_ }' ],
-      [ 'white_gc',                     ' { my ($_style, $o_gc) = @_ }' ],
-      [ 'black_gc',                     ' { my ($_style, $o_gc) = @_ }' ],
-      [ 'get',                          ' {}' ],
-      [ 'append_item',                  ' { my ($_self, $_text, $_tooltip, $_private, $_icon, $_callback, $o_user_data) = @_ }' ],
-      [ 'toggle_expansion',             ' { my ($_self, $_path, $o_open_all) = @_ }' ],
-      [ 'get_path_at_pos',              ' { my ($_self, $_x, $_y) = @_ }' ],
-      [ 'allow_grow',                   ' { my ($_window, $o_bool) = @_ }' ],
-      [ 'allow_shrink',                 ' { my ($_window, $o_bool) = @_ }' ],
-      [ 'default_height',               ' { my ($_window, $o_bool) = @_ }' ],
-      [ 'default_width',                ' { my ($_window, $o_bool) = @_ }' ],
-      [ 'destroy_with_parent',          ' { my ($_window, $o_bool) = @_ }' ],
-      [ 'has_top_level_focus',          ' { my ($_window, $o_bool) = @_ }' ],
-      [ 'is_active',                    ' { my ($_window, $o_bool) = @_ }' ],
-      [ 'modal',                        ' { my ($_window, $o_bool) = @_ }' ],
-      [ 'resizable',                    ' { my ($_window, $o_bool) = @_ }' ],
-      [ 'window_position',              ' { my ($_window, $o_pos) = @_ }' ],
-      [ 'expand_to_path',               ' { my ($_treeview, $_path) = @_ }' ],
-      [ 'fraction',                     ' { my ($_progress_bar, $o_fraction) = @_ }' ],
-      [ 'orientation',                  ' { my ($_progress_bar, $o_orientation) = @_ }' ],
-      [ 'get_selected_rows',            ' { my ($_tree_selection) = @_ }' ],
-                      );
-    my @added_subroutines;
-    my $add = sub {
-        member($_[0], map { $_->[0] } @subroutines) and return;
-        push @added_subroutines, [ $_[0], $_[1] ];
-    };
-    
-    my $pm_file = sub {
-        my ($file) = @_;
-        my @contents = cat_($file);
-        each_index {
-            if (/^\s*sub\s+(\w+)/) {
-                my $fun = $1;
-                my $line = $::i;
+my %l;
+sub get_paras {
+    my ($name, $para) = @_;
+    $name =~ s/\Q$current_prefix//;
+    $current_name = $name;
+    $l{$current_package}{$name} = [ map {
+	if (/\Q.../) {
+	    '@_more_paras';
+	} else {
+	    my ($optional) = s/=(.*)//;
+	    my $s = /.*\W(\w+)/ ? $1 : $_;
+	    '$_' . ($optional ? 'o_' : '') . $s;
+	}
+    } grep { !/OUTLIST/ } split(',', $para) ];
+}
 
-                #- obtain first statement of function
-                local $_ = $_;
-                if (/^\s*sub\s+\w+\s*{?\s*$/) {
-                    if ($contents[$::i+1] =~ /^\s*{\s*$/) {
-                        $_ .= $contents[++$line] . $contents[++$line];
-                    } else {
-                        $_ .= $contents[++$line];
-                    }
-                }
+sub parse_xs {
+    my ($file) = @_;
+    warn "parse_xs $file\n";
+    my $state = 'waiting_for_type';
+    ($current_package, $current_prefix) = ('', '');
+    my $multi_line;
+    foreach (cat_($file)) {
+	chomp;
+	my $orig_line = $_;
 
-                my $subroutine_decl = '^\s*sub\s+\w+\s*{\s*';
-
-                #- one liner constants
-                #-   sub EXPOSURE_MASK { 'exposure-mask' }
-                /$subroutine_decl('[^']+')|("[^"]+")\s*}/ and $add->($fun, '() {}');
-                #-   sub Sym_Hangul_J_Phieuf { 0xeed }
-                /$subroutine_decl\d\S+\s*}/                and $add->($fun, '() {}');
-
-                #- traditional form
-                #-   my ($class, $interval, $func, $data) = @_;
-                if (/$subroutine_decl\my\s*\(([^\)]+)\)\s*=\s*\@_\s*;\s*$/) {
-                    my @args = map { /^\s*\$(.*)/ or goto skip_trad; '$_'.$1 } split /,/, $1;
-                    $add->($fun, ' { my ('.join(', ', @args).') = @_ }');
-                  skip_trad:
-                }
-
-                #- methods not naming arguments
-                #-   sub set_name { $_[0]->set_property('name', $_[1]) }
-                if (/$subroutine_decl([^}]+)\s*}\s*$/) {
-                    my $statement = $1;
-                    if ($statement !~ /\$[a-zA-Z]/ && $statement !~ /\@_/ && $statement =~ /.*\$_\[(\d+)\]/) {
-                        $add->($fun, ' { my ('.join(', ', map { '$_DUMMY'.$_ } 0..$1).') = @_ }');
-                    }
-                }
-
-                #- methods with no argument
-                #-   my $values = shift->_get_size_request;
-                if (/$subroutine_decl(my.*=)?\s*shift->\w+\s*((;)|(}))\s*$/) {
-                    $add->($fun, ' { my ($_self) = @_ }');
-                }
-
-                #- methods with variable list of arguments (which branch to different XS functions)
-                #-   Gtk2::_Helpers::check_usage(\@_, [ 'Gtk2::GSList group' ], [ 'Gtk2::GSList group', 'string label' ]);
-                if (/Gtk2::_Helpers::check_usage\(\\\@_, (.*)/) {
-                    my $various = $1;
-                    while ($various !~ /\)\s*;\s*$/) {
-                        $various .= $contents[++$line];
-                    }
-                    $various =~ s/\)\s*;\s*$//;
-
-                    my $subroutine = ' { my (';
-                    my @various = split /\]\s*,/, $various;
-                    s/[\[\]]//g foreach @various;
-                    my @mandatory = split /,/, $various[0];
-                    my $proto2varname = sub { $_[0] =~ /\s*'\s*\S+\s+(.*)\s*'/; $1 };
-                    $subroutine .= join(', ', map { '$_'.$proto2varname->($_) } @mandatory);
-                    @mandatory and $subroutine .= ', ';
-                    my @optional = split /,/, $various[-1];
-                    @optional = splice @optional, @mandatory;
-                    $subroutine .= join(', ', map { '$o_'.$proto2varname->($_) } @optional);
-                    $add->($fun, "$subroutine) = \@_ }");
-                }
-
-            }
-
-        } @contents;
-    };
-
-    my $c_file = sub {
-        my ($file) = @_;
-        my @contents = cat_($file);
-        my $comment;
-        each_index {
-            m|/\*| and $comment = 1;
-            m|\*/| and $comment = 0;
-            s|/\*.*\*/||;
-            s|//.*||;
-            $comment and goto next_;
-            /^#/ and goto next_;
-            /^\s*static/ and goto next_;
-            if (/^\S.*\s(\w+)\s*\((.*)/) {
-                my $fun = $1;
-                #- skip "internal" functions
-                $fun =~ /__/ and goto next_;
-                my $args = $2;
-                
-                #- guess function name
-                $fun =~ s/^.*perl_//;
-                
-                my ($trimlast) = $file =~ /([A-Z]\w+)\.c$/;
-                while ($trimlast =~ s/([a-z])([A-Z])/$1_$2/) {}
-                $file =~ /\bGC\b/ or $trimlast =~ s/^G([A-Z])/$1/; #- glib case
-                $file =~ m|Gdk/Event/src| and $trimlast = "event_$trimlast"; #- gdkevent case
-                $trimlast = lc($trimlast);
-                #- skip functions that will not be exported anyway because don't follow the naming scheme
-                $fun =~ s/^\Q$trimlast\_// or goto next_;
-
-                #- explore following lines if prototype was not complete
-                my $line = $::i;
-                while ($args !~ /\)/) {
-                    $line++;
-                    $args .= $contents[$line];
-                }
-                $args =~ s/\s+/ /g;
-                $args =~ s/\).*//;
-
-                my $proto2varname = sub { $_[0] =~ /(\w+)\s*$/; $1 };
-                my @args = split /,/, $args;
-
-                $add->($fun, ' { my (' . join(', ', map { '$_'.$proto2varname->($_) } @args) . ') = @_ }');
-            }
-          next_:
-        } @contents;
-    };
-
-    foreach (@files) {
-        /\.pm$/ and $pm_file->($_);
-        /\.c$/ and $c_file->($_);
+	if (/^\s*#/ || (m!^\s*/\*! .. m!\*/!)) {
+	    # forget it
+	} elsif ($state eq 'multi_line') {
+	    if (/(.*)\)/) {
+		get_paras($current_name, $multi_line . $1);
+		$state = 'waiting_for_end';
+	    } else {
+		$multi_line .= $_;
+	    }
+#	} elsif (/^\s*gperl_set_isa\s*\("(.*)", ".*"\)\s*;/) {
+	} elsif (/MODULE\s*=\s*\S+\s+PACKAGE\s*=\s*(\S+)\s+PREFIX\s*=\s*(\S+)/) {
+	    ($current_package, $current_prefix) = ($1, $2);
+	} elsif (/MODULE\s*=\s*\S+\s+PACKAGE\s*=\s*(\S+)/) {
+	    ($current_package, $current_prefix) = ($1, '');
+	} elsif (!$current_package) {
+	    # waiting for the MODULE line
+	} elsif (/^\s*$/) {
+	    $state = 'waiting_for_type';
+	} elsif (/^\w[^\(]*$/ && $state eq 'waiting_for_type') {
+	    $state = 'waiting_for_function' if !/^BOOT:/ && !/;/;
+	} elsif (/^\s*ALIAS:\s*$/) {
+	    $state = 'alias';
+	} elsif ($state eq 'alias') {
+	    if (my ($f) = /^\s*(\S+)\s*=\s*\d+\s*$/) {
+		my $pkg = $f =~ s/(.*)::// ? $1 : $current_package;
+		$l{$pkg}{$f} ||= $l{$current_package}{$current_name};
+	    } else {
+		warn "bad line $orig_line (state: $state)\n" if !/^\s*\w+:\s*$/ && !/^\s*$/;
+		$state = 'waiting_for_end';
+	    }
+	} elsif ($state eq 'waiting_for_type' && s/^(const\s*)?\w+\s*(\*\s*)?// || 
+		 $state eq 'waiting_for_function' && /^\w+/) {
+	    if (my ($name, $para) = /^(\S+)\s*\((.*)\)\s*;?\s*$/) {
+		get_paras($name, $para);
+		$state = 'waiting_for_end';
+	    } elsif (($name, $para) = /^(\S+)\s*\((.*)$/) {
+		$multi_line = $para;
+		$current_name = $name;
+		$state = 'multi_line';
+	    } else {
+		warn "bad line $orig_line (state: $state)\n";
+	    }
+	} else {
+	    warn "bad line $orig_line (state: $state)\n" if 
+	      !(($state eq 'waiting_for_end' || $state eq 'waiting_for_type') && 
+		(/^\s/ || /^[{}]\s*$/ || /^(CODE|OUTPUT):\s*$/));
+	}
     }
-
-    print
-"package Gtk2;
-
-our \@ISA = qw();
-
-";
-    @subroutines = sort { $a->[0] cmp $b->[0] } @subroutines, @added_subroutines;
-    my @ok;
-    foreach my $fun (uniq(map { $_->[0] } @subroutines)) {
-        my @multiples = grep { $_->[0] eq $fun } @subroutines;
-        if (@multiples != 1) {
-            my $args = -1;
-            foreach (@multiples) {
-                my $a = split /,/, $_->[1];
-                $args == -1 and $args = $a;
-                #- ignore multiply defined functions that have different numbers of arguments
-                $args != $a and $multiples[0][1] = ' {}';
-            }
-            my $i;
-            $multiples[0][1] =~ s/\$_(\w+)/'$_DUMMY'.$i++/ge;
-            push @ok, @multiples[0];
-        } else {
-            push @ok, @multiples;
-        }
-    }
-
-    print "sub Gtk2::$_->[0]$_->[1]\n" foreach @ok;
 }
 
 
-if ($ARGV[0] =~ /gtk2/) {
-    shift @ARGV;
-    gtk2(@ARGV);
+my ($pkg_name, $dir) = @ARGV;
+my @xs_files = chomp_(`find $dir -name "*.xs"`);
+@ARGV == 2 && @xs_files or die "usage: gen.pl <Gtk2 or Glib> <dir where Gtk2.pm or Glib.pm is>\n";
+
+parse_xs($_) foreach @xs_files;
+
+print "package $pkg_name;\nuse Glib;\n" if $pkg_name eq 'Gtk2';
+
+foreach my $pkg (sort keys %l) {
+    print "\npackage $pkg;\n";
+    print "our \@ISA = qw();\n";
+    foreach my $name (sort keys %{$l{$pkg}}) {
+	my $para = $l{$pkg}{$name};
+	$name = $pkg . '::' . $name if $name =~ /^(length|x|y|eq|foreach|format)$/;
+	if (@$para) {
+	    print "sub $name { my (", join(", ", @$para), ") = \@_ }\n";
+	} else {
+	    print "sub $name() {}\n";
+	}
+    }
 }
