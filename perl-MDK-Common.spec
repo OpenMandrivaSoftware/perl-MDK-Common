@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 2mdk
+%define release 1mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -64,6 +64,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri May 16 2003 Pixel <pixel@mandrakesoft.com> 1.1.3-1mdk
+- fix pot generation (have \" instead of \\\")
+
 * Mon May 12 2003 Pixel <pixel@mandrakesoft.com> 1.1.2-2mdk
 - rebuild for perl auto-provides
   (except for perl-MDK-Common-devel which need special handling for the faked packages)

@@ -802,7 +802,8 @@ and string_escape = parse
     | Delimited -> if c = String.make 1 !delimit_char then 
           warn lexbuf ("change the delimit character " ^ String.make 1 !delimit_char ^ " to get rid of this escape")
         else warn_escape_unneeded lexbuf c);
-    next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf 
+    let c = if c = "\"" then c else "\\" ^ c in
+    next_s c (Stack.pop next_rule) lexbuf 
   }
 
 and re_string_escape = parse
