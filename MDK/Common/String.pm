@@ -134,7 +134,7 @@ sub warp_text {
 	my ($beg) = /^(\s*)/;
 	my $t = '';
 	foreach (split /\s+/, $_) {
-	    if (length "$t $_" > $width) {
+	    if (length "$beg$t $_" > $width) {
 		push @l, "$beg$t";
                 $beg = '';
 		$t = $_;

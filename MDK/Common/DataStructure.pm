@@ -57,7 +57,7 @@ is the scalar undefined or is the hash empty
 
 =item uniq(LIST)
 
-returns the list with no duplicates
+returns the list with no duplicates (keeping the first elements)
 
 =item difference2(ARRAY REF, ARRAY REF)
 
@@ -111,7 +111,7 @@ sub deref { ref $_[0] eq "ARRAY" ? @{$_[0]} : ref $_[0] eq "HASH" ? %{$_[0]} : $
 sub is_empty_array_ref { my $a = shift; !defined $a || @$a == 0 }
 sub is_empty_hash_ref { my $a = shift; !defined $a || keys(%$a) == 0 }
 
-sub uniq { my %l; @l{@_} = (); keys %l }
+sub uniq { my %l; $l{$_} = 1 foreach @_; grep { delete $l{$_} } @_ }
 sub difference2 { my %l; @l{@{$_[1]}} = (); grep { !exists $l{$_} } @{$_[0]} }
 sub intersection { my (%l, @m); @l{@{shift @_}} = (); foreach (@_) { @m = grep { exists $l{$_} } @$_; %l = (); @l{@m} = (); } keys %l }
 
