@@ -155,7 +155,7 @@ package MDK::Common::System;
 
 use MDK::Common::Math;
 use MDK::Common::File;
-
+use MDK::Common::Func qw(map_each);
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_int $bitof_int); #);
 @ISA = qw(Exporter);
@@ -312,7 +312,7 @@ sub setVarsInCsh {
 
 sub template2file {
     my ($in, $out, %toreplace) = @_;
-    output $out, map { s/@@@(.*?)@@@/$toreplace{$1}/g; $_ } MDK::Common::File::cat_($in);
+    MDK::Common::File::output($out, map { s/@@@(.*?)@@@/$toreplace{$1}/g; $_ } MDK::Common::File::cat_($in));
 }
 sub template2userfile {
     my ($prefix, $in, $out_rel, $force, %toreplace) = @_;
@@ -327,7 +327,7 @@ sub template2userfile {
 sub update_gnomekderc {
     my ($file, $category, %subst) = @_;
 
-    output $file,
+    MDK::Common::File::output($file,
       (map {
 	  my $l = $_;
 	  s/^\s*//;
@@ -343,7 +343,7 @@ sub update_gnomekderc {
 	  }
 	  $l;
       } MDK::Common::File::cat_($file)),
-	(%subst && "[$category]\n", map_each { "$::a=$::b\n" } %subst); #- if category has not been found above.
+	(%subst && "[$category]\n", map_each { "$::a=$::b\n" } %subst)); #- if category has not been found above.
 }
 
 1;
