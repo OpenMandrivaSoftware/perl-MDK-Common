@@ -84,7 +84,7 @@ sub parse_xs {
 
 my ($pkg_name, $dir) = @ARGV;
 my @xs_files = chomp_(`find $dir -name "*.xs"`);
-@ARGV == 2 && @xs_files or die "usage: gen.pl <Gtk2 or Glib> <dir where Gtk2.pm or Glib.pm is>\n";
+@ARGV == 2 && @xs_files or die "usage: gen.pl <Gtk2 or Glib> <dir where Gtk2's or Glib's *.xs are>\n";
 
 parse_xs($_) foreach @xs_files;
 
