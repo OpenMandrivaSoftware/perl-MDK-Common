@@ -10,9 +10,9 @@ $xxx && yyy();                           value is dropped
 
 /(.*)/;                                  value is dropped
 
-'xxx';
+'xxx';                                   value is dropped
 
-'xxx' if $xxx;
+'xxx' if $xxx;                           value is dropped
 
 map { xxx($_) } @l;                      if you don't use the return value, use "foreach" instead of "map"
 
