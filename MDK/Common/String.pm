@@ -82,7 +82,7 @@ sub bestMatchSentence {
 	}
 	$best = $count, $bestSentence = $_ if $count > $best;
     }
-    wantarray ? ($bestSentence, $best) : $bestSentence;
+    wantarray() ? ($bestSentence, $best) : $bestSentence;
 }
 
 
@@ -149,7 +149,7 @@ sub warp_text {
 	}
 	push @l, "$beg$t";
     }
-    wantarray ? @l : join("\n", @l);
+    wantarray() ? @l : join("\n", @l);
 }
 
 1;

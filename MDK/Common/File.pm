@@ -110,8 +110,8 @@ use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
 sub basename { local $_ = shift; s|/*\s*$||; s|.*/||; $_ }
-sub cat_ { local *F; open F, $_[0] or return; my @l = <F>; wantarray ? @l : join '', @l }
-sub cat__ { my ($f) = @_; my @l = <$f>; wantarray ? @l : join '', @l }
+sub cat_ { local *F; open F, $_[0] or return; my @l = <F>; wantarray() ? @l : join '', @l }
+sub cat__ { my ($f) = @_; my @l = <$f>; wantarray() ? @l : join '', @l }
 sub output { my $f = shift; local *F; open F, ">$f" or die "output in file $f failed: $!\n"; print F foreach @_ }
 sub append_to_file { my $f = shift; local *F; open F, ">>$f" or die "output in file $f failed: $!\n"; print F foreach @_ }
 sub output_p { my $f = shift; mkdir_p(dirname($f)); output($f, @_) }
@@ -194,7 +194,7 @@ sub all {
 }
 
 sub glob_ {
-    my ($d, $f) = ($_[0] =~ /\*/) ? (dirname($_[0]), basename($_[0])) : ($_[0], '*');
+    my ($d, $f) = $_[0] =~ /\*/ ? (dirname($_[0]), basename($_[0])) : ($_[0], '*');
 
     $d =~ /\*/ and die "glob_: wildcard in directory not handled ($_[0])\n";
     ($f = quotemeta $f) =~ s/\\\*/.*/g;

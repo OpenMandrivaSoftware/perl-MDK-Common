@@ -159,14 +159,14 @@ sub may_apply { $_[0] ? $_[0]->($_[1]) : (@_ > 2 ? $_[2] : $_[1]) }
 sub if_($@) {
     my $b = shift;
     $b or return ();
-    wantarray || @_ <= 1 or die("if_ called in scalar context with more than one argument " . join(":", caller()));
-    wantarray ? @_ : $_[0];
+    wantarray() || @_ <= 1 or die("if_ called in scalar context with more than one argument " . join(":", caller()));
+    wantarray() ? @_ : $_[0];
 }
 sub if__($@) {
     my $b = shift;
     defined $b or return ();
-    wantarray || @_ <= 1 or die("if_ called in scalar context with more than one argument " . join(":", caller()));
-    wantarray ? @_ : $_[0];
+    wantarray() || @_ <= 1 or die("if_ called in scalar context with more than one argument " . join(":", caller()));
+    wantarray() ? @_ : $_[0];
 }
 
 sub fold_left(&@) {
@@ -259,7 +259,7 @@ sub add_f4before_leaving {
 	my $f = $list->{$_[0]}{$name} or die '';
 	$name eq 'DESTROY' and delete $list->{$_[0]};
 	&$f;
-    } unless defined &{*N};
+    } if !defined &{*N};
 
 }
 

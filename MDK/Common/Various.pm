@@ -113,7 +113,7 @@ sub bool2text { $_[0] ? "true" : "false" }
 sub bool2yesno { $_[0] ? "yes" : "no" }
 sub text2bool { my $t = lc($_[0]); $t eq "true" || $t eq "yes" ? 1 : 0 }
 
-sub chomp_ { my @l = map { my $l = $_; chomp $l; $l } @_; wantarray ? @l : $l[0] }
+sub chomp_ { my @l = map { my $l = $_; chomp $l; $l } @_; wantarray() ? @l : $l[0] }
 
 sub backtrace {
     my $s;
@@ -129,7 +129,7 @@ sub internal_error {
 }
 
 sub noreturn {
-    if (defined wantarray) {
+    if (defined wantarray()) {
 	my ($package, $file, $line, $func) = caller(1);
 	my (undef, undef, undef, $func2) = caller(2);
 	die "$file:$line: $func2() expects a value from $func(), but $func() doesn't return any value\n";

@@ -128,7 +128,7 @@ sub sign { $_[0] <=> 0 }
 sub round { int($_[0] + 0.5) }
 sub round_up { my ($i, $r) = @_; $i = int $i; $i += $r - ($i + $r - 1) % $r - 1 }
 sub round_down { my ($i, $r) = @_; $i = int $i; $i -= $i % $r }
-sub divide { my $d = int $_[0] / $_[1]; wantarray ? ($d, $_[0] % $_[1]) : $d }
+sub divide { my $d = int $_[0] / $_[1]; wantarray() ? ($d, $_[0] % $_[1]) : $d }
 sub min  { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
 sub max  { my $n = shift; $_ > $n and $n = $_ foreach @_; $n }
 sub or_  { my $n = 0; $n ||= $_ foreach @_; $n }
