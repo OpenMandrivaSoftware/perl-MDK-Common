@@ -72,6 +72,11 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Jun 28 2004 Pixel <pixel@mandrakesoft.com> 1.1.13-1mdk
+- fix single/quote handling in getVarsFromSh()
+- setVarsInSh() now handles characters $, ', \" and spaces in the value
+- fix cp_af() for symlinks to directories
+
 * Mon May 10 2004 Pixel <pixel@mandrakesoft.com> 1.1.12-1mdk
 - many perl_checker enhancements and cleanup
 
