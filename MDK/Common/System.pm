@@ -327,14 +327,12 @@ sub setVarsInShMode {
     MDK::Common::File::output($file, 
 	map { 
 	    my $val = $l->{$_};
-	    if ($val =~ /\W/) {
-		if ($val =~ /["\$]/) {
-		    $val =~ s/(')/\\$1/;
-		    $val = qq('$val');
-		} else {
-		    $val =~ s/(")/\\$1/;
-		    $val = qq("$val");
-		}
+	    if ($val =~ /["`\$]/) {
+		$val =~ s/(')/\\$1/g;
+		$val = qq('$val');
+	    } elsif ($val =~ /['\s\\]/) {
+		$val =~ s/(["\\])/\\$1/g;
+		$val = qq("$val");
 	    }
 	    "$_=$val\n";
 	} grep { $l->{$_} } @fields

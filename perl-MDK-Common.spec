@@ -72,6 +72,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Aug  4 2004 Pixel <pixel@mandrakesoft.com> 1.1.17-1mdk
+- setVarsInSh() now tries to use quoting only when really needed,
+  otherwise it breaks program parsing the generated file (eg: /usr/sbin/autologin)
+
 * Mon Aug  2 2004 Pixel <pixel@mandrakesoft.com> 1.1.16-1mdk
 - MDK::Common::System: whereis_binary() can now handle prefix
 
