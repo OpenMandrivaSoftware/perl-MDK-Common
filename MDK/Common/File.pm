@@ -163,11 +163,9 @@ sub cp_af {
 		warn "symlink: can't create symlink $dest: $!\n";
 	    }
 	} else {
-	    local (*F, *G);
-	    open F, $src or die "can't open $src for reading: $!\n";
-	    open G, "> $dest";
-	    local $_;
-	    while (<F>) { print G $_ }
+	    local *F; open F, $src or die "can't open $src for reading: $!\n";
+	    local *G; open G, "> $dest";
+	    local $_; while (<F>) { print G $_ }
 	    chmod((stat($src))[2], $dest);
 	}
     }
@@ -210,7 +208,8 @@ sub substInFile(&@) {
     my ($f, $file) = @_;
     if (-s $file) {
 	local @ARGV = $file;
-	local ($^I, $_) = '';
+	local $^I = '';
+	local $_;
 	while (<>) { 
 	    $_ .= "\n" if eof && !/\n/;
 	    &$f($_); 
