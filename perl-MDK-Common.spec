@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 11mdk
+%define release 12mdk
 %define perl_sitelib %(eval "`perl -V:installsitelib`"; echo $installsitelib)
 
 Summary: Various simple functions
@@ -50,6 +50,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Sat Feb 16 2002 Pixel <pixel@mandrakesoft.com> 1.0.2-12mdk
+- MDK/Common/System.pm (update_gnomekderc): rework it, make it work in all possible case
+
 * Sat Feb 16 2002 Pixel <pixel@mandrakesoft.com> 1.0.2-11mdk
 - MDK/Common/System.pm: fix call to "output" in "template2file" and "update_gnomekderc"
 - perl-checker: don't fail on non-tagged import
