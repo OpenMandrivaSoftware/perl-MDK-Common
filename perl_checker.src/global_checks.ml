@@ -58,7 +58,7 @@ let rec get_imported state current_package (package_name, (imports, pos)) =
 		  List.assoc tag exports.export_tags
 		with Not_found -> die_with_pos pos (sprintf "package %s doesn't export tag %s" package_name tag))
 	    | variable ->
-		if List.mem variable exports.export_ok then
+		if List.mem variable exports.export_ok || List.mem variable exports.export_auto then
 		  [ variable ]
 		else
 		  die_with_pos pos (sprintf "package %s doesn't export %s" package_name (variable2s variable))
