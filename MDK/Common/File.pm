@@ -178,7 +178,7 @@ sub cp_with_option {
 	    -d $dest or mkdir $dest, (stat($src))[2] or die "mkdir: can't create directory $dest: $!\n";
 	    cp_af(glob_($src), $dest);
 	} elsif (-l $src && $keep_symlinks) {
-	    unless (symlink((readlink($src) || die "readlink failed: $!"), $dest)) {
+	    unless (symlink(readlink($src) || die("readlink failed: $!"), $dest)) {
 		warn "symlink: can't create symlink $dest: $!\n";
 	    }
 	} else {
