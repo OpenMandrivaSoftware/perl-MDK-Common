@@ -12,9 +12,10 @@ clean:
 	find -name "*~" | xargs rm -rf
 
 install: clean test
-	install -d $(BINDIR) $(INSTALLSITEARCH)
+	install -d $(BINDIR) $(INSTALLSITEARCH)/MDK/Common
 	install perl_checker $(BINDIR)
-	cp -r MDK $(INSTALLSITEARCH)
+	install -m 644 MDK/Common.pm $(INSTALLSITEARCH)/MDK
+	install -m 644 MDK/Common/*.pm $(INSTALLSITEARCH)/MDK/Common
 
 rpm: update tar build commit
 
@@ -31,5 +32,5 @@ tar: clean
 build:
 	cp -f ../$(TAR) $(RPM)/SOURCES
 	perl -MMDK::Common -pe 's/THEVERSION/$$MDK::Common::VERSION/' $(NAME).spec > $(RPM)/SPECS/$(NAME).spec
-	-rpm -ba $(NAME).spec
+	-rpm -ba $(RPM)/SPECS/$(NAME).spec
 	rm -f ../$(TAR)

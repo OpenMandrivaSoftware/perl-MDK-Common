@@ -1,6 +1,7 @@
 package MDK::Common::DataStructure;
 
 use MDK::Common::Math;
+use MDK::Common::Func;
 
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
@@ -35,8 +36,12 @@ sub next_val_in_array {
 
 
 sub list2kv { 
-    [ grep_index { MDK::Common::Math::even($::i) } @_ ], 
-    [ grep_index { MDK::Common::Math::odd($::i) } @_ ];
+    my (@k, @v);
+    for (my $i = 0; $i < @_; $i += 2) {	
+	push @k, $_[$i + 0];
+	push @v, $_[$i + 1];
+    }
+    \@k, \@v;
 }
 
 1;

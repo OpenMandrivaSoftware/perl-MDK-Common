@@ -1,4 +1,6 @@
-# do not change here, change in MDK/Common.pm
+# MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
+
+# do not change the version here, change in MDK/Common.pm
 %define version THEVERSION
 %define release 0.1mdk
 %define perl_sitelib %(eval "`perl -V:installsitelib`"; echo $installsitelib)
@@ -11,6 +13,7 @@ Source0: %{name}.tar.bz2
 License: GPL
 Group: Development/Perl
 BuildRoot: %{_tmppath}/%{name}-buildroot
+Requires: /usr/bin/perl
 
 %description
 Various simple functions created for DrakX
@@ -34,6 +37,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/*
 %{perl_sitelib}/MDK
 
+# MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
 * Tue Jul 24 2001 Pixel <pixel@mandrakesoft.com> 1.0-0.1mdk
 - first version

@@ -5,9 +5,25 @@ use MDK::Common::Math;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(fold_left mapn mapn_ map_index grep_index find_index map_each grep_each before_leaving catch_cdie cdie);
+@EXPORT_OK = qw(may_apply if_ if__ fold_left mapn mapn_ map_index grep_index find_index map_each grep_each before_leaving catch_cdie cdie);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
+
+sub may_apply { $_[0] ? $_[0]->($_[1]) : (@_ > 2 ? $_[2] : $_[1]) }
+
+# prototype is needed for things like: if_(/foo/, bar => 'boo')
+sub if_($@) {
+    my $b = shift;
+    $b or return ();
+    wantarray || @_ <= 1 or die("if_ called in scalar context with more than one argument " . join(":", caller()));
+    wantarray ? @_ : $_[0];
+}
+sub if__($@) {
+    my $b = shift;
+    defined $b or return ();
+    wantarray || @_ <= 1 or die("if_ called in scalar context with more than one argument " . join(":", caller()));
+    wantarray ? @_ : $_[0];
+}
 
 sub fold_left(&@) {
     my ($f, $initial, @l) = @_;

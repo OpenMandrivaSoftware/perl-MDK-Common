@@ -6,7 +6,7 @@ use MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_int $bitof_int); #);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int typeFromMagic list_passwd list_home list_skels syscall_ df sync psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setVarsInCsh template2file template2userfile update_userkderc); #);
+@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int typeFromMagic list_passwd list_home list_skels syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setVarsInCsh template2file template2userfile update_userkderc); #);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -74,7 +74,7 @@ sub syscall_ {
     my $f = shift;
 
     require 'syscall.ph';
-    syscall(&{$common::{"SYS_$f"}}, @_) == 0;
+    syscall(&{"SYS_$f"}, @_) == 0;
 }
 
 
