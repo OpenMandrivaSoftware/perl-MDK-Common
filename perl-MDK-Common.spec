@@ -7,6 +7,9 @@
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
 %define require_ocaml /usr/bin/ocamlrun
+%else
+%define build_option %nil
+%define require_ocaml %nil
 %endif
 
 Summary: Various simple functions
@@ -35,8 +38,7 @@ Provides: perl(MDK::Common::Various)
 Summary: Various verifying scripts
 Group: Development/Perl
 AutoReqProv: 0
-Requires: perl-base >= 2:5.8.0
-Requires: %{require_ocaml}
+Requires: perl-base >= 2:5.8.0 %{require_ocaml}
 
 %description
 Various simple functions created for DrakX
