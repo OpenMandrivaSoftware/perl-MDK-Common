@@ -525,7 +525,7 @@ let followed_by_comma ((_,e), _) (true_comma, _) =
     | _ -> e
 
 
-let pot_strings = ref []
+let pot_strings = Hashtbl.create 16
 let pot_strings_and_file = Hashtbl.create 16
 let po_comments = ref []
 let po_comment (s, _) = lpush po_comments s
@@ -571,7 +571,7 @@ msgstr \"\"
     | '\n' -> output_string fd "\\n\"\n\""
     | c -> output_char fd c
   in
-  List.iter (fun (s, po_comments) ->
+  Hashtbl.iter (fun s po_comments ->
     match Hashtbl.find_all pot_strings_and_file s with
     | [] -> ()
     | l ->
@@ -585,7 +585,7 @@ msgstr \"\"
 	String.iter print_formatted_char s ;
 	output_string fd "\"\n" ;
 	output_string fd "msgstr \"\"\n\n"
-  ) !pot_strings ;      
+  ) pot_strings ;      
   close_out fd
 
 let call_func is_a_func (e, para) =
@@ -606,7 +606,7 @@ let call_func is_a_func (e, para) =
 	  (match para with
 	  | [ List(String([ s, List [] ], (file, pos_a, _)) :: _) ] -> 
 	      if !Flags.generate_pot then (
-		lpush pot_strings (s, !po_comments) ;
+		Hashtbl.replace pot_strings s ((try Hashtbl.find pot_strings s with Not_found -> []) @ !po_comments) ;
 		po_comments := [] ;
 		Hashtbl.add pot_strings_and_file s file ;
 	      ) ;

@@ -134,8 +134,6 @@ val to_Call_op_ :
   'b * (int * int) -> ('a * Types.fromparser) * ('b * (int * int))
 val followed_by_comma :
   ('a * Types.fromparser list) * 'b -> bool * 'c -> Types.fromparser list
-val pot_strings : (string * string list) list ref
-val pot_strings_and_file : (string, string) Hashtbl.t
 val po_comments : string list ref
 val po_comment : string * 'a -> unit
 val check_format_a_la_printf : string -> int -> unit
