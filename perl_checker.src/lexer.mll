@@ -772,6 +772,7 @@ rule token = parse
 | "qw" pattern_open { set_delimit_char_open lexbuf "qw"; let s, pos = raw_ins qstring lexbuf in QUOTEWORDS(s, pos) }
 
 | "\n__END__" [^ '0'-'9' 'A'-'Z' 'a'-'z' '_'] 
+| "\n__DATA__" [^ '0'-'9' 'A'-'Z' 'a'-'z' '_']
 | eof   { EOF(pos lexbuf) }
 | _ { failwith (Printf.sprintf "%serror tokenizing <<%s>>" (pos2sfull lexbuf) (lexeme lexbuf)) }
 
