@@ -8,18 +8,6 @@ exception GraphSort_circular_deps
 type ('a, 'b) either = Left of 'a | Right of 'b
 type ('a, 'b) or_option = Or_some of 'a | Or_error of 'b
 
-let bpos = "",-1,-1
-
-let norm (a,b) = if a = -1 then b else a
-let unipos (s,a,b) (s2,c,d) = 
-  if (a,b) = (-1,-1) then s2,c,d else
-  if (c,d) = (-1,-1) then s,a,b else
-  if s <> s2 then bpos else s, min (norm(a,c)) (norm(c,a)), max (norm(b,d)) (norm(d,b))
-
-let uniposl l = match l with
-  | [] -> bpos
-  | e::l -> fold_left unipos e l
-
 (**********************************************************************************)
 
 let internal_error s = failwith ("internal error: " ^ s)
@@ -266,6 +254,9 @@ let rec l_option2option_l = function
   | None :: _l -> None
   | Some e :: l -> map_option (fun l -> e :: l) (l_option2option_l l)
 let map_option_env f (e, env) = map_option f e, env
+
+let t2_to_list (a,b) = [ a ; b ]
+let t3_to_list (a,b,c) = [ a ; b ; c ]
 
 let if_some bool val_ = if bool then Some val_ else None
 
@@ -653,17 +644,13 @@ let skip_n_char_ beg end_ s =
   String.sub s beg (String.length s - beg - end_)
 let skip_n_char n s = skip_n_char_ n 0 s
 
-let rec index_spaces_from beg s =
-  if s.[beg] = ' ' || s.[beg] = '\t' then beg else index_spaces_from (beg+1) s
-let index_spaces s = index_spaces_from 0 s
+let rec non_index_from s beg c =
+  if s.[beg] = c then non_index_from s (beg+1) c else beg
+let non_index s c = non_index_from s 0 c
 
-let rec index_non_spaces_from beg s =
-  if s.[beg] = ' ' || s.[beg] = '\t' then index_non_spaces_from (beg+1) s else beg
-let index_non_spaces s = index_non_spaces_from 0 s
-
-let rec rindex_non_spaces_from beg s =
-  if s.[beg] = ' ' || s.[beg] = '\t' then rindex_non_spaces_from (beg-1) s else beg
-let rindex_non_spaces s = rindex_non_spaces_from (String.length s - 1) s
+let rec non_rindex_from s beg c =
+  if s.[beg] = c then non_rindex_from s (beg-1) c else beg
+let non_rindex s c = non_rindex_from s (String.length s - 1) c
 
 let rec explode_string = function
   | "" -> []

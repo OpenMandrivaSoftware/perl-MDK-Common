@@ -13,9 +13,9 @@ TMP_FILES =  $(YACC_FILES:%.mly=%.mli) $(YACC_FILES:%.mly=%.output) $(YACC_FILES
 
 ALL_PROGS = perl_checker_debug perl_checker
 
-PROG_OBJS_WITH_CMI = parser.cmo print.cmo perl_checker.cmo
+PROG_OBJS_WITH_CMI = parser_helper.cmo parser.cmo print.cmo perl_checker.cmo
 PROG_OBJS = common.cmo flags.cmo info.cmo $(LEX_FILES:%.mll=%.cmo) $(PROG_OBJS_WITH_CMI)
-CMA_FILES = 
+CMA_FILES = unix.cma
 
 PROG_OBJX_WITH_CMI = $(PROG_OBJS_WITH_CMI:%.cmo=%.cmx)
 PROG_OBJX = $(PROG_OBJS:%.cmo=%.cmx)
@@ -48,7 +48,7 @@ perl_checker: .depend $(PROG_OBJX)
 
 $(PROG_OBJS_WITH_CMI): %.cmo: %.cmi
 
-$(PROG_OBJX_WITH_CMI): %.cmx: %.cmi
+$(PROG_OBJX_WITH_CMI): %.cmx: %.cmi 
 
 %.cmo: %.ml
 	$(CSLC) $(CSLFLAGS) -c $<
@@ -74,9 +74,11 @@ depend: .depend
 	$(CSLDEP) $(INCLUDES) *.mli *.mll *.ml > .depend
 
 # missing dependencies:
-perl_checker.cmo: lexer.cmi
-perl_checker.cmx: lexer.cmi
-lexer.cmx: common.cmi
-lexer.cmo: common.cmi
+perl_checker.cmo: lexer.cmi parser.cmi
+perl_checker.cmx: lexer.cmi parser.cmi
+lexer.cmx: common.cmi parser.cmi
+lexer.cmo: common.cmi parser.cmi
+parser.cmo: parser_helper.cmi
+parser.cmx: parser_helper.cmi
 
 -include .depend

@@ -3,10 +3,6 @@ exception Not_comparable
 exception GraphSort_circular_deps
 type ('a, 'b) either = Left of 'a | Right of 'b
 and ('a, 'b) or_option = Or_some of 'a | Or_error of 'b
-val bpos : string * int * int
-val norm : int * int -> int
-val unipos : string * int * int -> string * int * int -> string * int * int
-val uniposl : (string * int * int) list -> string * int * int
 val internal_error : string -> 'a
 val id : 'a -> 'a
 val double : 'a -> 'a * 'a
@@ -65,6 +61,8 @@ val map_optionoption : ('a -> 'b option) -> 'a option -> 'b option
 val t2_option2option_t2 : 'a option * 'b option -> ('a * 'b) option
 val l_option2option_l : 'a option list -> 'a list option
 val map_option_env : ('a -> 'b) -> 'a option * 'c -> 'b option * 'c
+val t2_to_list : 'a * 'a -> 'a list
+val t3_to_list : 'a * 'a * 'a -> 'a list
 val if_some : bool -> 'a -> 'a option
 val fold_left_option : ('a -> 'b -> 'a option) -> 'a -> 'b list -> 'a option
 val collect_some_withenv :
@@ -175,12 +173,10 @@ val chop : string -> string
 val chomps : string -> string
 val skip_n_char_ : int -> int -> string -> string
 val skip_n_char : int -> string -> string
-val index_spaces_from : int -> string -> int
-val index_spaces : string -> int
-val index_non_spaces_from : int -> string -> int
-val index_non_spaces : string -> int
-val rindex_non_spaces_from : int -> string -> int
-val rindex_non_spaces : string -> int
+val non_index_from : string -> int -> char -> int
+val non_index : string -> char -> int
+val non_rindex_from : string -> int -> char -> int
+val non_rindex : string -> char -> int
 val explode_string : string -> char list
 val is_uppercase : char -> bool
 val is_lowercase : char -> bool
