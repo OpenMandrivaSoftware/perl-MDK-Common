@@ -39,8 +39,6 @@ pop @l, 1                                pop is expecting an array and nothing e
 
 pop $xxx                                 pop is expecting an array and nothing else
 
-system(qq(foo "$xxx"))                   instead of quoting parameters you should give a list of arguments
-
 my (@l2, $xxx) = @l;                     @l2 takes all the arguments, $xxx is undef in any case
 
 $bad                                     undeclared variable $bad

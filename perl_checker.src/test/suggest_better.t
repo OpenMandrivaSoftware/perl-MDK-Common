@@ -100,3 +100,6 @@ $xxx ? $yyy : ()                         you may use if_() here
                                            beware that the short-circuit semantic of ?: is not kept
                                            if you want to keep the short-circuit behaviour, replace () with @{[]} and there will be no warning anymore
 
+system(qq(foo "$xxx"))                   instead of quoting parameters you should give a list of arguments
+
+system("mkdir", $xxx)                    you can replace system("mkdir ...") with mkdir(...)

@@ -840,6 +840,22 @@ msgstr \"\"
   ) sorted_pot_strings ;      
   close_out fd
 
+let fake_string_from_String_l l = String.concat "$foo" (List.map fst l)
+let fake_string_option_from_expr = function
+  | String(l, _) -> Some(fake_string_from_String_l l)
+  | Raw_string(s, _) -> Some s
+  | _ -> None
+
+let check_system_call = function
+  | "mkdir" :: l ->
+      let has_p = List.exists (str_begins_with "-p") l in
+      let has_m = List.exists (str_begins_with "-m") l in
+      if has_p && has_m then ()
+      else if has_p then warn_rule "you can replace system(\"mkdir -p ...\") with mkdir_p(...)"
+      else if has_m then warn_rule "you can replace system(\"mkdir -m <mode> ...\") with mkdir(..., <mode>)"
+      else warn_rule "you can replace system(\"mkdir ...\") with mkdir(...)"
+  | _ -> ()
+
 let call_raw force_non_builtin_func (e, para) =
   let check_anonymous_block f = function
   | [ Anonymous_sub _ ; Deref (I_hash, _) ] ->
@@ -946,12 +962,17 @@ let call_raw force_non_builtin_func (e, para) =
 
       | "system" ->
 	  (match un_parenthesize_full_l para with
-	  | [ String(l, _) ] -> 
-	      if List.exists (fun (s, _) -> String.contains s '\'' || String.contains s '"') l && 
-		not (List.exists (fun (s, _) -> List.exists (String.contains s) [ '<' ; '>' ; '&' ; ';']) l) then
-		warn_rule "instead of quoting parameters you should give a list of arguments"
-	  | _ -> ())
-
+	  | [ e ] ->
+	      (match fake_string_option_from_expr e with
+	      | Some s ->
+		  if List.exists (String.contains s) [ '\'' ; char_quote ] &&
+	            not (List.exists (String.contains s) [ '<' ; '>' ; '&' ; ';']) then
+		    warn_rule "instead of quoting parameters you should give a list of arguments";
+		  check_system_call (split_at ' ' s)
+	      | None -> ())
+	  | l -> 
+	      let l' = filter_some_with fake_string_option_from_expr l in
+	      check_system_call l')
       | _ -> ()
       );
 
