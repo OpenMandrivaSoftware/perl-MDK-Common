@@ -321,6 +321,7 @@ term:
 
 | func parenthesized {sp_0($2); call_func $1 $2} /* &foo(@args) */
 | word argexpr {check_parenthesized_first_argexpr_with_Ident $1.any $2; call_no_paren $1 $2} /* foo $a, $b */
+| word BRACKET lines BRACKET_END MULT { die_with_rawpos $5.pos "I can't handle this correctly, please add parentheses" }
 | word BRACKET lines BRACKET_END COMMA argexpr %prec LSTOP {sp_n($2); new_pesp M_unknown P_call_no_paren (call(Deref(I_func, $1.any), Ref(I_hash, List $3.any) :: $6.any.expr)) $1 $6} /* bless { foo }, $bar */
 | word_paren parenthesized {sp_0($2); call_with_paren $1 $2} /* foo(@args) */
 | word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); check_block_sub $3 $4; call_and_context(Deref(I_func, $1.any), anonymous_sub None $3 :: $5.any.expr) false (if $5.any.expr = [] then P_tok else P_call_no_paren) $1 $5} /* map { foo } @bar */
