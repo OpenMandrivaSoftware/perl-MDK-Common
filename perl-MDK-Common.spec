@@ -72,6 +72,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Jul  5 2004 Pixel <pixel@mandrakesoft.com> 1.1.14-1mdk
+- more perlish behaviour for to_int() and to_float()
+  (skipping leading spaces)
+
 * Mon Jun 28 2004 Pixel <pixel@mandrakesoft.com> 1.1.13-1mdk
 - fix single/quote handling in getVarsFromSh()
 - setVarsInSh() now handles characters $, ', \" and spaces in the value
