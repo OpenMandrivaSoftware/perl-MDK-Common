@@ -664,6 +664,12 @@ let call_func is_a_func (e, para) =
 	  | Call_op("m//", Deref(I_scalar, Ident(None, "_", _)) :: pattern, pos) :: l ->
 	      Some(Call_op("qr//", pattern, pos) :: l)
 	  | _ -> None)
+
+      | "map" -> 
+	  (match para with
+	  | Anonymous_sub _ :: _ -> ()
+	  | _ -> warn_rule "always use \"map\" with a block (eg: map { ... } @list)");
+	  None
 	    
       | _ -> None
       in Call(e, some_or para' para)
