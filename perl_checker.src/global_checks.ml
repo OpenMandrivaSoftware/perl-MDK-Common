@@ -548,7 +548,7 @@ let read_packages_from_cache per_files dir =
       Info.add_a_file file.file_name file.lines_starts ;
       add_file_to_files per_files file
     ) l
-  with Sys_error _ -> ()
+  with Sys_error _ | End_of_file -> ()
 
 let write_packages_cache per_files dir =
   try
