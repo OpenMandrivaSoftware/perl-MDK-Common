@@ -319,10 +319,10 @@ term:
 | ONE_SCALAR_PARA word argexpr {check_parenthesized_first_argexpr_with_Ident  $2.any $3; call_one_scalar_para $1 [call(Deref(I_func, $2.any), $3.any.expr)] $1 $3} /* ref foo $a, $b */
 | ONE_SCALAR_PARA hash PKG_SCOPE {sp_0($3); call_one_scalar_para $1 [ Call(Too_complex, [$2.any]) ] $1 $3} /* keys %main:: */
 
-| func parenthesized {sp_0($2); new_pesp M_unknown P_tok (call_func true ($1.any, $2.any.expr)) $1 $2} /* &foo(@args) */
-| word argexpr {check_parenthesized_first_argexpr_with_Ident  $1.any $2; new_pesp M_unknown P_call_no_paren (call(Deref(I_func, $1.any), $2.any.expr)) $1 $2} /* foo $a, $b */
+| func parenthesized {sp_0($2); new_pesp M_unknown P_tok (call_func $1 $2) $1 $2} /* &foo(@args) */
+| word argexpr {check_parenthesized_first_argexpr_with_Ident $1.any $2; call_no_paren $1 $2} /* foo $a, $b */
 | word BRACKET lines BRACKET_END COMMA argexpr %prec LSTOP {sp_n($2); new_pesp M_unknown P_call_no_paren (call(Deref(I_func, $1.any), Ref(I_hash, List $3.any) :: $6.any.expr)) $1 $6} /* bless { foo }, $bar */
-| word_paren parenthesized {sp_0($2); new_pesp M_unknown P_tok (call(Deref(I_func, $1.any), $2.any.expr)) $1 $2} /* foo(@args) */
+| word_paren parenthesized {sp_0($2); call_with_paren $1 $2} /* foo(@args) */
 | word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); check_block_sub $3 $4; call_and_context(Deref(I_func, $1.any), anonymous_sub None $3 :: $5.any.expr) (if $5.any.expr = [] then P_tok else P_call_no_paren) $1 $5} /* map { foo } @bar */
 | word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_pesp M_unknown (if $7.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ Ref(I_hash, $4.any.expr) ] $4 $4) :: $7.any.expr)) $1 $7} /* map { { foo } } @bar */
 | word BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); new_pesp M_unknown (if $8.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ Ref(I_hash, $4.any.expr); Semi_colon ] $4 $4) :: $8.any.expr)) $1 $8} /* map { { foo }; } @bar */

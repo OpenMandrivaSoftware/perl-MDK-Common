@@ -65,6 +65,8 @@ val warn_no_space : int -> unit
 val warn_cr : int -> unit
 val warn_space : int -> unit
 val prio_less : Types.priority * Types.priority -> bool
+val prio_lo_check :
+  Types.priority -> Types.priority -> int * int -> Types.fromparser -> unit
 val prio_lo :
   Types.priority ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
@@ -182,9 +184,24 @@ val po_comments : string list ref
 val po_comment : string Types.any_spaces_pos -> unit
 val check_format_a_la_printf : string -> int -> unit
 val generate_pot : string -> unit
-val call_func :
+val call_raw :
   bool -> Types.fromparser * Types.fromparser list -> Types.fromparser
 val call : Types.fromparser * Types.fromparser list -> Types.fromparser
+val call_func :
+  Types.fromparser Types.any_spaces_pos ->
+  Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
+  Types.fromparser
+val check_return :
+  Types.fromparser Types.any_spaces_pos ->
+  Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos -> unit
+val call_no_paren :
+  Types.fromparser Types.any_spaces_pos ->
+  Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
+val call_with_paren :
+  Types.fromparser Types.any_spaces_pos ->
+  Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
 val call_and_context :
   Types.fromparser * Types.fromparser list ->
   Types.priority ->

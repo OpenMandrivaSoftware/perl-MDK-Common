@@ -193,10 +193,10 @@ let rec prio_less = function
 
   | _, P_and -> true
   | P_and, _ -> false
-  | _, P_comma -> true
-  | P_comma, _ -> false
   | _, P_call_no_paren -> true
   | P_call_no_paren, _ -> false
+  | _, P_comma -> true
+  | P_comma, _ -> false
   | _, P_assign -> true
   | P_assign, _ -> false
   | _, P_ternary -> true
@@ -228,21 +228,22 @@ let rec prio_less = function
   | P_paren _, _ -> true
   | P_tok, _ -> true
 
-let prio_lo pri_out in_ =
-  if prio_less(in_.any.priority, pri_out) then
-    (match in_.any.priority with
+let prio_lo_check pri_out pri_in pos expr =
+  if prio_less(pri_in, pri_out) then
+    (match pri_in with
     | P_paren (P_paren_wanted _) -> ()
     | P_paren pri_in' ->
 	if pri_in' <> pri_out && 
-	   prio_less(pri_in', pri_out) && not_complex (un_parenthesize in_.any.expr) then 
-	  warn in_.pos "unneeded parentheses"
+	   prio_less(pri_in', pri_out) && not_complex (un_parenthesize expr) then 
+	  warn pos "unneeded parentheses"
     | _ -> ())
   else 
-    (match in_.any.expr with
+    (match expr with
     | Call_op ("print", [Deref (I_star, Ident (None, "STDOUT", _)); Deref(I_scalar, ident)], _) -> 
-	 warn in_.pos (sprintf "use parentheses: replace \"print $%s ...\" with \"print($%s ...)\"" (string_of_Ident ident) (string_of_Ident ident))
-    | _ -> warn in_.pos "missing parentheses (needed for clarity)") ;
-  in_.any.expr
+	 warn pos (sprintf "use parentheses: replace \"print $%s ...\" with \"print($%s ...)\"" (string_of_Ident ident) (string_of_Ident ident))
+    | _ -> warn pos "missing parentheses (needed for clarity)")
+
+let prio_lo pri_out in_ = prio_lo_check pri_out in_.any.priority in_.pos in_.any.expr ; in_.any.expr
     
 let prio_lo_after pri_out in_ =
   if in_.any.priority = P_call_no_paren then in_.any.expr else prio_lo pri_out in_
@@ -737,7 +738,7 @@ msgstr \"\"
   ) pot_strings ;      
   close_out fd
 
-let call_func is_a_func (e, para) =
+let call_raw is_a_func (e, para) =
   match e with
   | Deref(I_func, Ident(None, f, _)) ->
       let para' = match f with
@@ -802,7 +803,18 @@ let call_func is_a_func (e, para) =
       in Call(e, some_or para' para)
   | _ -> Call(e, para)
 
-let call(e, para) = call_func false (e, para)
+let call(e, para) = call_raw false (e, para)
+
+let call_func esp_func esp_para = call_raw true (esp_func.any, esp_para.any.expr)
+
+let check_return esp_func esp_para =
+  match esp_func.any with
+  | Ident(None, "return", _) -> 
+      prio_lo_check P_call_no_paren esp_para.any.priority esp_para.pos (List esp_para.any.expr)
+  | _ -> ()
+
+let call_no_paren   esp_func esp_para = check_return esp_func esp_para; new_pesp M_unknown P_call_no_paren (call(Deref(I_func, esp_func.any), esp_para.any.expr)) esp_func esp_para
+let call_with_paren esp_func esp_para = check_return esp_func esp_para; new_pesp M_unknown P_tok           (call(Deref(I_func, esp_func.any), esp_para.any.expr)) esp_func esp_para
 
 let call_and_context(e, para) priority esp_start esp_end =
   let context = 

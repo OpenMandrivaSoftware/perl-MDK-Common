@@ -73,8 +73,8 @@ type priority =
 | P_tight_or
 | P_ternary
 | P_assign
-| P_call_no_paren
 | P_comma
+| P_call_no_paren
 | P_and
 | P_or
 | P_loose
