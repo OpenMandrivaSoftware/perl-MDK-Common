@@ -80,10 +80,13 @@ while (@ARGV) {
 	get_exports();
 
     
-	while (/(^|[^\$@\w:>]) # first a char
+	while (/(^|[^\$@\w:>\\]) # first a char
 	        ((\w|:)*\w)      # function name
 	        (?=\()         # a open parenthesis (zero-width lookahead)
-	    /gx) { add_call($2) unless /$2\(s\)/ } # special case xxxx(s) excluded cuz' of strings containing it
+	    /gx) {
+	    my $f = $2;
+	    add_call($f) if !/$f\(s\)/; # special case xxxx(s) excluded cuz' of strings containing it
+	}
 	while (/&([\w:]+)/g) { add_call($1); }
 	
 	
@@ -107,8 +110,8 @@ sub drop_strings_and_regexps {
     s/"[^"]*"/"foo"/g;  #"
     s/'[^']*'/'foo'/g;  #'
     s/\bqq\([^)]*\)/'foo'/g;
-    s/\bm\b(.)(.*?)\1/m!foo!/g; # m// operator: "m/re/", "m|re|", ...
-    s/\bs\b(.)(.*?)\1(.*?)\1/s!foo!bar!/g; # s/// operator: "s/re/.../", "s|re|...|", ...
+    s/\bm\b([\/|!,])(.*?)\1/m!foo!/g; # m// operator: "m/re/", "m|re|", ...
+    s/\bs\b([\/|!,])(.*?)\1(.*?)\1/s!foo!bar!/g; # s/// operator: "s/re/.../", "s|re|...|", ...
     s|\(/.*?/|(/foo/|g; # m// operator: "(/re/"
     s{([!=]~|\bif\b)\s*/.*?/}{$1 /foo/}g; # m// operator: "if /re/", "=~ /re/", "!~ /re/"
     
@@ -205,6 +208,13 @@ sub syntax_warnings {
     }
     if (/=.*:\s*\$\w+\s*=/) {
         err(q(do not use ``cond ? $v1 = XX1 : $v2 = XX2'' which is parsed as ``(cond ? $v1 = XX1 : $v2) = XX2''), info());
+    }
+
+    if (my ($f, $s) = /(N_?)\((.*)/) {
+	$s =~ s/\\"//g;
+	$s =~ s/"([^"]*)($|".*)/$1/ or err(qq($f must be used as $f("xxx") for xgettext to work correctly (hint: use translate instead)), info());
+	$s =~ s/\\[\$@]//g;
+	$s !~ /[\$@]/ or err(qq(don't use interpolated translated string, use %s or %d instead), info());
     }
 }
 
@@ -354,7 +364,7 @@ sub end {
 		    exists $export_tags{$k}->{$_}->{$func} and next here; # ok, exported by $k in tag $_
 		}
 	    }
-	    err("$func_verbatim undefined", $call_info{$package}->{$func_verbatim}) if length $func_verbatim > 1;
+	    err("$func_verbatim undefined", $call_info{$package}->{$func_verbatim}) if $func_verbatim ne 'q';
 	}
     }
     $ERR and exit $ERR;
