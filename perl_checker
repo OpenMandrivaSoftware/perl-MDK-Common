@@ -6,7 +6,7 @@ sub begin {
     @exclude_calls = qw(chomp chop chr crypt hex index lc lcfirst length oct ord pack reverse rindex sprintf substr uc ucfirst pos quotemeta split study abs atan2 cos exp hex int log oct rand sin sqrt srand pop push shift splice unshift grep join map reverse sort unpack delete each exists keys values binmode close closedir dbmclose dbmopen die eof fileno flock format getc print printf read readdir rewinddir seek seekdir select syscall sysread sysseek syswrite tell telldir truncate warn write pack read syscall sysread syswrite unpack vec chdir chmod chown chroot fcntl glob ioctl link lstat mkdir open opendir readlink rename rmdir stat symlink umask unlink utime caller continue die do dump eval exit goto last next redo return sub wantarray caller import local my package use defined dump eval formline local my reset scalar undef wantarray alarm exec fork getpgrp getppid getpriority kill pipe setpgrp setpriority sleep system times wait waitpid do import no package require use bless dbmclose dbmopen package ref tie tied untie use accept bind connect getpeername getsockname getsockopt listen recv send setsockopt shutdown socket socketpair msgctl msgget msgrcv msgsnd semctl semget semop shmctl shmget shmread shmwrite endgrent endhostent endnetent endpwent getgrent getgrgid getgrnam getlogin getpwent getpwnam getpwuid setgrent setpwent endprotoent endservent gethostbyaddr gethostbyname gethostent getnetbyaddr getnetbyname getnetent getprotobyname getprotobynumber getprotoent getservbyname getservbyport getservent sethostent setnetent setprotoent setservent gmtime localtime time times abs bless chomp chr exists formline glob import lc lcfirst map my no prototype qx qw readline readpipe ref sysopen tie tied uc ucfirst untie use qq Dumper packdrake Eth);
     @exclude_calls{@exclude_calls} = undef;
 
-    @exclude_uses = qw(globals diagnostics strict vars lib Carp Config Exporter Socket Locale::GetText CORE POSIX Gtk Data::Dumper CGI Net::FTP Gtk::XmHTML Gtk::Gdk Gtk::Gdk::ImlibImage Newt Newt::Component Newt::Grid DynaLoader IO::Socket Date::Manip packdrake XML::Parser);
+    @exclude_uses = qw(globals diagnostics strict vars lib Carp Config Exporter Socket Storable Locale::GetText CORE POSIX Gtk Data::Dumper CGI Net::FTP Gtk::XmHTML Gtk::Gdk Gtk::Gdk::ImlibImage Gtk::Gdk::Pixbuf Newt Newt::Component Newt::Grid DynaLoader IO::Socket Date::Manip packdrake XML::Parser);
 
     while ($ARGV[0] =~ /-I(.*)/) {
 	push @I, $1;
@@ -167,6 +167,22 @@ sub syntax_warnings {
     if (/\{\s[^{}]*[^\s{}]\}/) {
         warn_(qq(missing space before "}$'"), info());
     }
+
+    if (/(\$\w+)\s*=\s+.*\s+((if\s+!|unless)\s*\1);/) {
+	warn_(qq("$1 = ... $2" can be written "$1 ||= ..."), info());
+    }
+
+    if (my ($infix, $cond) = /\S\s+(if|unless|foreach)\s+(\([^,]*\));?$/) {
+	if (remove_parentheses($cond) eq '') {
+	    warn_(qq(''... $1 ($2)'' can be written ''... $1 $2''), info());
+	}
+    }
+
+    if (my ($cond) = /\bunless\s+(\(.*?\))\s+{/ ? $1 : /\bunless\s+([^;]*);?$/) {
+	if (remove_funcalls($cond) =~ /(!|&&|\|\|)/) {
+	    warn_(qq(don't use "unless" when the condition is complex, use "if" instead), info());
+	}
+    }
     
     if (/%_\W/ || /[^@]\$_{/) { #-#
         err(q(do not use %_), info()); #-#
@@ -215,6 +231,22 @@ sub syntax_warnings {
 	$s =~ s/"([^"]*)($|".*)/$1/ or err(qq($f must be used as $f("xxx") for xgettext to work correctly (hint: use translate instead)), info());
 	$s =~ s/\\[\$@]//g;
 	$s !~ /[\$@]/ or err(qq(don't use interpolated translated string, use %s or %d instead), info());
+    }    
+
+    if (my (undef, $stash) = /\bopen(\(|\s+)(\w+),/) {
+	if ($stash !~ /^(STDIN|STDOUT|STDERR)$/ && (/\local \*(\w+)/ ? $1 : $stash_localised) ne $stash) {
+	    err(qq(you must localize $stash ("local *$stash;" must be on the previous line)), info());
+	}
+    }
+    ($stash_localised) = /\blocal \*(\w+)/;
+
+    if (/\bwhile \(</ && !/\blocal \$_;/ && !$underscore_localised) {
+	err(q(expression while (<FILEHANDLE>) ... modifies $_, localize it first (it must be on the previous line)), info());
+    }
+    $underscore_localised = /\blocal \$_;/;
+
+    if (/\bfor\s+my/ || /\bfor\b\s*\([^;]*$/ && !/\bfor\b\s*\(\$[^),\s]*\)/) { #- for is allowed with the meaning of "with" in Pascal
+	err(q(use "foreach" instead of "for" (these are synonyms, but foreach has been chosen to be the default)), info());
     }
 }
 
@@ -368,4 +400,23 @@ sub end {
 	}
     }
     $ERR and exit $ERR;
+}
+
+sub remove_parentheses {
+    my ($s) = @_;
+    while ($s =~ s/\([^()]*\)//g) {}
+    $s;
+}
+
+sub remove_funcalls {
+    my ($s) = @_;
+    my $r = '';
+    while (my ($prev, $next) = $s =~ /^(.*?\w+)(\(.*)/) {
+	$r .= "$prev()";
+	$s = $next;
+	while ($s =~ /^\(/) {
+	    $s =~ s/\([^()]*\)//g or return $r;
+	}
+    }
+    "$r$s";
 }
