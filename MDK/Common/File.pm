@@ -32,6 +32,10 @@ array context it returns the lines
 
 creates a file and outputs the list (if the file exists, it is clobbered)
 
+=item mkdir_p(DIRNAME)
+
+creates the directory (make parent directories as needed)
+
 =item linkf(SOURCE, DESTINATION)
 
 =item symlinkf(SOURCE, DESTINATION)
@@ -84,7 +88,7 @@ package MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(dirname basename cat_ cat__ output linkf symlinkf renamef touch all glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
+@EXPORT_OK = qw(dirname basename cat_ cat__ output linkf symlinkf renamef mkdir_p touch all glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
@@ -96,6 +100,18 @@ sub linkf    { unlink $_[1]; link    $_[0], $_[1] }
 sub symlinkf { unlink $_[1]; symlink $_[0], $_[1] }
 sub renamef  { unlink $_[1]; rename  $_[0], $_[1] }
 
+
+sub mkdir_p {
+    my ($dir) = @_;
+    if (-d $dir) {
+	# nothing to do
+    } elsif (-e $dir) {
+	die "mkdir: error creating directory $dir: $root is a file and i won't delete it\n";
+    } else {
+	mkdir_p(dirname($dir));
+	mkdir($dir, 0755) or die "mkdir: error creating directory $_: $!\n";
+    }
+}
 
 sub touch {
     my ($f) = @_;

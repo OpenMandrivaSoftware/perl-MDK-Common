@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 4mdk
+%define release 5mdk
 %define perl_sitelib %(eval "`perl -V:installsitelib`"; echo $installsitelib)
 
 Summary: Various simple functions
@@ -50,6 +50,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Sun Sep 16 2001 Pixel <pixel@mandrakesoft.com> 1.0.2-5mdk
+- add mkdir_p
+
 * Mon Sep 10 2001 Pixel <pixel@mandrakesoft.com> 1.0.2-4mdk
 - DataStructure::uniq : keep the order
 - String::warp_text : fixed
