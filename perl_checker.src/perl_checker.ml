@@ -17,7 +17,7 @@ let inc =
       inc_ref := reldir :: default ;
       
       try
-	ignored_packages := readlines (open_in (reldir ^ "/.perl_checker"))
+	ignored_packages := readlines (open_in (reldir ^ "/.perl_checker")) @ !ignored_packages
       with Sys_error _ -> ()
     );
     !inc_ref
@@ -83,4 +83,7 @@ let parse_options =
 
   let state = parse_required_packages state required_packages in
 
-  List.iter (check_tree state) (List.map snd state.per_package)
+  let l = List.map snd state.per_package in
+  (* HACK: skip ignored_packages. Some package may have appeared in ignored_packages due to the xs bootstrap hack *)
+  let l = List.filter (fun pkg -> not (List.mem pkg.package_name !ignored_packages)) l in
+  List.iter (check_tree state) l

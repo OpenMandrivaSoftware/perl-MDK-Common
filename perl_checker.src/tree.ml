@@ -45,6 +45,10 @@ let empty_exports = { export_ok = []; export_auto = []; export_tags = []; specia
 let ignored_packages = ref []
 let use_lib = ref []
 
+let ignore_package pkg = 
+  if !Flags.verbose then prerr_endline ("ignoring package " ^ pkg);
+  lpush ignored_packages pkg
+
 let die_with_pos pos msg = failwith (Info.pos2sfull pos ^ msg)
 let warn_with_pos pos msg = prerr_endline (Info.pos2sfull pos ^ msg)
 
@@ -206,11 +210,11 @@ let get_vars_declaration state package =
 		with Not_found -> ());
 	      in_bootstrap || str_contains s "XS_VERSION_BOOTCHECK"
 	    ) false (open_in cfile))
-	  with Invalid_argument _ | Sys_error _ -> ())
+	  with Invalid_argument _ | Sys_error _ -> ignore_package pkg)
     | _ -> ()
   ) package.body
 
-let rec get_imported state (package_name, (imports, pos)) =
+let rec get_imported state current_package (package_name, (imports, pos)) =
   try
     let package_used = List.assoc package_name state.per_package in
     let exports = package_used.exports in
@@ -218,7 +222,11 @@ let rec get_imported state (package_name, (imports, pos)) =
     | None ->
 	let re = match exports.special_export with
 	| Some Re_export_all -> get_imports state package_used
-	| Some Export_all -> Hashtbl.fold (fun var _ l -> (var, package_name) :: l) package_used.vars_declared []
+	| Some Export_all -> 
+	    (* HACK: if package exporting-all is ignored, ignore package importing *)
+	    if List.mem package_name !ignored_packages then ignore_package current_package.package_name;
+	      
+	    Hashtbl.fold (fun var _ l -> (var, package_name) :: l) package_used.vars_declared []
 	| _ -> [] in
 	let l = List.map (fun (context, name) -> (context, name), package_name) exports.export_auto in
 	re @ l
@@ -243,7 +251,7 @@ and get_imports state package =
   match !(package.imported) with
   | Some l -> l
   | None ->
-      let l = collect (get_imported state) package.uses in
+      let l = collect (get_imported state package) package.uses in
       package.imported := Some l ;
       l
 
@@ -549,7 +557,7 @@ let check_variables vars t =
 	  | [] -> None
 	  | [ List [v] ] -> Some(from_qw v)
 	  | _ -> die_with_pos pos "bad import statement" in
-	let l = get_imported vars.state (package_name, (args, pos)) in
+	let l = get_imported vars.state vars.current_package (package_name, (args, pos)) in
 	let vars = { vars with locally_imported = l @ vars.locally_imported } in
 	Some vars
 	
