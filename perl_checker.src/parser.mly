@@ -267,7 +267,7 @@ term:
 | DECR term    {sp_0($2); mcontext_check M_int $2; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "--" [$2.any.expr] $1 $2}
 | term INCR    {sp_0($2); mcontext_check M_int $1; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "++ post" [$1.any.expr] $1 $2}
 | term DECR    {sp_0($2); mcontext_check M_int $1; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "-- post" [$1.any.expr] $1 $2}
-| NOT argexpr  {warn_rule "don't use \"not\", use \"!\" instead"; to_Call_op_ (mcontext_unop M_scalar $2) P_and "not" ($2.any.expr) $1 $2}
+| NOT argexpr  {warn_rule "don't use \"not\", use \"!\" instead"; to_Call_op_ (mcontext_unop_l M_scalar $2) P_and "not" ($2.any.expr) $1 $2}
 
 /* Constructors for anonymous data */
 

@@ -978,6 +978,9 @@ let mcontext_check_raw wanted_mcontext esp f_lower f_greater f_err =
      f_err())
 
 let mcontext_check wanted_mcontext esp =
+  (match un_parenthesize_full esp.any.expr with
+  | Call(Deref(I_func, Ident(None, "grep", _)), _) -> warn_rule "in scalar context, use \"any\" instead of \"grep\""
+  | _ -> ());
   mcontext_check_raw wanted_mcontext esp (fun () -> ()) (fun () -> ()) (fun () -> ())
 
 let mcontext_symops wanted_mcontext esp1 esp2 =
@@ -1003,6 +1006,8 @@ let mcontext_rightops wanted_mcontext esp1 esp2 =
 
 let mcontext_unop wanted_mcontext esp = mcontext_check wanted_mcontext esp ; wanted_mcontext
 
+let mcontext_unop_l wanted_mcontext esp = mcontext_unop wanted_mcontext { esp with any = { esp.any with expr = List esp.any.expr  } }
+
 let mcontext_check_non_none esp =
   if esp.mcontext = M_none then warn_rule "() context not accepted here"
 
@@ -1014,6 +1019,7 @@ let mcontext_check_none esp =
       match esp.any with
       | [List [Num("1", _)]; Semi_colon] -> () (* allow "1;" for package return value. It would be much better to check we are at toplevel, but hell i don't want to wire this information up to here *)
       | [List [Call_op ("<>", [Ident (None, "STDIN", _)], _)]; Semi_colon] -> () (* allow <STDIN> to ask "press return" *)
+      | [List [Call(Deref(I_func, Ident(None, "map", _)), _)]; Semi_colon] -> warn_rule "if you don't use the return value, use \"foreach\" instead of \"map\""
       | _ -> warn_rule "value is dropped"
 
 let mcontext_op_assign left right =

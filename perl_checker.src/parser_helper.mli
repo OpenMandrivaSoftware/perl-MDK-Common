@@ -246,15 +246,24 @@ val mcontext_check_raw :
   Types.maybe_context ->
   'a Types.any_spaces_pos ->
   (unit -> 'b) -> (unit -> 'b) -> (unit -> 'b) -> 'b
-val mcontext_check : Types.maybe_context -> 'a Types.any_spaces_pos -> unit
+val mcontext_check :
+  Types.maybe_context ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos -> unit
 val mcontext_symops :
   Types.maybe_context ->
   'a Types.any_spaces_pos -> 'b Types.any_spaces_pos -> Types.maybe_context
 val mcontext_rightops :
   Types.maybe_context ->
-  'a Types.any_spaces_pos -> 'b Types.any_spaces_pos -> Types.maybe_context
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
+  'a Types.any_spaces_pos -> Types.maybe_context
 val mcontext_unop :
-  Types.maybe_context -> 'a Types.any_spaces_pos -> Types.maybe_context
+  Types.maybe_context ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
+  Types.maybe_context
+val mcontext_unop_l :
+  Types.maybe_context ->
+  Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
+  Types.maybe_context
 val mcontext_check_non_none : 'a Types.any_spaces_pos -> unit
 val mcontext_check_none : Types.fromparser list Types.any_spaces_pos -> unit
 val mcontext_op_assign :
