@@ -64,10 +64,11 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
-* Fri Aug 13 2004 Pixel <pixel@mandrakesoft.com> 1.1.17-3mdk
+* Wed Aug 18 2004 Pixel <pixel@mandrakesoft.com> 1.1.17-3mdk
 - use DESTDIR
 - add perl_checker-vim
 - add Ctrl-return in perl and cperl emacs mode
+- fake Getopt::Long
 
 * Wed Aug 11 2004 Pixel <pixel@mandrakesoft.com> 1.1.17-2mdk
 - various perl_checker enhancements/fixes
