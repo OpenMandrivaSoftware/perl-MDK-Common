@@ -7,6 +7,8 @@ INSTALLVENDORLIB = $(shell eval "`perl -V:installvendorlib`"; echo $$installvend
 
 GENERATED = MDK/Common.pm index.html
 
+.PHONY: perl_checker.src
+
 all: $(GENERATED) test
 
 index.html: MDK/Common.pm
@@ -15,16 +17,20 @@ index.html: MDK/Common.pm
 MDK/Common.pm: %: %.pl
 	perl $< > $@
 
-test:
-	./perl_checker MDK/Common/*.pm
+perl_checker.src:
+	$(MAKE) -C $@
+
+test: perl_checker.src
+	perl_checker.src/perl_checker MDK/Common/*.pm
 
 clean:
 	rm -f $(GENERATED)
+	$(MAKE) -C perl_checker.src clean
 	find -name "*~" | xargs rm -rf
 
 install: clean all
 	install -d $(BINDIR) $(INSTALLVENDORLIB)/MDK/Common
-	install perl_checker $(BINDIR)
+	install perl_checker.src/perl_checker $(BINDIR)
 	install -m 644 MDK/Common.pm $(INSTALLVENDORLIB)/MDK
 	install -m 644 MDK/Common/*.pm $(INSTALLVENDORLIB)/MDK/Common
 
