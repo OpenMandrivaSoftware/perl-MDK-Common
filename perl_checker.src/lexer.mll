@@ -37,10 +37,10 @@ type raw_token =
   | NEW of (raw_pos) | FORMAT of (raw_pos) | AT of raw_pos | DOLLAR of raw_pos | PERCENT of raw_pos | AMPERSAND of raw_pos
   | STAR of raw_pos | ARRAYLEN of raw_pos | SEMI_COLON of raw_pos | PKG_SCOPE of raw_pos | PAREN of raw_pos | PAREN_END of raw_pos | BRACKET of raw_pos
   | BRACKET_END of raw_pos | BRACKET_HASHREF of raw_pos | ARRAYREF of raw_pos | ARRAYREF_END of raw_pos | ARROW of raw_pos | INCR of raw_pos | DECR of raw_pos
-  | POWER of raw_pos | TIGHT_NOT of raw_pos | BIT_NEG of raw_pos | REF of raw_pos | PATTERN_MATCH of raw_pos | PATTERN_MATCH_NOT of raw_pos | MULT of raw_pos
-  | DIVISION of raw_pos | MODULO of raw_pos | REPLICATE of raw_pos | PLUS of raw_pos | MINUS of raw_pos | CONCAT of raw_pos | BIT_SHIFT_LEFT of raw_pos
-  | BIT_SHIFT_RIGHT of raw_pos | LT of raw_pos | GT of raw_pos | COMPARE_OP of (string * raw_pos) | EQ_OP of (string * raw_pos)
-  | BIT_AND of raw_pos | BIT_OR of raw_pos | BIT_XOR of raw_pos | AND_TIGHT of raw_pos | OR_TIGHT of raw_pos | DOTDOT of raw_pos | DOTDOTDOT of raw_pos
+  | POWER of raw_pos | TIGHT_NOT of raw_pos | BIT_NEG of raw_pos | REF of raw_pos | DEFINED of raw_pos | PATTERN_MATCH of raw_pos | PATTERN_MATCH_NOT of raw_pos | MULT of (string * raw_pos)
+  | PLUS of (string * raw_pos) | BIT_SHIFT of (string * raw_pos)
+  | LT of raw_pos | GT of raw_pos | COMPARE_OP of (string * raw_pos) | EQ_OP of (string * raw_pos)
+  | BIT_AND of raw_pos | BIT_OR of raw_pos | BIT_XOR of raw_pos | AND_TIGHT of raw_pos | OR_TIGHT of raw_pos | DOTDOT of (string * raw_pos)
   | QUESTION_MARK of raw_pos | COLON of raw_pos | ASSIGN of (string * raw_pos) | COMMA of raw_pos | RIGHT_ARROW of raw_pos | NOT of raw_pos | AND of raw_pos | OR of raw_pos | XOR of raw_pos
 
 let saved_token = ref None
@@ -111,6 +111,11 @@ let rec concat_spaces get_token lexbuf =
   | ASSIGN(s, pos) -> Parser.ASSIGN(s, (spaces, pos))
   | FOR(s, pos) -> Parser.FOR(s, (spaces, pos))
 
+  | DOTDOT(s, pos) -> Parser.DOTDOT(s, (spaces, pos))
+  | MULT(s, pos) -> Parser.MULT(s, (spaces, pos))
+  | BIT_SHIFT(s, pos) -> Parser.BIT_SHIFT(s, (spaces, pos))
+  | PLUS(s, pos) -> Parser.PLUS(s, (spaces, pos))
+
   | EOF              (pos) -> Parser.EOF              ((), (spaces, pos))
   | IF               (pos) -> Parser.IF               ((), (spaces, pos))
   | ELSIF            (pos) -> Parser.ELSIF            ((), (spaces, pos))
@@ -151,15 +156,6 @@ let rec concat_spaces get_token lexbuf =
   | REF              (pos) -> Parser.REF              ((), (spaces, pos))
   | PATTERN_MATCH    (pos) -> Parser.PATTERN_MATCH    ((), (spaces, pos))
   | PATTERN_MATCH_NOT(pos) -> Parser.PATTERN_MATCH_NOT((), (spaces, pos))
-  | MULT             (pos) -> Parser.MULT             ((), (spaces, pos))
-  | DIVISION         (pos) -> Parser.DIVISION         ((), (spaces, pos))
-  | MODULO           (pos) -> Parser.MODULO           ((), (spaces, pos))
-  | REPLICATE        (pos) -> Parser.REPLICATE        ((), (spaces, pos))
-  | PLUS             (pos) -> Parser.PLUS             ((), (spaces, pos))
-  | MINUS            (pos) -> Parser.MINUS            ((), (spaces, pos))
-  | CONCAT           (pos) -> Parser.CONCAT           ((), (spaces, pos))
-  | BIT_SHIFT_LEFT   (pos) -> Parser.BIT_SHIFT_LEFT   ((), (spaces, pos))
-  | BIT_SHIFT_RIGHT  (pos) -> Parser.BIT_SHIFT_RIGHT  ((), (spaces, pos))
   | LT               (pos) -> Parser.LT               ((), (spaces, pos))
   | GT               (pos) -> Parser.GT               ((), (spaces, pos))
   | BIT_AND          (pos) -> Parser.BIT_AND          ((), (spaces, pos))
@@ -167,8 +163,6 @@ let rec concat_spaces get_token lexbuf =
   | BIT_XOR          (pos) -> Parser.BIT_XOR          ((), (spaces, pos))
   | AND_TIGHT        (pos) -> Parser.AND_TIGHT        ((), (spaces, pos))
   | OR_TIGHT         (pos) -> Parser.OR_TIGHT         ((), (spaces, pos))
-  | DOTDOT           (pos) -> Parser.DOTDOT           ((), (spaces, pos))
-  | DOTDOTDOT        (pos) -> Parser.DOTDOTDOT        ((), (spaces, pos))
   | QUESTION_MARK    (pos) -> Parser.QUESTION_MARK    ((), (spaces, pos))
   | COLON            (pos) -> Parser.COLON            ((), (spaces, pos))
   | COMMA            (pos) -> Parser.COMMA            ((), (spaces, pos))
@@ -177,6 +171,7 @@ let rec concat_spaces get_token lexbuf =
   | AND              (pos) -> Parser.AND              ((), (spaces, pos))
   | OR               (pos) -> Parser.OR               ((), (spaces, pos))
   | XOR              (pos) -> Parser.XOR              ((), (spaces, pos))
+  | DEFINED          (pos) -> Parser.DEFINED          ((), (spaces, pos))
 
   | SPACE _ | CR -> internal_error "raw_token_to_token"
 
@@ -311,14 +306,14 @@ rule token = parse
 | "~" { BIT_NEG(pos lexbuf) }
 | "=~" { PATTERN_MATCH(pos lexbuf) }
 | "!~" { PATTERN_MATCH_NOT(pos lexbuf) }
-| "*" { MULT(pos lexbuf) }
-| "%" { MODULO(pos lexbuf) }
-| "x" { REPLICATE(pos lexbuf) }
-| "+" { PLUS(pos lexbuf) }
-| "-" { MINUS(pos lexbuf) }
-| "." { CONCAT(pos lexbuf) }
-| "<<" { BIT_SHIFT_LEFT(pos lexbuf) }
-| ">>" { BIT_SHIFT_RIGHT(pos lexbuf) }
+| "*" { MULT(lexeme lexbuf, pos lexbuf) }
+| "%" { MULT(lexeme lexbuf, pos lexbuf) }
+| "x" { MULT(lexeme lexbuf, pos lexbuf) }
+| "+" { PLUS(lexeme lexbuf, pos lexbuf) }
+| "-" { PLUS(lexeme lexbuf, pos lexbuf) }
+| "." { PLUS(lexeme lexbuf, pos lexbuf) }
+| "<<" { BIT_SHIFT(lexeme lexbuf, pos lexbuf) }
+| ">>" { BIT_SHIFT(lexeme lexbuf, pos lexbuf) }
 | "<" { LT(pos lexbuf) }
 | ">" { GT(pos lexbuf) }
 | "<=" | ">=" | "lt" | "gt" | "le" | "ge" { COMPARE_OP(lexeme lexbuf, pos lexbuf) }
@@ -328,8 +323,8 @@ rule token = parse
 | "^" { BIT_XOR(pos lexbuf) }
 | "&&" { AND_TIGHT(pos lexbuf) }
 | "||" { OR_TIGHT(pos lexbuf) }
-| ".." { DOTDOT(pos lexbuf) }
-| "..." { DOTDOTDOT(pos lexbuf) }
+| ".." { DOTDOT(lexeme lexbuf, pos lexbuf) }
+| "..." { DOTDOT(lexeme lexbuf, pos lexbuf) }
 | "?" { QUESTION_MARK(pos lexbuf) }
 | ":" { COLON(pos lexbuf) }
 | "::" { PKG_SCOPE(pos lexbuf) }
@@ -363,6 +358,7 @@ rule token = parse
 | "print"    { PRINT(lexeme lexbuf, pos lexbuf) }
 | "new"      { NEW(pos lexbuf) }
 | "format"   { let _ = here_doc_next_line "." false in FORMAT(pos lexbuf) }
+| "defined"  { DEFINED(pos lexbuf) }
 
 | "split"
 | "grep"  { (* ok_for_match! *) BAREWORD(lexeme lexbuf, pos lexbuf) }
@@ -394,7 +390,7 @@ rule token = parse
 | '$' '#' { ARRAYLEN(pos lexbuf) }
 | '%' ['$' '{'] { putback lexbuf 1; PERCENT(pos lexbuf) }
 | '&' ['$' '{'] { putback lexbuf 1; AMPERSAND(pos lexbuf) }
-| '*' ['$' '{'] { putback lexbuf 1; if lexeme_start lexbuf = !not_ok_for_match then MULT(pos lexbuf) else STAR(pos lexbuf) }
+| '*' ['$' '{'] { putback lexbuf 1; if lexeme_start lexbuf = !not_ok_for_match then MULT("*", pos lexbuf) else STAR(pos lexbuf) }
 
 
 | ';' { SEMI_COLON(pos lexbuf) }
@@ -407,7 +403,7 @@ rule token = parse
 | ']' { not_ok_for_match := lexeme_end lexbuf; ARRAYREF_END(pos lexbuf) }
 
 | "/" {
-    if lexeme_start lexbuf = !not_ok_for_match then DIVISION(pos lexbuf)
+    if lexeme_start lexbuf = !not_ok_for_match then MULT("/", pos lexbuf)
     else (
       delimit_char := '/' ;
       current_string_start_line := !current_file_current_line;

@@ -29,9 +29,11 @@ type fromparser =
    | List of fromparser list
    | Block of fromparser list
 
-   | Call of fromparser * fromparser list
    | Call_op of string * fromparser list
+   | Call of fromparser * fromparser list
+   | CallP of fromparser * fromparser list
    | Method_call of fromparser * fromparser * fromparser list
+   | Method_callP of fromparser * fromparser * fromparser list
 
    | Anonymous_sub of fromparser
    | My of fromparser
@@ -43,3 +45,24 @@ type fromparser =
 
    | Too_complex
    | Semi_colon
+
+type priority = 
+| P_tok
+| P_tight
+| P_mul
+| P_add
+| P_cmp
+| P_eq
+| P_expr
+| P_tight_and
+| P_tight_or
+| P_ternary
+| P_assign
+| P_call_no_paren
+| P_comma
+| P_and
+| P_or
+| P_loose
+
+| P_paren_wanted of priority
+| P_paren of priority

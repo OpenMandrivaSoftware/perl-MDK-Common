@@ -8,6 +8,10 @@ val id : 'a -> 'a
 val double : 'a -> 'a * 'a
 val swap : 'a * 'b -> 'b * 'a
 val safe_tl : 'a list -> 'a list
+val fstfst : ('a * 'b) * 'c -> 'a
+val sndfst : ('a * 'b) * 'c -> 'b
+val fstsnd : 'a * ('b * 'c) -> 'b
+val sndsnd : 'a * ('b * 'c) -> 'c
 val o : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b
 val curry : ('a * 'b -> 'c) -> 'a -> 'b -> 'c
 val uncurry : ('a -> 'b -> 'c) -> 'a * 'b -> 'c

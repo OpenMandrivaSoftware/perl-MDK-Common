@@ -16,6 +16,11 @@ let id x = x
 let double a = a,a
 let swap (x,y) = (y,x)
 let safe_tl l = try tl l with _ -> []
+let fstfst ((e, _), _) = e
+let sndfst ((_, e), _) = e
+let fstsnd (_, (e, _)) = e
+let sndsnd (_, (_, e)) = e
+
 
 let o f g x = f (g x)
 let curry f x y = f (x,y)
