@@ -201,7 +201,7 @@ sub map_index(&@) {
 }
 sub each_index(&@) {
     my $f = shift;
-    my @v; local $::i = 0;
+    local $::i = 0;
     foreach (@_) {
 	&$f($::i);
 	$::i++;

@@ -118,7 +118,7 @@ sub chomp_ { my @l = map { my $l = $_; chomp $l; $l } @_; wantarray() ? @l : $l[
 sub backtrace {
     my $s;
     for (my $i = 1; caller($i); $i++) {
-	my ($package, $file, $line, $func) = caller($i);
+	my ($_package, $file, $line, $func) = caller($i);
 	$s .= "$func() called from $file:$line\n";
     }
     $s;
@@ -130,7 +130,7 @@ sub internal_error {
 
 sub noreturn {
     if (defined wantarray()) {
-	my ($package, $file, $line, $func) = caller(1);
+	my ($_package, $file, $line, $func) = caller(1);
 	my (undef, undef, undef, $func2) = caller(2);
 	die "$file:$line: $func2() expects a value from $func(), but $func() doesn't return any value\n";
     }
