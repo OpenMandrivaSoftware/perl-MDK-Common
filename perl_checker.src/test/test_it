@@ -76,7 +76,7 @@ foreach my $test (@tests) {
         @l = ($header, @l);
     }
     output('.pl', @l);
-    my @log = grep { !/^File .*, line / } `perl_checker .pl`;
+    my @log = grep { !/^File .*, line / } `../perl_checker .pl`;
     die "@log in .pl ($file):\n" . join('', @{$test->{lines}}) if any { /^syntax error$/ } @log;
     foreach my $i (0 .. max(int @{$test->{lines}}, int @log) - 1) {
         my $s = $test->{lines}[$i];
