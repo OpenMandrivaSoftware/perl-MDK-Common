@@ -297,6 +297,7 @@ term:
 | ONE_SCALAR_PARA word_paren parenthesized {call_one_scalar_para $1 [call(Deref(I_func, fst $2), sndfst $3)], sp_pos_range $1 $3}
 | ONE_SCALAR_PARA {call_one_scalar_para $1 [], snd $1}
 | ONE_SCALAR_PARA word argexpr {check_parenthesized_first_argexpr_with_Ident (fst $2) $3; call_one_scalar_para $1 [call(Deref(I_func, fst $2), sndfst $3)], sp_pos_range $1 $3} /* ref foo $a, $b */
+| ONE_SCALAR_PARA hash PKG_SCOPE {sp_0($3); call_one_scalar_para $1 [ Call(Too_complex, [fst $2]) ], sp_pos_range $1 $3} /* keys %main:: */
 
 | func parenthesized {sp_0($2); (P_tok, call_func true (fst $1, sndfst $2)), sp_pos_range $1 $2} /* &foo(@args) */
 | word argexpr {check_parenthesized_first_argexpr_with_Ident (fst $1) $2; (P_call_no_paren, call(Deref(I_func, fst $1), sndfst $2)), sp_pos_range $1 $2} /* foo $a, $b */
