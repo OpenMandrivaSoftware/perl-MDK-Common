@@ -33,6 +33,7 @@ type per_package = {
     from_basedir : bool ;
   }
 
+val empty_exports : exports
 val ignore_package : string -> unit
 val use_lib : string list ref
 val uses_external_package : string -> bool

@@ -835,8 +835,11 @@ let call_one_scalar_para { any = e ; pos = pos } para esp_start esp_end =
   let para =
     match para with
     | [] ->
-	  if not (List.mem e [ "length" ]) then warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" e e) ;
-	  [var_dollar_ (raw_pos2pos pos)]
+	  if e = "shift" then 
+	    [ Deref(I_array, Ident(None, "_", raw_pos2pos pos)) ]
+	  else
+	    (if not (List.mem e [ "length" ]) then warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" e e) ;
+	     [var_dollar_ (raw_pos2pos pos)])
     | _ -> para
   in
   new_pesp M_unknown P_mul (call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)) esp_start esp_end

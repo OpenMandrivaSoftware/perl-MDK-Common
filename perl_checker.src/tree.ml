@@ -274,7 +274,10 @@ let get_proto perl_proto body =
     | (I_array, _) :: _ :: _ -> warn_with_pos pos "an array must be the last variable in a prototype"
     | (I_hash, _) :: _ :: _ -> warn_with_pos pos "an hash must be the last variable in a prototype"
     | _ -> ());
-    let is_optional (_, s) = String.length s > 2 && (s.[0] = 'o' || s.[0] = 'b') && s.[1] = '_' in
+    let is_optional (_, s) = 
+      String.length s > 2 &&                (s.[0] = 'o' || s.[0] = 'b') && s.[1] = '_' ||
+      String.length s > 3 && s.[0] = '_' && (s.[1] = 'o' || s.[1] = 'b') && s.[2] = '_'
+    in
     let must_have, optional = break_at is_optional scalars in
     if not (List.for_all is_optional optional) then
       warn_with_pos pos "an non-optional argument must not follow an optional argument";
