@@ -37,11 +37,14 @@ EOF
 foreach my $f (<MDK/Common/*.pm>) {
     (my $pkg = $f) =~ s|/|::|g;
     open F, $f or die "can't open file $f";
+    my $line;
     while (<F>) {
+	$line++;
 	if (/^=head1 (EXPORTS|OTHER)/ .. /^=back/) {
 	    s/^=head1 EXPORTS/=head1 EXPORTS from $pkg/;
 	    s/^=head1 OTHER/=head1 OTHER in $pkg/;
 	    s/^=back/=back\n/;
+	    /^\s+\n/ and warn "$f:$line: spaces only line\n";
 	    print;
 	}
     }
@@ -71,7 +74,7 @@ use vars qw(@ISA @EXPORT $VERSION); #);
 # perl_checker: RE-EXPORT-ALL
 @EXPORT = map { @$_ } map { values %{'MDK::Common::' . $_ . 'EXPORT_TAGS'} } grep { /::$/ } keys %MDK::Common::;
 
-$VERSION = "1.1.10";
+$VERSION = "1.1.11";
 
 1;
 EOF
