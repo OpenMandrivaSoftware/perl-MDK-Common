@@ -185,6 +185,11 @@ let rec for_all2_ p l1 l2 =
   | (a1::l1, a2::l2) -> p a1 a2 && for_all2_ p l1 l2
   | (_, _) -> false
 
+let rec for_all2_true p l1 l2 =
+  match (l1, l2) with
+  | (a1::l1, a2::l2) -> p a1 a2 && for_all2_true p l1 l2
+  | (_, _) -> true
+
 let maxl l = fold_right1 max l
   
 let rec stack2list s =

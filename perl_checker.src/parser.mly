@@ -288,7 +288,7 @@ term:
 | termdo {new_1pesp P_tok $1.any $1}
 | REF term {new_pesp (M_ref $2.mcontext) P_expr (Ref(I_scalar, remove_call_with_same_para_special $2.any.expr)) $1 $2} /* \$x, \@y, \%z */
 | my_our %prec UNIOP {new_1pesp P_expr $1.any $1}
-| LOCAL term    %prec UNIOP {sp_n($2); new_pesp M_none P_expr (to_Local $2) $1 $2}
+| LOCAL term    %prec UNIOP {sp_n($2); new_pesp (M_mixed [ $2.mcontext ; M_none ]) P_expr (to_Local $2) $1 $2}
 
 | parenthesized {new_1pesp $1.any.priority (List $1.any.expr) $1} /* (1, 2) */
 | parenthesized arrayref {sp_0($2); let is_slice = not (is_only_one_in_List $2.any) in new_pesp (if is_slice then M_list else M_scalar) P_tok (to_Deref_with(I_array, (if is_slice then I_array else I_scalar), List $1.any.expr, List $2.any)) $1 $2} /* list indexing or slicing */
@@ -409,21 +409,21 @@ parenthesized_start:
 | parenthesized_start BRACKET expr BRACKET_END comma {(if $1.any = [] then sp_0_or_cr else sp_p)($2); sp_p($3); sp_p($4); new_esp (M_ref M_hash) ($1.any @ [Ref(I_hash, $3.any.expr)]) $1 $5}
 
 my_our: /* Things that can be "my"'d */
-| my_our_paren     PAREN_END {sp_0($2); if snd $1.any <> [] && fstfst $1.any then die_rule "syntax error";  new_esp M_none (My_our(sndfst $1.any, snd $1.any, get_pos $1)) $1 $2}
-| my_our_paren SCALAR_IDENT PAREN_END {check_my_our_paren $1 $2; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_scalar, snd $2.any], pos_range $1 $3)) $1 $3}
-| my_our_paren HASH_IDENT   PAREN_END {check_my_our_paren $1 $2; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_hash,   snd $2.any], pos_range $1 $3)) $1 $3}
-| my_our_paren ARRAY_IDENT  PAREN_END {check_my_our_paren $1 $2; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_array,  snd $2.any], pos_range $1 $3)) $1 $3}
+| my_our_paren     PAREN_END {sp_0($2); if snd $1.any <> [] && fstfst $1.any then die_rule "syntax error";  new_esp (M_mixed [ $1.mcontext ; M_none ]) (My_our(sndfst $1.any, snd $1.any, get_pos $1)) $1 $2}
+| my_our_paren SCALAR_IDENT PAREN_END {check_my_our_paren $1 $2; new_esp (M_mixed [ mtuple_context_concat $1.mcontext M_scalar; M_none ]) (My_our(sndfst $1.any, snd $1.any @ [I_scalar, snd $2.any], pos_range $1 $3)) $1 $3}
+| my_our_paren HASH_IDENT   PAREN_END {check_my_our_paren $1 $2; new_esp (M_mixed [ M_list ; M_none ]) (My_our(sndfst $1.any, snd $1.any @ [I_hash,   snd $2.any], pos_range $1 $3)) $1 $3}
+| my_our_paren ARRAY_IDENT  PAREN_END {check_my_our_paren $1 $2; new_esp (M_mixed [ M_list ; M_none ]) (My_our(sndfst $1.any, snd $1.any @ [I_array,  snd $2.any], pos_range $1 $3)) $1 $3}
 | MY_OUR SCALAR_IDENT {new_esp (M_mixed [M_scalar; M_none]) (My_our($1.any, [I_scalar, snd $2.any], get_pos $2)) $1 $2}
 | MY_OUR HASH_IDENT   {new_esp (M_mixed [M_hash  ; M_none]) (My_our($1.any, [I_hash,   snd $2.any], get_pos $2)) $1 $2}
 | MY_OUR ARRAY_IDENT  {new_esp (M_mixed [M_array ; M_none]) (My_our($1.any, [I_array,  snd $2.any], get_pos $2)) $1 $2}
 
 my_our_paren:
-| MY_OUR PAREN {sp_1($2); new_esp M_special ((true, $1.any), []) $1 $2}
-| my_our_paren comma {if fstfst $1.any then die_rule "syntax error"; new_esp M_none ((true, sndfst $1.any), snd $1.any) $1 $2}
-| my_our_paren BAREWORD {check_my_our_paren $1 $2; if $2.any <> "undef" then die_rule "scalar expected"; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_raw, $2.any]) $1 $2}
-| my_our_paren SCALAR_IDENT {check_my_our_paren $1 $2; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_scalar, snd $2.any]) $1 $2}
-| my_our_paren HASH_IDENT   {check_my_our_paren $1 $2; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_hash,   snd $2.any]) $1 $2}
-| my_our_paren ARRAY_IDENT  {check_my_our_paren $1 $2; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_array,  snd $2.any]) $1 $2}
+| MY_OUR PAREN {sp_1($2); new_esp (M_tuple []) ((true, $1.any), []) $1 $2}
+| my_our_paren comma {if fstfst $1.any then die_rule "syntax error"; new_esp $1.mcontext ((true, sndfst $1.any), snd $1.any) $1 $2}
+| my_our_paren BAREWORD {check_my_our_paren $1 $2; if $2.any <> "undef" then die_rule "scalar expected"; new_esp (mtuple_context_concat $1.mcontext M_none) ((false, sndfst $1.any), snd $1.any @ [I_raw, $2.any]) $1 $2}
+| my_our_paren SCALAR_IDENT {check_my_our_paren $1 $2; new_esp (mtuple_context_concat $1.mcontext M_scalar) ((false, sndfst $1.any), snd $1.any @ [I_scalar, snd $2.any]) $1 $2}
+| my_our_paren HASH_IDENT   {check_my_our_paren $1 $2; new_esp M_list ((false, sndfst $1.any), snd $1.any @ [I_hash,   snd $2.any]) $1 $2}
+| my_our_paren ARRAY_IDENT  {check_my_our_paren $1 $2; new_esp M_list ((false, sndfst $1.any), snd $1.any @ [I_array,  snd $2.any]) $1 $2}
 
 termdo: /* Things called with "do" */
 | DO term %prec UNIOP { die_rule "\"do EXPR\" not allowed" } /* do $filename */

@@ -19,7 +19,6 @@ val sndter3 : 'a * 'b * 'c -> 'b * 'c
 val o : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b
 val curry : ('a * 'b -> 'c) -> 'a -> 'b -> 'c
 val uncurry : ('a -> 'b -> 'c) -> 'a * 'b -> 'c
-val is_int : float -> bool
 val uncons : 'a list -> 'a * 'a list
 val has_env : string -> bool
 val some : 'a option -> 'a
@@ -44,6 +43,7 @@ val keep_best : ('a * 'a -> 'a option) -> 'a list -> 'a list
 val keep_bests : ('a * 'a -> 'a option) -> 'a list -> 'a list
 val fold_right1 : ('a -> 'a -> 'a) -> 'a list -> 'a
 val for_all2_ : ('a -> 'b -> bool) -> 'a list -> 'b list -> bool
+val for_all2_true : ('a -> 'b -> bool) -> 'a list -> 'b list -> bool
 val maxl : 'a list -> 'a
 val stack2list : 'a Stack.t -> 'a list
 val stack_exists : ('a -> bool) -> 'a Stack.t -> bool

@@ -134,7 +134,7 @@ let rec is_same_fromparser a b =
   | Raw_string(s1, _), Raw_string(s2, _) -> s1 = s2
 
   | String(l1, _), String(l2, _) ->
-      List.for_all2 (fun (s1, e1) (s2, e2) -> s1 = s2 && is_same_fromparser e1 e2) l1 l2
+      for_all2_ (fun (s1, e1) (s2, e2) -> s1 = s2 && is_same_fromparser e1 e2) l1 l2
 
   | Ref(c1, e1), Ref(c2, e2)
   | Deref(c1, e1), Deref(c2, e2) -> c1 = c2 && is_same_fromparser e1 e2
@@ -144,13 +144,13 @@ let rec is_same_fromparser a b =
   | Diamond(None), Diamond(None) -> true
   | Diamond(Some e1), Diamond(Some e2) -> is_same_fromparser e1 e2
 
-  | List(l1), List(l2) -> List.for_all2 is_same_fromparser l1 l2
+  | List(l1), List(l2) -> for_all2_ is_same_fromparser l1 l2
 
-  | Call_op(op1, l1, _), Call_op(op2, l2, _) -> op1 = op2 && List.for_all2 is_same_fromparser l1 l2
-  | Call(e1, l1), Call(e2, l2) -> is_same_fromparser e1 e2 && List.for_all2 is_same_fromparser l1 l2
+  | Call_op(op1, l1, _), Call_op(op2, l2, _) -> op1 = op2 && for_all2_ is_same_fromparser l1 l2
+  | Call(e1, l1), Call(e2, l2) -> is_same_fromparser e1 e2 && for_all2_ is_same_fromparser l1 l2
 
   | Method_call(e1, m1, l1), Method_call(e2, m2, l2) ->
-      is_same_fromparser e1 e2 && is_same_fromparser m1 m2 && List.for_all2 is_same_fromparser l1 l2
+      is_same_fromparser e1 e2 && is_same_fromparser m1 m2 && for_all2_ is_same_fromparser l1 l2
 
   | _ -> false
 
@@ -998,8 +998,8 @@ let rec mcontext_lower c1 c2 =
   match c1, c2 with
   | M_special, _ | _, M_special -> internal_error "M_special in mcontext_compare"
 
-  | M_array, M_array | M_array, M_int | M_array, M_float | M_array, M_scalar | M_array, M_list
-  | M_hash, M_hash | M_hash, M_scalar | M_hash, M_list
+  | M_array, M_array | M_array, M_int | M_array, M_float | M_array, M_scalar | M_array, M_tuple _ | M_array, M_list
+  | M_hash, M_hash | M_hash, M_scalar | M_hash, M_tuple _ | M_hash, M_list
 
   | M_bool, M_bool | M_bool, M_scalar | M_bool, M_list
 
@@ -1011,7 +1011,11 @@ let rec mcontext_lower c1 c2 =
   | M_scalar, M_scalar | M_scalar, M_list
     -> true
 
-  | M_tuple t1, M_tuple t2 -> List.for_all2 mcontext_lower t1 t2
+  | M_bool, M_tuple (c :: _) | M_int, M_tuple (c :: _) | M_float, M_tuple (c :: _) | M_ref _, M_tuple (c :: _) | M_string, M_tuple (c :: _) | M_revision, M_tuple (c :: _) | M_scalar, M_tuple (c :: _)
+    -> mcontext_lower c1 c
+
+  | M_tuple t1, M_tuple t2 -> 
+      List.length t1 <= List.length t2 && for_all2_true mcontext_lower t1 t2
   | M_tuple _, M_list
 
   | M_list, M_list
@@ -1074,8 +1078,10 @@ let mcontext_check_raw wanted_mcontext esp f_lower f_greater f_err =
      f_err())
 
 let mcontext_check wanted_mcontext esp =
-  if wanted_mcontext <> M_list && wanted_mcontext <> M_array then
-    (match un_parenthesize_full esp.any.expr with
+  (match wanted_mcontext with
+  | M_list | M_array | M_mixed [M_array; M_none] | M_tuple _ -> ()
+  | _ ->
+    match un_parenthesize_full esp.any.expr with
     | Call(Deref(I_func, Ident(None, "grep", _)), _) -> warn_rule "in scalar context, use \"any\" instead of \"grep\""
     | _ -> ());
   mcontext_check_raw wanted_mcontext esp (fun () -> ()) (fun () -> ()) (fun () -> ())
@@ -1134,12 +1140,26 @@ let mcontext_check_none msg expr esp =
 
 let mcontext_op_assign left right =
   mcontext_check_non_none right;
+  let left_context =
+    match left.mcontext with
+    | M_mixed [ c ; M_none ] -> c
+    | c -> c
+  in
+  let left_context =
+    match left_context with
+    | M_array | M_hash -> M_list
+    | M_tuple l -> M_tuple (List.map (fun _ -> M_unknown) l)
+    | c -> c
+  in
+  mcontext_check left_context right;
 
   match left.any.expr with
   | Deref(I_array, _) | My_our("my", [(I_array, _)], _) -> M_mixed [ M_array; M_none ]
   | _ -> mcontext_merge right.mcontext M_none
 
 let mtuple_context_concat c1 c2 =
-  match c1 with
-  | M_tuple l -> M_tuple (l @ [c2])
+  match c1, c2 with
+  | M_array, _ | _, M_array
+  | M_hash, _ | _, M_hash -> M_list
+  | M_tuple l, _ -> M_tuple (l @ [c2])
   | _ -> M_tuple [c1 ; c2]

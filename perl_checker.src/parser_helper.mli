@@ -286,6 +286,7 @@ val mcontext_check_none :
   string -> Types.fromparser list -> 'a Types.any_spaces_pos -> unit
 val mcontext_op_assign :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
-  'a Types.any_spaces_pos -> Types.maybe_context
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
+  Types.maybe_context
 val mtuple_context_concat :
   Types.maybe_context -> Types.maybe_context -> Types.maybe_context
