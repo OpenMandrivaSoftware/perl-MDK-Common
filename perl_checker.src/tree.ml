@@ -50,6 +50,7 @@ let ignore_package pkg =
 
 let die_with_pos pos msg = failwith (Info.pos2sfull pos ^ msg)
 let warn_with_pos pos msg = print_endline_flush (Info.pos2sfull pos ^ msg)
+let warn_with_pos_always pos msg = print_endline_flush_always (Info.pos2sfull pos ^ msg)
 
 let s2context s = 
   match s.[0] with

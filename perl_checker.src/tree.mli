@@ -50,6 +50,7 @@ val get_vars_declaration : (context * string * string, pos * prototype option) H
 
 val die_with_pos : string * int * int -> string -> 'a
 val warn_with_pos : string * int * int -> string -> unit
+val warn_with_pos_always : string * int * int -> string -> unit
 
 val fold_tree : ('a -> fromparser -> 'a option) -> 'a -> fromparser -> 'a
 val from_qw : fromparser -> (context * string) list

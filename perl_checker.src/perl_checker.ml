@@ -67,7 +67,7 @@ and parse_package_if_needed per_files (package_name, pos) =
     | Some required_packages -> required_packages, per_files
     | None -> parse_file (dir = !basedir) (Some package_name) per_files file
   with Not_found -> 
-    warn_with_pos pos (Printf.sprintf "can't find package %s" package_name) ;
+    warn_with_pos_always pos (Printf.sprintf "can't find package %s" package_name) ;
     [], per_files
 
 let rec parse_required_packages state already_done = function
