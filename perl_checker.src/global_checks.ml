@@ -281,7 +281,8 @@ let check_variables vars t =
 
     | Call(Deref(I_func, Ident(None, "require", _)), [Ident _]) -> Some vars
 
-    | Call(Deref(I_func, Ident(None, "shift", pos)) as var, []) -> 
+    | Call(Deref(I_func, Ident(None, "shift", pos)) as var, [])
+    | Call(Deref(I_func, Ident(None, "pop",   pos)) as var, []) -> 
 	check vars (Call(var, [ Deref(I_array, Ident(None, (if vars.is_toplevel then "ARGV" else "_"), pos)) ]))
 
     | Call(Deref(context, (Ident(_, _, pos) as var)), para) -> 

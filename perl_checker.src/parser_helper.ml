@@ -333,7 +333,7 @@ let word_alone esp =
       | "arch" | "quotemeta" | "lc" | "lcfirst" | "uc" | "ucfirst" -> M_string
 	    
       | "split" -> M_array
-      | "shift" -> M_scalar
+      | "shift" | "pop" -> M_scalar
       | "die" | "return" | "redo" | "next" | "last" -> M_unknown
       | "caller" -> M_mixed [M_string ; M_list]
 	    
@@ -822,6 +822,12 @@ let call_raw force_non_builtin_func (e, para) =
 	      warn_rule "you can replace \"member($xxx, keys %yyy)\" with \"exists $yyy{$xxx}\""
 	  | _ -> ());
 	  None
+
+      | "pop" | "shift" ->
+	  (match para with
+	  | [] 
+	  | [ Deref(I_array, _) ] -> ()
+	  | _ -> warn_rule (f ^ " is expecting an array and nothing else")) ; None
 	    
       | _ -> None
       in Call(e, some_or para' para)
@@ -861,7 +867,7 @@ let call_one_scalar_para { any = e ; pos = pos } para esp_start esp_end =
   let para =
     match para with
     | [] ->
-	  if e = "shift" then 
+	  if e = "shift" || e = "pop" then 
 	    [] (* can't decide here *)
 	  else
 	    (if not (List.mem e [ "length" ]) then warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" e e) ;
