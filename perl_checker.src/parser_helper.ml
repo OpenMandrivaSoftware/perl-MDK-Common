@@ -588,6 +588,10 @@ let call_op_((prio, (prev_ter, op)), ter, para) (sp, pos) =
 	warn_rule "don't do this"
       else if List.exists (function Num _ -> true | _ -> false) para then
 	warn_rule (sprintf "you should use a number operator, not the string operator \"%s\" (or replace the number with a string)" op)
+  | "||=" | "&&=" ->
+      (match List.hd para with
+      | List [ List _ ] -> warn_rule "remove the parentheses"
+      | e -> if is_not_a_scalar e then warn_rule (sprintf "\"%s\" is only useful with a scalar" op))
   | _ -> ());
   sp_same prev_ter ter ;
   (prio, cook_call_op(op, para, pos)), (sp, pos)
