@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm
 %define version THEVERSION
-%define release 0.1mdk
+%define release 0.2mdk
 %define perl_sitelib %(eval "`perl -V:installsitelib`"; echo $installsitelib)
 
 Summary: Various simple functions
@@ -39,6 +39,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Jul 25 2001 Pixel <pixel@mandrakesoft.com> 1.0-0.2mdk
+- another pre-release: some doc added, some fixes
+
 * Tue Jul 24 2001 Pixel <pixel@mandrakesoft.com> 1.0-0.1mdk
 - first version
 
