@@ -190,6 +190,8 @@ use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_i
 		     'k6'      => 'i586',
 		     'k7'      => 'k6',
 		     'k8'      => 'k7',
+		     'x86_64'  => 'i686',
+		     'amd64'   => 'x86_64',
 		     'ia64'    => 'noarch',
 		     'ppc'     => 'noarch',
 		     'alpha'   => 'noarch',
