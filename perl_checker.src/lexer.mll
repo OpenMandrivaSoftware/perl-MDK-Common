@@ -417,6 +417,11 @@ rule token = parse
 
 | "=" | "+=" | "-=" | "*=" | ".=" | "|=" | "&=" | "^=" | "||=" | "&&=" { ASSIGN(lexeme lexbuf, pos lexbuf) }
 
+| "<<=" | ">>=" | "**=" { 
+    warn lexbuf (Printf.sprintf "don't use \"%s\", use the expanded version instead" (lexeme lexbuf)) ;
+    ASSIGN(lexeme lexbuf, pos lexbuf) 
+  }
+
 | "," { COMMA(pos lexbuf) }
 | "=>" { RIGHT_ARROW(pos lexbuf) }
 | "not" { NOT(pos lexbuf) }
