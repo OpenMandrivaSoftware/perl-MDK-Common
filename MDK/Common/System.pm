@@ -226,18 +226,23 @@ sub compat_arch { better_arch(arch(), $_[0]) }
 
 sub typeFromMagic {
     my $f = shift;
-    local *F; sysopen F, $f, 0 or return;
+    sysopen(my $F, $f, 0) or return;
 
     my $tmp;
   M: foreach (@_) {
-	my ($name, @l) = @$_;
-	while (@l) {
-	    my ($offset, $signature) = splice(@l, 0, 2);
-	    sysseek(F, $offset, 0) or next M;
-	    sysread(F, $tmp, length $signature);
-	    $tmp eq $signature or next M;
+	if (ref($_) eq 'CODE') {
+	    my $name = $_->($F) or next M;
+	    return $name;
+	} else {
+	    my ($name, @l) = @$_;
+	    while (@l) {
+		my ($offset, $signature) = splice(@l, 0, 2);
+		sysseek($F, $offset, 0) or next M;
+		sysread($F, $tmp, length $signature);
+		$tmp eq $signature or next M;
+	    }
+	    return $name;
 	}
-	return $name;
     }
     undef;
 }

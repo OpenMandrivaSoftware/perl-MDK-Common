@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 3mdk
+%define release 1mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -64,6 +64,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Sep  6 2004 Pixel <pixel@mandrakesoft.com> 1.1.18-1mdk
+- more flexible typeFromMagic
+
 * Wed Aug 18 2004 Pixel <pixel@mandrakesoft.com> 1.1.17-3mdk
 - use DESTDIR
 - add perl_checker-vim
