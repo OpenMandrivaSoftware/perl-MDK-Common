@@ -217,7 +217,7 @@ term:
 
 | term POWER      term {         symops P_tight M_float (mcontext_float_or_int [$1.mcontext; $3.mcontext]) "**" $1 $2 $3}
 | term PLUS       term {         symops P_add M_float (mcontext_float_or_int [$1.mcontext; $3.mcontext]) $2.any $1 $2 $3}
-| term CONCAT     term {         symops P_add M_string M_string "." $1 $2 $3}
+| term CONCAT     term {sp_p $2; symops P_add M_string M_string "." $1 $2 $3}
 | term BIT_SHIFT  term {         symops (P_paren_wanted P_tight) M_int M_int $2.any $1 $2 $3}
 | term XOR        term {sp_p $2; symops (P_paren_wanted P_expr) M_bool M_bool "xor" $1 $2 $3}
 | term DOTDOT     term {         symops (P_paren_wanted P_expr) M_unknown_scalar M_string $2.any $1 $2 $3}

@@ -12,3 +12,4 @@ my($_xxx, $_yyy)                         you should have a space here
 
 xxx ($xxx)                               you should not have a space here
 
+'foo'.'bar'                              you should have a space here
