@@ -300,7 +300,7 @@ sub setVarsInShMode {
     @fields = keys %$l unless @fields;
 
     MDK::Common::File::output($file, 
-	map { $l->{$_} ? "$_=$l->{$_}\n" : () } @fields
+	map { $l->{$_} ? "$_=$l->{$_}\n" : @{[]} } @fields
     );
     chmod $mod, $file;
 }
@@ -310,8 +310,8 @@ sub setExportedVarsInSh {
     @fields = keys %$l unless @fields;
 
     MDK::Common::File::output($file, 
-	(map { $l->{$_} ? "$_=$l->{$_}\n" : () } @fields), 
-	@fields ? "export " . join(" ", @fields) . "\n" : (),
+	(map { $l->{$_} ? "$_=$l->{$_}\n" : @{[]} } @fields), 
+	@fields ? "export " . join(" ", @fields) . "\n" : @{[]},
     );
 }
 
@@ -319,7 +319,7 @@ sub setExportedVarsInCsh {
     my ($file, $l, @fields) = @_;
     @fields = keys %$l unless @fields;
 
-    MDK::Common::File::output($file, map { $l->{$_} ? "setenv $_ $l->{$_}\n" : () } @fields);
+    MDK::Common::File::output($file, map { $l->{$_} ? "setenv $_ $l->{$_}\n" : @{[]} } @fields);
 }
 
 sub template2file {

@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 3mdk
+%define release 4mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -50,6 +50,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Dec  4 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-4mdk
+- warn use of "cond ? list : ()" (use if_(cond, list) instead)
+- adapt MDK::Common::* to this (using @{[]} instead of () to avoid the warning)
+
 * Mon Dec  2 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-3mdk
 - add output_with_perm(), cat_or_die()
 - some more checks in perl_checker ($1 =~ /re/ is a warning)
