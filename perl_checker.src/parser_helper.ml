@@ -168,6 +168,40 @@ let from_array esp =
   | Deref(I_array, ident) -> ident
   | _ -> internal_error "from_array"
 
+let rec get_pos_from_expr = function
+  | Anonymous_sub(_, _, pos)
+  | String(_, pos)
+  | Call_op(_, _, pos)
+  | Perl_checker_comment(_, pos)
+  | My_our(_, _, pos)
+  | Raw_string(_, pos)
+  | Num(_, pos)
+  | Ident(_, _, pos)
+      -> pos
+
+  | Package e
+  | Ref(_, e)
+  | Deref(_, e)
+  | Sub_declaration(e, _, _, _)
+  | Deref_with(_, _, e, _)
+  | Use(e, _)
+  | Call(e, _)
+  | Method_call(_, e, _)
+      -> get_pos_from_expr e
+
+  | Diamond(option_e) 
+      -> if option_e = None then raw_pos2pos bpos else get_pos_from_expr (some option_e)
+      
+  | List l
+  | Block l
+      -> if l = [] then raw_pos2pos bpos else get_pos_from_expr (List.hd l)
+
+  | Semi_colon
+  | Too_complex
+  | Undef
+  | Label _
+      -> raw_pos2pos bpos
+
 let msg_with_rawpos (start, end_) msg = Info.pos2sfull_current start end_ ^ msg
 let die_with_rawpos raw_pos msg = failwith (msg_with_rawpos raw_pos msg)
 let warn raw_pos msg = print_endline_flush (msg_with_rawpos raw_pos msg)

@@ -43,6 +43,7 @@ val is_a_string : Types.fromparser -> bool
 val is_parenthesized : Types.fromparser -> bool
 val un_parenthesize : Types.fromparser -> Types.fromparser
 val un_parenthesize_full : Types.fromparser -> Types.fromparser
+val un_parenthesize_full_l : Types.fromparser list -> Types.fromparser list
 val is_always_true : Types.fromparser -> bool
 val is_always_false : Types.fromparser -> bool
 val not_complex : Types.fromparser -> bool
@@ -53,6 +54,7 @@ val variable2s : Types.context * string -> string
 val is_same_fromparser : Types.fromparser -> Types.fromparser -> bool
 val from_scalar : Types.fromparser Types.any_spaces_pos -> Types.fromparser
 val from_array : Types.fromparser Types.any_spaces_pos -> Types.fromparser
+val get_pos_from_expr : Types.fromparser -> Types.pos
 val msg_with_rawpos : int * int -> string -> string
 val die_with_rawpos : int * int -> string -> 'a
 val warn : int * int -> string -> unit
