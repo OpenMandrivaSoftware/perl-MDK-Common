@@ -346,12 +346,17 @@ let hex_in_string lexbuf next_rule s =
     else
       "\\x{" ^ s ^ "}" in
   next_s s (Stack.pop next_rule) lexbuf 
+
+let set_delimit_char lexbuf op = 
+  match lexeme_char lexbuf (String.length op) with
+  | '@' -> die lexbuf ("don't use " ^ op ^ "@...@, replace @ with / ! , or |")
+  | c -> delimit_char := c
 }
 
 let stash = [ '$' '@' '%' '&' '*' ]
 let ident_start = ['a'-'z' 'A'-'Z' '_']
 let ident = ident_start ['0'-'9' 'A'-'Z' 'a'-'z' '_'] *
-let pattern_separator = [ '/' '!' ',' '|' ]
+let pattern_separator = [ '/' '!' ',' '|' '@' ]
 
 rule token = parse
 | [' ' '\t']+ { 
@@ -533,7 +538,7 @@ rule token = parse
   }
 
 | "m" pattern_separator {
-  delimit_char := lexeme_char lexbuf 1 ;
+  set_delimit_char lexbuf "m" ;
   current_string_start_line := !current_file_current_line;
   let s, pos = ins re_delimited_string lexbuf in
   let opts, _ = raw_ins pattern_options lexbuf in
@@ -542,7 +547,7 @@ rule token = parse
 }
 
 | "qr" pattern_separator {
-  delimit_char := lexeme_char lexbuf 2 ;
+  set_delimit_char lexbuf "qr" ;
   current_string_start_line := !current_file_current_line;
   let s, pos = ins re_delimited_string lexbuf in
   let opts, _ = raw_ins pattern_options lexbuf in
@@ -551,7 +556,7 @@ rule token = parse
 }
 
 | "s" pattern_separator {
-  delimit_char := lexeme_char lexbuf 1 ;
+  set_delimit_char lexbuf "s" ;
   current_string_start_line := !current_file_current_line;
   let s1, (start, _) = ins re_delimited_string lexbuf in 
   let s2, (_, end_)  = ins delimited_string lexbuf in 
@@ -562,7 +567,7 @@ rule token = parse
 }
 
 | "tr" pattern_separator {
-  delimit_char := lexeme_char lexbuf 2 ;
+  set_delimit_char lexbuf "tr" ;
   current_string_start_line := !current_file_current_line;
   let s1, (start, _) = ins delimited_string lexbuf in 
   let s2, (_, end_)  = ins delimited_string lexbuf in 
