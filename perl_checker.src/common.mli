@@ -193,6 +193,7 @@ val is_lowercase : char -> bool
 val char_is_alphanumerical : char -> bool
 val char_is_alphanumerical_ : char -> bool
 val char_is_alpha : char -> bool
+val char_is_number : char -> bool
 val string_forall_with : (char -> bool) -> int -> string -> bool
 val starts_with_non_lowercase : string -> bool
 val fold_lines : ('a -> string -> 'a) -> 'a -> in_channel -> 'a

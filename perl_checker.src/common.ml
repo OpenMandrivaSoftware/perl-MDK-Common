@@ -715,6 +715,10 @@ let char_is_alpha c =
   Char.code 'a' <= i && i <= Char.code 'z' ||
   Char.code 'A' <= i && i <= Char.code 'Z'
 
+let char_is_number c =
+  let i = Char.code c in
+  Char.code '0' <= i && i <= Char.code '9'
+
 let rec string_forall_with f i s =
   try
     f s.[i] && string_forall_with f (i+1) s

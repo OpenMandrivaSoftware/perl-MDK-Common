@@ -220,8 +220,8 @@ term:
 
 
 | term PATTERN_MATCH     PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_   ($1); to_Call_op_(P_expr, "m//",  sndfst $1 :: from_PATTERN $3) (sp_pos_range $1 $3)}
-| term PATTERN_MATCH_NOT PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_s  ($1); to_Call_op_(P_expr, "!m//", sndfst $1 :: from_PATTERN $3) (sp_pos_range $1 $3)}
-| term PATTERN_MATCH PATTERN_SUBST {sp_n($2); sp_p($3); check_unneeded_var_dollar_not($1); to_Call_op_(P_expr, "s///", sndfst $1 :: from_PATTERN_SUBST $3) (sp_pos_range $1 $3)}
+| term PATTERN_MATCH_NOT PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_not($1); to_Call_op_(P_expr, "!m//", sndfst $1 :: from_PATTERN $3) (sp_pos_range $1 $3)}
+| term PATTERN_MATCH PATTERN_SUBST {sp_n($2); sp_p($3); check_unneeded_var_dollar_s  ($1); to_Call_op_(P_expr, "s///", sndfst $1 :: from_PATTERN_SUBST $3) (sp_pos_range $1 $3)}
 | term PATTERN_MATCH_NOT PATTERN_SUBST {die_with_rawpos (sndsnd $2) "use =~ instead of !~ and negate the return value"}
 
 | term PATTERN_MATCH     scalar { (P_expr, Too_complex), sp_pos_range $1 $3}

@@ -14,10 +14,13 @@ let var_STDOUT = Deref(I_star, Ident(None, "STDOUT", raw_pos2pos bpos))
 let is_var_dollar_ = function
   | Deref(I_scalar, Ident(None, "_", _)) -> true
   | _ -> false
+let is_var_number_match = function
+  | Deref(I_scalar, Ident(None, s, _)) -> String.length s = 1 && char_is_number s.[0]
+  | _ -> false
 
 let is_parenthesized = function
   | List[]
-  | List[List[_]] -> true
+  | List[List _] -> true
   | _ -> false
 
 let un_parenthesize = function
@@ -276,9 +279,15 @@ let check_arrow_needed ((_, e), _) ter =
   | Deref_with _ -> warn (sndsnd ter) "the arrow \"->\" is unneeded"
   | _ -> ()
 
-let check_unneeded_var_dollar_    ((_, e), (_, pos)) = if is_var_dollar_ e then warn pos "\"$_ =~ /regexp/\" can be written \"/regexp/\""
-let check_unneeded_var_dollar_s   ((_, e), (_, pos)) = if is_var_dollar_ e then warn pos "\"$_ =~ s/regexp/.../\" can be written \"s/regexp/.../\""
-let check_unneeded_var_dollar_not ((_, e), (_, pos)) = if is_var_dollar_ e then warn pos "\"$_ !~ /regexp/\" can be written \"!/regexp/\""
+let check_unneeded_var_dollar_    ((_, e), (_, pos)) =
+  if is_var_dollar_ e then warn pos "\"$_ =~ /regexp/\" can be written \"/regexp/\"" else
+  if is_var_number_match e then warn pos "do not use the result of a match (eg: $1) to match another pattern"
+let check_unneeded_var_dollar_not ((_, e), (_, pos)) =
+  if is_var_dollar_ e then warn pos "\"$_ !~ /regexp/\" can be written \"!/regexp/\"" else
+  if is_var_number_match e then warn pos "do not use the result of a match (eg: $1) to match another pattern"
+let check_unneeded_var_dollar_s   ((_, e), (_, pos)) = 
+  if is_var_dollar_ e then warn pos "\"$_ =~ s/regexp/.../\" can be written \"s/regexp/.../\"" else
+  if is_var_number_match e then die_with_rawpos pos "do not modify the result of a match (eg: $1)"
 
 let check_MULT_is_x (s, _) = if s <> "x" then die_rule "syntax error"
 let check_my (s, _) = if s <> "my" then die_rule "syntax error"
