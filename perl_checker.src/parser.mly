@@ -181,6 +181,7 @@ use_revision:
 
 func_decl:
 | SUB word { new_esp M_none ($2.any, None) $1 $2}
+| SUB ONE_SCALAR_PARA { new_esp M_none (Ident(None, $2.any, get_pos $2), None) $1 $2}
 | SUB BAREWORD_PAREN PAREN PAREN_END { warn_rule [Warn_white_space] "remove carriage return between \"sub\" and the function name"; new_esp M_none (Ident(None, $2.any, get_pos $2), Some "") $1 $4 }
 | FUNC_DECL_WITH_PROTO {new_1esp (Ident(fst3 $1.any, snd3 $1.any, get_pos $1), Some (ter3 $1.any)) $1 }
 
@@ -329,6 +330,9 @@ term:
 | ONE_SCALAR_PARA word argexpr {check_parenthesized_first_argexpr_with_Ident  $2.any $3; call_one_scalar_para $1 [call(Deref(I_func, $2.any), $3.any.expr)] $1 $3} /* ref foo $a, $b */
 | ONE_SCALAR_PARA hash PKG_SCOPE {sp_0($3); call_one_scalar_para $1 [ Call(Too_complex, [$2.any]) ] $1 $3} /* keys %main:: */
 | ONE_SCALAR_PARA BAREWORD {if $2.any = "_" && $1.any.[0] = '-' then new_pesp M_bool P_mul Too_complex $1 $2 else die_rule "syntax error"} /* -e "foo" && -f _ */
+
+| ONE_SCALAR_PARA array arrayref {call_one_scalar_para $1 [to_Deref_with(I_array, I_array, from_array $2, List $3.any)] $1 $3} /* array slice: @array[vals] */
+| ONE_SCALAR_PARA array BRACKET expr BRACKET_END {sp_0($3); sp_0($4); sp_0($5); call_one_scalar_para $1 [to_Deref_with(I_hash, I_array, from_array $2, $4.any.expr)] $1 $5} /* hash slice: @hash{@keys} */
 
 | func parenthesized {sp_0($2); call_func $1 $2} /* &foo(@args) */
 | word argexpr {check_parenthesized_first_argexpr_with_Ident $1.any $2; call_no_paren $1 $2} /* foo $a, $b */
