@@ -393,7 +393,7 @@ arrayref:
 | arrayref_start BRACKET expr BRACKET_END ARRAYREF_END {sp_p($2); sp_p($4); sp_0($5); new_esp (M_ref M_hash) ($1.any @ [Ref(I_hash, $3.any.expr)]) $1 $5}
 parenthesized:
 | parenthesized_start PAREN_END {sp_0_or_cr($2); new_pesp (if $1.any = [] then M_list else $1.mcontext) (if $1.any = [] then P_tok else P_paren P_comma) $1.any $1 $2}
-| parenthesized_start expr PAREN_END {sp_0_or_cr($3); new_pesp (if $1.any = [] then $2.mcontext else M_list) (P_paren (if $1.any = [] then $2.any.priority else P_comma)) ($1.any @ [(if $1.any = [] then prio_lo P_loose else prio_lo_after P_comma) $2]) $1 $3}
+| parenthesized_start expr PAREN_END {sp_0_or_cr($3); (if $1.any = [] then sp_0_or_cr else sp_p)($2); new_pesp (if $1.any = [] then $2.mcontext else M_list) (P_paren (if $1.any = [] then $2.any.priority else P_comma)) ($1.any @ [(if $1.any = [] then prio_lo P_loose else prio_lo_after P_comma) $2]) $1 $3}
 | parenthesized_start BRACKET expr BRACKET_END PAREN_END {sp_p($4); sp_0_or_cr($5); new_pesp (if $1.any = [] then M_ref M_hash else M_list) (P_paren (if $1.any = [] then P_expr else P_comma)) ($1.any @ [Ref(I_hash, $3.any.expr)]) $1 $5}
 
 arrayref_start:
