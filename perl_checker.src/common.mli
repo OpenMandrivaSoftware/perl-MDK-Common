@@ -42,10 +42,12 @@ val fold_right1 : ('a -> 'a -> 'a) -> 'a list -> 'a
 val for_all2_ : ('a -> 'b -> bool) -> 'a list -> 'b list -> bool
 val maxl : 'a list -> 'a
 val stack2list : 'a Stack.t -> 'a list
+val stack_exists : ('a -> bool) -> 'a Stack.t -> bool
 val queue2list : 'a Queue.t -> 'a list
 val fix_point : ('a -> 'a) -> 'a -> 'a
 val fix_point_withenv : ('a -> 'b -> 'b * 'a) -> 'a -> 'b -> 'b * 'a
 val fix_point_ : int -> ('a -> 'a) -> 'a -> 'a * int
+val group_by_2 : 'a list -> ('a * 'a) list
 val do0_withenv :
   (('a -> unit) -> 'b -> 'c) -> ('d -> 'a -> 'd) -> 'd -> 'b -> 'd
 val do0_withenv2 :
@@ -176,6 +178,7 @@ val str_contains : string -> string -> bool
 val str_ends_with : string -> string -> bool
 val chop : string -> string
 val chomps : string -> string
+val times : 'a -> int -> 'a list
 val skip_n_char_ : int -> int -> string -> string
 val skip_n_char : int -> string -> string
 val non_index_from : string -> int -> char -> int
@@ -186,8 +189,11 @@ val explode_string : string -> char list
 val is_uppercase : char -> bool
 val is_lowercase : char -> bool
 val starts_with_non_lowercase : string -> bool
-val get_package_name : string -> string option
-val split_at_two_colons : string -> string * string
+val fold_lines : ('a -> string -> 'a) -> 'a -> in_channel -> 'a
+val readlines : in_channel -> string list
+val split_at : char -> string -> string list
+val split_at2 : char -> char -> string -> string list
+val words : string -> string list
 val to_CamelCase : string -> string option
 val string_of_ref : 'a ref -> string
 val is_int : float -> bool

@@ -37,7 +37,9 @@ let has_env var =
     let _ = Sys.getenv var in true
   with Not_found -> false
 
-let some = function Some e -> e | None -> failwith "some"
+let some = function 
+  | Some e -> e
+  | None -> failwith "some"
 
 let some_or = function
   | None -> id
@@ -185,6 +187,12 @@ let rec stack2list s =
   let l = ref [] in
   Stack.iter (fun e -> l := e :: !l) s ;
   !l
+  
+let rec stack_exists f s =
+  try
+    Stack.iter (fun e -> if f e then raise Found) s ;
+    false
+  with Found -> true
 
 let rec queue2list q = rev (Queue.fold (fun b a -> a :: b) [] q)
 
@@ -199,6 +207,11 @@ let rec fix_point_withenv f env p =
 let rec fix_point_ nb f p =
   let p' = f p in
   if p = p' then p, nb else fix_point_ (nb+1) f p'
+
+let rec group_by_2 = function
+  | [] -> []
+  | a :: b :: l -> (a, b) :: group_by_2 l
+  | _ -> failwith "group_by_2"
 
 (*
 let rec lfix_point f e =
@@ -647,6 +660,10 @@ let chomps s =
   while !i >= 0 && (s.[!i] = ' ' || s.[!i] = '\t') do decr i done ;
   String.sub s 0 (!i+1)
 
+let rec times e = function
+  | 0 -> []
+  | n -> e :: times e (n-1)
+
 let skip_n_char_ beg end_ s =
   String.sub s beg (String.length s - beg - end_)
 let skip_n_char n s = skip_n_char_ n 0 s
@@ -668,12 +685,43 @@ let is_lowercase c = Char.uppercase c <> c
 
 let starts_with_non_lowercase s = s <> "" && s.[0] <> '_' && not (is_lowercase s.[0])
 
-let get_package_name s = 
-  try Some (String.sub s 0 (String.rindex s ':' - 1)) with Not_found -> None
+let rec fold_lines f init chan =
+  try 
+    let line = input_line chan in 
+    fold_lines f (f init line) chan
+  with End_of_file -> init
+let readlines chan = List.rev (fold_lines (fun l e -> e::l) [] chan)
 
-let split_at_two_colons s =
-  let i_fq = String.rindex s ':' in
-  String.sub s 0 (i_fq - 1), skip_n_char (i_fq + 1) s
+let split_at c s =
+  let rec split_at_ accu i =
+    try
+      let i' = String.index_from s i c in
+      split_at_ (String.sub s i (i' - i) :: accu) (i'+1)
+    with Not_found -> rev (skip_n_char i s :: accu)
+  in
+  split_at_ [] 0
+
+let split_at2 c1 c2 s =
+  let rec split_at2_ accu i i2 =
+    try
+      let i3 = String.index_from s i2 c1 in
+      if s.[i3+1] = c2 then split_at2_ (String.sub s i (i3 - i) :: accu) (i3+2) (i3+2) else
+      split_at2_ accu i i3
+    with Not_found | Invalid_argument _ -> rev (skip_n_char i s :: accu)
+  in
+  split_at2_ [] 0 0
+
+let words s =
+  let rec words_ accu i =
+    try
+      let i2 = non_index_from s i ' ' in
+      try
+	let i3 = String.index_from s i2 ' ' in
+	words_ (String.sub s i2 (i3 - i2) :: accu) (i3+1)
+      with Not_found -> rev (skip_n_char i2 s :: accu)
+    with Invalid_argument _ -> rev accu
+  in
+  words_ [] 0
 
 let to_CamelCase s_ =
   let l = ref [] in

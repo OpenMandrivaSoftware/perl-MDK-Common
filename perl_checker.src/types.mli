@@ -11,9 +11,10 @@ type spaces =
   | Space_cr
   | Space_none
 
-type context = I_scalar | I_hash | I_array | I_func | I_raw | I_star | I_arraylen
+type context = I_scalar | I_hash | I_array | I_func | I_raw | I_star
 
 type fromparser = 
+   | Undef
    | Ident of string option * string * pos
    | Num of string * pos
    | Raw_string of string * pos
@@ -36,13 +37,13 @@ type fromparser =
    | Method_call of fromparser * fromparser * fromparser list
    | Method_callP of fromparser * fromparser * fromparser list
 
-   | Anonymous_sub of fromparser list
-   | My of fromparser
-   | Local of fromparser
+   | Anonymous_sub of fromparser
+   | My_our of string * (context * string) list * pos
    | Use of fromparser * fromparser list
-   | Sub_declaration of fromparser * string * fromparser list (* name, prototype, body *)
+   | Sub_declaration of fromparser * string * fromparser (* name, prototype, body *)
    | Package of fromparser
    | Label of string
+   | Perl_checker_comment of string * pos
 
    | Too_complex
    | Semi_colon

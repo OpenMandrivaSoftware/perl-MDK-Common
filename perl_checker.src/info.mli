@@ -1,4 +1,3 @@
-val lines_starts : (string * int list ref) list ref
 val current_file_lines_starts : int list ref
 val current_file_current_line : int ref
 val current_file : string ref

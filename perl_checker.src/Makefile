@@ -4,7 +4,7 @@ YFLAGS = -v
 TRASH = parser.output TAGS
 RESULT  = perl_checker
 BCSUFFIX = _debug
-SOURCES = common.ml types.mli info.ml parser_helper.ml parser.mly lexer.mll perl_checker.ml
+SOURCES = common.ml flags.ml types.mli info.ml parser_helper.ml parser.mly lexer.mll tree.ml perl_checker.ml
 LIBS = unix
 
 NAME = shyant

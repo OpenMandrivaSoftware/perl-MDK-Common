@@ -18,7 +18,7 @@ type raw_token =
   | BAREWORD of (string * raw_pos)
   | BAREWORD_PAREN of (string * raw_pos)
   | REVISION of (string * raw_pos)
-  | COMMENT of (string * raw_pos)
+  | PERL_CHECKER_COMMENT of (string * raw_pos)
   | POD of (string * raw_pos)
   | LABEL of (string * raw_pos)
   | COMMAND_STRING of (raw_interpolated_string * raw_pos)
@@ -38,7 +38,7 @@ type raw_token =
   | ARRAYLEN_IDENT of (string option * string * raw_pos)
   | FUNC_DECL_WITH_PROTO of (string * string * raw_pos)
 
-  | IF of raw_pos | ELSIF of raw_pos | ELSE of raw_pos | UNLESS of raw_pos | DO of raw_pos | WHILE of raw_pos | UNTIL of raw_pos | MY of raw_pos | CONTINUE of raw_pos | SUB of raw_pos
+  | IF of raw_pos | ELSIF of raw_pos | ELSE of raw_pos | UNLESS of raw_pos | DO of raw_pos | WHILE of raw_pos | UNTIL of raw_pos | MY_OUR of (string * raw_pos) | CONTINUE of raw_pos | SUB of raw_pos
   | LOCAL of raw_pos | FOR of (string * raw_pos) | USE of raw_pos | PACKAGE of raw_pos | BEGIN of raw_pos | END of raw_pos | PRINT of (string * raw_pos) 
   | NEW of (raw_pos) | FORMAT of (raw_pos) | AT of raw_pos | DOLLAR of raw_pos | PERCENT of raw_pos | AMPERSAND of raw_pos
   | STAR of raw_pos | ARRAYLEN of raw_pos | SEMI_COLON of raw_pos | PKG_SCOPE of raw_pos | PAREN of raw_pos | PAREN_END of raw_pos | BRACKET of raw_pos
@@ -72,7 +72,7 @@ let rec raw_token_to_pos_and_token spaces = function
   | BAREWORD(s, pos) -> pos, Parser.BAREWORD(s, (spaces, pos))
   | BAREWORD_PAREN(s, pos) -> pos, Parser.BAREWORD_PAREN(s, (spaces, pos))
   | REVISION(s, pos) -> pos, Parser.REVISION(s, (spaces, pos))
-  | COMMENT(s, pos) -> pos, Parser.COMMENT(s, (spaces, pos))
+  | PERL_CHECKER_COMMENT(s, pos) -> pos, Parser.PERL_CHECKER_COMMENT(s, (spaces, pos))
   | POD(s, pos) -> pos, Parser.POD(s, (spaces, pos))
   | LABEL(s, pos) -> pos, Parser.LABEL(s, (spaces, pos))
   | PRINT(s, pos) -> pos, Parser.PRINT(s, (spaces, pos))
@@ -102,6 +102,7 @@ let rec raw_token_to_pos_and_token spaces = function
   | BIT_SHIFT(s, pos) -> pos, Parser.BIT_SHIFT(s, (spaces, pos))
   | PLUS(s, pos) -> pos, Parser.PLUS(s, (spaces, pos))
   | ONE_SCALAR_PARA(s, pos) -> pos, Parser.ONE_SCALAR_PARA(s, (spaces, pos))
+  | MY_OUR(s, pos) -> pos, Parser.MY_OUR(s, (spaces, pos))
 
   | EOF              (pos) -> pos, Parser.EOF              ((), (spaces, pos))
   | IF               (pos) -> pos, Parser.IF               ((), (spaces, pos))
@@ -111,7 +112,6 @@ let rec raw_token_to_pos_and_token spaces = function
   | DO               (pos) -> pos, Parser.DO               ((), (spaces, pos))
   | WHILE            (pos) -> pos, Parser.WHILE            ((), (spaces, pos))
   | UNTIL            (pos) -> pos, Parser.UNTIL            ((), (spaces, pos))
-  | MY               (pos) -> pos, Parser.MY               ((), (spaces, pos))
   | CONTINUE         (pos) -> pos, Parser.CONTINUE         ((), (spaces, pos))
   | SUB              (pos) -> pos, Parser.SUB              ((), (spaces, pos))
   | LOCAL            (pos) -> pos, Parser.LOCAL            ((), (spaces, pos))
@@ -281,6 +281,10 @@ let ident_type_from_char fq name lexbuf c =
   | '*' -> STAR_IDENT  (fq, name, pos lexbuf)
   | _ -> internal_error "ident_type_from_char"
 
+let split_at_two_colons s =
+  let i_fq = String.rindex s ':' in
+  String.sub s 0 (i_fq - 1), skip_n_char (i_fq + 1) s
+
 let ident_from_lexbuf lexbuf = 
   let fq, name = split_at_two_colons (lexeme lexbuf) in
   RAW_IDENT(Some fq, name, pos lexbuf)
@@ -325,6 +329,7 @@ rule token = parse
     if lexeme_start lexbuf = !not_ok_for_match then not_ok_for_match := lexeme_end lexbuf; 
     SPACE(lexeme_end lexbuf - lexeme_start lexbuf)
   }
+| "# perl_checker: " [^ '\n']* { PERL_CHECKER_COMMENT(skip_n_char 16 (lexeme lexbuf), pos lexbuf) }
 | '#' [^ '\n']* { SPACE(1) }
 
 | "\n=" { 
@@ -395,7 +400,8 @@ rule token = parse
 | "until"    { UNTIL(pos lexbuf) }
 | "foreach"  { FOR(lexeme lexbuf, pos lexbuf) }
 | "for"      { FOR(lexeme lexbuf, pos lexbuf) }
-| "my"       { MY(pos lexbuf) }
+| "my"       { MY_OUR(lexeme lexbuf, pos lexbuf) }
+| "our"      { MY_OUR(lexeme lexbuf, pos lexbuf) }
 | "local"    { LOCAL(pos lexbuf) }
 | "continue" { CONTINUE(pos lexbuf) }
 | "sub"      { SUB(pos lexbuf) }
@@ -413,11 +419,11 @@ rule token = parse
 
 | "print " ident ' ' { 
     putback lexbuf 1; 
-    PRINT_TO_STAR(skip_n_char_ 6 1 (lexeme lexbuf), pos lexbuf);
+    PRINT_TO_STAR(skip_n_char 6 (lexeme lexbuf), pos lexbuf);
   }
 | "print $" ident ' ' { 
     putback lexbuf 1; 
-    PRINT_TO_SCALAR(skip_n_char_ 7 1 (lexeme lexbuf), pos lexbuf);
+    PRINT_TO_SCALAR(skip_n_char 7 (lexeme lexbuf), pos lexbuf);
   }
 
 | ident ' '* "=>" { (* needed so that (if => 1) works *)
@@ -556,7 +562,7 @@ rule token = parse
 | '$' [^ '{' ' ' '\n' '$']
 | "$^" [^ '{' ' ' '\n'] { typed_ident_from_lexbuf lexbuf }
 
-| "$$" [^ 'a'-'z' 'A'-'Z' '_' '{'] { putback lexbuf 1; SCALAR_IDENT(None, "$$", pos lexbuf) }
+| "$$" [^ 'a'-'z' 'A'-'Z' '_' '{'] { putback lexbuf 1; SCALAR_IDENT(None, "$", pos lexbuf) }
 
 | stash "::" { putback lexbuf 2; ident_type_from_char None "main" lexbuf (lexeme_char lexbuf 0) }
 
@@ -612,7 +618,7 @@ and string = parse
 and delimited_string = parse
 | '\\' { Stack.push delimited_string next_rule ; string_escape lexbuf }
 | '$'  { Stack.push delimited_string next_rule ; delimited_string_interpolate_scalar lexbuf }
-| '@'  { Stack.push delimited_string next_rule ; string_interpolate_array lexbuf }
+| '@'  { Stack.push delimited_string next_rule ; delimited_string_interpolate_array lexbuf }
 | '\n' { 
     add_a_new_line(lexeme_end lexbuf);
     next delimited_string lexbuf
@@ -738,15 +744,14 @@ and delimited_string_interpolate_scalar = parse (* needed for delimited string l
    die lexbuf (Printf.sprintf "I really can't handle this, [xxx] can be indexing or not based on stellar position :-(")
   }
 
-
 | "{"
 | ident "->"? '{'
 | eof { next_s "$" (Stack.pop next_rule) lexbuf }
 | _ { 
     let c = lexeme_char lexbuf 0 in
-    if c <> !delimit_char && c <> '|' && c<>')' && c<>'/' then warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); 
+    if c <> !delimit_char && c <> '|' && c<>')' && c<>'/' && c<>' ' then warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); 
     putback lexbuf 1;
-    (Stack.pop next_rule) lexbuf 
+    next_s "$" (Stack.pop next_rule) lexbuf
   }
 
 and string_interpolate_array = parse
@@ -754,9 +759,23 @@ and string_interpolate_array = parse
 | '{' [^ '{' '}']* '}'
 | (ident | (ident? ("::" ident)+)) { string_interpolate token "@" lexbuf }
 
-| [ '*' '<' '>' ']' '.' '('] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| [ '@' '*' '<' '>' ']' '.' '('] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 | eof { next_s "$" (Stack.pop next_rule) lexbuf }
 | _ { warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); next_s ("$" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+
+and delimited_string_interpolate_array = parse
+| '$' ident
+| '{' [^ '{' '}']* '}'
+| (ident | (ident? ("::" ident)+)) { string_interpolate token "@" lexbuf }
+
+| [ '@' '*' '<' '>' ']' '.' '('] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| eof { next_s "$" (Stack.pop next_rule) lexbuf }
+| _ { 
+    let c = lexeme_char lexbuf 0 in
+    if c <> !delimit_char then warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf));
+    putback lexbuf 1;
+    next_s "$" (Stack.pop next_rule) lexbuf
+  }
 
 and pattern_options = parse
 | [ 'g' 'i' 'm' 'o' 's' 'x' 'e' 'd' ] { next pattern_options lexbuf }

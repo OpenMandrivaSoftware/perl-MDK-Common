@@ -1,9 +1,13 @@
-.depend
-perl_checker
-perl_checker_debug
-gmon.out
+._bcdi
+._d
+._ncdi
 *.cmi
 *.cmo
 *.cmx
+perl_checker
+perl_checker_debug
+gmon.out
+lexer.ml
 parser.ml
+parser.mli
 parser.output

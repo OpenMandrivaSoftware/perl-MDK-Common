@@ -1,6 +1,8 @@
 val bpos : int * int
 val raw_pos2pos : 'a * 'b -> string * 'a * 'b
 val pos_range :
+  'a * ('b * (int * int)) -> 'c * ('d * (int * int)) -> string * int * int
+val sp_pos_range :
   'a * ('b * (int * int)) -> 'c * ('d * (int * int)) -> 'b * (int * int)
 val get_pos : 'a * ('b * ('c * 'd)) -> string * 'c * 'd
 val var_dollar_ : Types.fromparser
@@ -11,8 +13,10 @@ val un_parenthesize_full : Types.fromparser -> Types.fromparser
 val not_complex : Types.fromparser -> bool
 val not_simple : Types.fromparser -> bool
 val string_of_Ident : Types.fromparser -> string
-val msg_with_pos : int * int -> string -> string
-val die_with_pos : int * int -> string -> 'a
+val from_scalar : Types.fromparser * 'a -> Types.fromparser
+val from_array : Types.fromparser * 'a -> Types.fromparser
+val msg_with_rawpos : int * int -> string -> string
+val die_with_rawpos : int * int -> string -> 'a
 val warn : int * int -> string -> unit
 val die_rule : string -> 'a
 val warn_rule : string -> unit
@@ -48,17 +52,27 @@ val check_parenthesized_first_argexpr :
   ('a * Types.fromparser list) * (Types.spaces * (int * 'b)) -> unit
 val check_foreach : string * ('a * (int * int)) -> unit
 val check_for : string * ('a * (int * int)) -> unit
-val check_package : Types.fromparser list -> unit
-val check_my : string -> Types.fromparser list -> 'a * (int * int) -> unit
+val check_MULT_is_x : string * 'a -> unit
+val check_my : string * 'a -> unit
+val check_my_our :
+  string -> Types.fromparser list -> 'a * (int * int) -> unit
 val check_block_sub :
   Types.fromparser list * (Types.spaces * (int * int)) ->
   'a * (Types.spaces * (int * 'b)) -> unit
 val check_block_ref :
   Types.fromparser list * (Types.spaces * (int * int)) ->
   'a * (Types.spaces * (int * 'b)) -> unit
+val check_my_our_paren : ((bool * 'a) * 'b) * 'c -> unit
+val only_one : Types.fromparser list * ('a * (int * int)) -> Types.fromparser
+val only_one_in_List :
+  ('a * Types.fromparser) * ('b * (int * int)) -> Types.fromparser
+val to_List : Types.fromparser list -> Types.fromparser
+val deref_arraylen : Types.fromparser -> Types.fromparser
 val to_Ident :
   (string option * string) * ('a * (int * int)) -> Types.fromparser
 val to_Raw_string : string * ('a * (int * int)) -> Types.fromparser
+val to_Local :
+  ('a * Types.fromparser) * ('b * (int * int)) -> Types.fromparser
 val op : 'a -> 'b -> 'c * 'd -> 'a * ((unit * 'd) * 'b)
 val op_p :
   'a ->
@@ -69,14 +83,9 @@ val call_op :
   ('a * (('b * (Types.spaces * (int * 'c))) * string)) *
   ('d * (Types.spaces * (int * int))) * Types.fromparser list ->
   'a * Types.fromparser
-val only_one : Types.fromparser list * ('a * (int * int)) -> Types.fromparser
-val only_one_in_List :
-  ('a * Types.fromparser) * ('b * (int * int)) -> Types.fromparser
-val array_ident_to_hash_ident :
-  Types.fromparser * ('a * (int * int)) -> Types.fromparser
-val to_List : Types.fromparser list -> Types.fromparser
 val sub_declaration :
   Types.fromparser * string -> Types.fromparser list -> Types.fromparser
+val anonymous_sub : Types.fromparser list -> Types.fromparser
 val call : Types.fromparser * Types.fromparser list -> Types.fromparser
 val call_one_scalar_para :
   string * ('a * (int * int)) ->
