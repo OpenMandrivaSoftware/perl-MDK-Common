@@ -433,6 +433,7 @@ rule token = parse
 | "format"   { let _ = raw_here_doc_next_line "." in FORMAT(pos lexbuf) }
 | "defined"
 | "length" 
+| "keys" 
 | "exists" 
 | "ref"      { ONE_SCALAR_PARA(lexeme lexbuf, pos lexbuf) }
 
