@@ -88,8 +88,8 @@ let rec concat_bareword_paren accu = function
       concat_bareword_paren (e :: accu) l
 
 let rec bracket_bareword_is_hashref accu = function
-  | (_, Parser.BRACKET _ as bracket) :: (_, Parser.BAREWORD _ as bareword) :: (_, Parser.RIGHT_ARROW _ as right_arrow) :: l ->
-      bracket_bareword_is_hashref (right_arrow :: bareword :: bracket :: accu) l
+  | (pos, Parser.BRACKET bracket) :: (_, Parser.BAREWORD _ as bareword) :: (_, Parser.RIGHT_ARROW _ as right_arrow) :: l ->
+      bracket_bareword_is_hashref (right_arrow :: bareword :: (pos, Parser.BRACKET_HASHREF bracket) :: accu) l
   | [] -> List.rev accu
   | e :: l -> 
       bracket_bareword_is_hashref (e :: accu) l
