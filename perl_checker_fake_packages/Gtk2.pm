@@ -42,6 +42,7 @@ sub create_items {}
 sub create_pango_layout {}
 sub create_tag {}
 sub dir_list {}
+sub direction {}
 sub disable_activate {}
 sub draw {}
 sub draw_arc {}
