@@ -40,7 +40,7 @@ type raw_token =
   | RAW_IDENT_PAREN of (string option * string * raw_pos)
   | ARRAYLEN_IDENT of (string option * string * raw_pos)
   | SUB_WITH_PROTO of (string * raw_pos)
-  | FUNC_DECL_WITH_PROTO of (string * string * raw_pos)
+  | FUNC_DECL_WITH_PROTO of (string option * string * string * raw_pos)
 
   | IF of raw_pos | ELSIF of raw_pos | ELSE of raw_pos | UNLESS of raw_pos | DO of raw_pos | WHILE of raw_pos | UNTIL of raw_pos | MY_OUR of (string * raw_pos) | CONTINUE of raw_pos | SUB of raw_pos
   | LOCAL of raw_pos | FOR of (string * raw_pos) | USE of raw_pos | PACKAGE of raw_pos | BEGIN of raw_pos | END of raw_pos | PRINT of (string * raw_pos) 
@@ -98,7 +98,7 @@ let rec raw_token_to_pos_and_token spaces = function
   | RAW_IDENT_PAREN(kind, name, pos) -> pos, Parser.RAW_IDENT_PAREN(new_any M_special (kind, name) spaces pos)
   | ARRAYLEN_IDENT(kind, name, pos) -> pos, Parser.ARRAYLEN_IDENT(new_any M_special (kind, name) spaces pos)
   | SUB_WITH_PROTO(proto, pos) -> pos, Parser.SUB_WITH_PROTO(new_any M_special proto spaces pos)
-  | FUNC_DECL_WITH_PROTO(name, proto, pos) -> pos, Parser.FUNC_DECL_WITH_PROTO(new_any M_special (name, proto) spaces pos)
+  | FUNC_DECL_WITH_PROTO(fq, name, proto, pos) -> pos, Parser.FUNC_DECL_WITH_PROTO(new_any M_special (fq, name, proto) spaces pos)
 
   | NEW(pos) -> pos, Parser.NEW(new_any M_special () spaces pos)
   | FORMAT(pos) -> pos, Parser.FORMAT(new_any M_special () spaces pos)
@@ -601,7 +601,22 @@ rule token = parse
     let ident = String.sub s ident_start (ident_end - ident_start + 1) in
     let prototype = skip_n_char_ (proto_start + 1) 1 s in
 
-    FUNC_DECL_WITH_PROTO(ident, prototype, pos lexbuf)
+    FUNC_DECL_WITH_PROTO(None, ident, prototype, pos lexbuf)
+  }
+
+| "sub" ' '+ ident ("::" ident)+ ' '* '(' [ '$' '@' '\\' '&' ';' '%' ]* ')' {
+    (* bloody prototypes, must be caught especially otherwise "($)" is badly tokenized *)
+    (* and alas "($@)" is both valid as an expression and a prototype *)
+    let s = lexeme lexbuf in
+    let ident_start = non_index_from s 3 ' ' in
+
+    let proto_start = String.index_from s ident_start '(' in
+    let ident_end = non_rindex_from s (proto_start-1) ' ' in
+    let ident = String.sub s ident_start (ident_end - ident_start + 1) in
+    let prototype = skip_n_char_ (proto_start + 1) 1 s in
+
+    let fq, name = split_at_two_colons ident in
+    FUNC_DECL_WITH_PROTO(Some fq, name, prototype, pos lexbuf)
   }
 
 | "$#" ident? ("::" ident)+ { arraylen_fqident_from_lexbuf lexbuf }

@@ -24,7 +24,7 @@
 
 %token <(string option * string) Types.any_spaces_pos> SCALAR_IDENT ARRAY_IDENT HASH_IDENT FUNC_IDENT STAR_IDENT RAW_IDENT RAW_IDENT_PAREN ARRAYLEN_IDENT
 %token <string Types.any_spaces_pos> SUB_WITH_PROTO
-%token <(string * string) Types.any_spaces_pos> FUNC_DECL_WITH_PROTO
+%token <(string option * string * string) Types.any_spaces_pos> FUNC_DECL_WITH_PROTO
 
 %token <string Types.any_spaces_pos> FOR PRINT
 %token <unit   Types.any_spaces_pos> NEW FORMAT
@@ -181,7 +181,7 @@ use_revision:
 
 func_decl:
 | SUB word { new_esp M_none ($2.any, None) $1 $2}
-| FUNC_DECL_WITH_PROTO {new_1esp (Ident(None, fst $1.any, get_pos $1), Some (snd $1.any)) $1 }
+| FUNC_DECL_WITH_PROTO {new_1esp (Ident(fst3 $1.any, snd3 $1.any, get_pos $1), Some (ter3 $1.any)) $1 }
 
 listexpr: /* Basic list expressions */
 | %prec PREC_LOW { default_pesp P_tok []}
