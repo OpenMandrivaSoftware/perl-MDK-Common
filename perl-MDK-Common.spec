@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 2mdk
+%define release 3mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Thu Mar 11 2004 Pixel <pixel@mandrakesoft.com> 1.1.11-3mdk
+- cp_af() now handles devices (mknod)
+
 * Fri Feb 13 2004 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.10-2mdk
 - update gtk2-perl binding fake package
 

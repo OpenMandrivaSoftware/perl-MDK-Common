@@ -161,7 +161,7 @@ sub rm_rf {
 
 sub cp_with_option {
     my $option = shift @_;
-    my $keep_symlinks = $option =~ /a/;
+    my $keep_special = $option =~ /a/;
 
     my $dest = pop @_;
 
@@ -177,10 +177,14 @@ sub cp_with_option {
 	if (-d $src) {
 	    -d $dest or mkdir $dest, (stat($src))[2] or die "mkdir: can't create directory $dest: $!\n";
 	    cp_af(glob_($src), $dest);
-	} elsif (-l $src && $keep_symlinks) {
+	} elsif (-l $src && $keep_special) {
 	    unless (symlink(readlink($src) || die("readlink failed: $!"), $dest)) {
 		warn "symlink: can't create symlink $dest: $!\n";
 	    }
+	} elsif ((-b $src || -c $src) && $keep_special) {
+	    my @stat = stat($src);
+	    require MDK::Common::System;
+	    MDK::Common::System::syscall_('mknod', $dest, $stat[2], $stat[6]) or die "mknod failed (dev $_): $!";
 	} else {
 	    local *F; open F, $src or die "can't open $src for reading: $!\n";
 	    local *G; open G, "> $dest";
