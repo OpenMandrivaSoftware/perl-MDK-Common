@@ -115,7 +115,7 @@ sub text2bool { my $t = lc($_[0]); $t eq "true" || $t eq "yes" ? 1 : 0 }
 
 sub chomp_ { my @l = map { my $l = $_; chomp $l; $l } @_; wantarray() ? @l : $l[0] }
 
-sub backtrace {
+sub backtrace() {
     my $s;
     for (my $i = 1; caller($i); $i++) {
 	my ($_package, $file, $line, $func) = caller($i);
@@ -128,7 +128,7 @@ sub internal_error {
     die "INTERNAL ERROR: $_[0]\n" . backtrace();
 }
 
-sub noreturn {
+sub noreturn() {
     if (defined wantarray()) {
 	my ($_package, $file, $line, $func) = caller(1);
 	my (undef, undef, undef, $func2) = caller(2);
