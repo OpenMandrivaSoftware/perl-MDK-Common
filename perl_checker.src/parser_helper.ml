@@ -714,7 +714,7 @@ let to_String parse strict (l, (_, pos)) =
   let l' = parse_interpolated parse l in
   (match l' with
   | [ "", List [Deref(I_scalar, Ident(None, ident, _))]] -> 
-      if strict then warn pos (sprintf "%s is better written without the double quotes" (variable2s(I_scalar, ident)))
+      if ident <> "!" && strict then warn pos (sprintf "%s is better written without the double quotes" (variable2s(I_scalar, ident)))
   | [ "", List [Deref(I_hash, _)]] -> 
       warn pos "don't use a hash in string context"
   | [ "", List [Deref(I_array, _)]] -> 
