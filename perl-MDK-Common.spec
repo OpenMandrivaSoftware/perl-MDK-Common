@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 2mdk
+%define release 1mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Aug  2 2004 Pixel <pixel@mandrakesoft.com> 1.1.16-1mdk
+- MDK::Common::System: whereis_binary() can now handle prefix
+
 * Fri Jul 23 2004 Pixel <pixel@mandrakesoft.com> 1.1.15-2mdk
 - workaround bug in ocaml on ultrasparc 
   (can't catch exception "Fatal error: out-of-bound access in array or string" in native code)

@@ -290,14 +290,14 @@ sub gettimeofday() { my $t = pack "LL"; syscall_('gettimeofday', $t, 0) or die "
 sub unix2dos { local $_ = $_[0]; s/\015$//mg; s/$/\015/mg; $_ }
 
 sub whereis_binary {
-    my ($prog) = @_;
+    my ($prog, $o_prefix) = @_;
     if ($prog =~ m!/!) {
 	warn qq(don't call whereis_binary with a name containing a "/" (the culprit is: $prog)\n);
 	return;
     }
     foreach (split(':', $ENV{PATH})) {
 	my $f = "$_/$prog";
-	-x $f and return $f; 
+	-x "$o_prefix$f" and return $f; 
     }
 }
 
