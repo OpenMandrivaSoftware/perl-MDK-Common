@@ -33,6 +33,15 @@ let is_scalar_context context = context = I_scalar
 let is_not_a_scalar = function
   | Deref_with(_, context, _, _)
   | Deref(context, _) -> non_scalar_context context
+  | List []
+  | List(_ :: _ :: _) -> true
+  | _ -> false
+  
+let is_not_a_scalar_or_array = function
+  | Deref_with(_, context, _, _)
+  | Deref(context, _) -> context = I_hash
+  | List []
+  | List(_ :: _ :: _) -> true
   | _ -> false
 
 let is_a_scalar = function
@@ -42,6 +51,10 @@ let is_a_scalar = function
   | String _ -> true
   | Deref_with(_, context, _, _)
   | Deref(context, _) -> is_scalar_context context
+  | _ -> false
+
+let is_a_string = function
+  | String _ | Raw_string _ -> true
   | _ -> false
 
 let is_parenthesized = function
@@ -562,19 +575,16 @@ let cook_call_op(op, para, pos) =
 
 let call_op_((prio, (prev_ter, op)), ter, para) (sp, pos) = 
   (match op with
-  | "==" | "!=" ->
-      if List.exists (function Undef | List(_ :: _ :: _) -> true | _ -> false) para then
+  | "==" | "!=" | "<=" | ">=" | ">"  | "<"  | "<=>" ->
+      if List.exists (function 
+	| Undef
+	| List [] -> op <> "==" && op <> "!=" (* allowing @l == () *)
+	| e -> is_not_a_scalar_or_array e) para then
 	warn_rule "don't do this"
-      else if List.exists (function String _ | Raw_string _ -> true | _ -> false) para then
-	warn_rule (sprintf "you should use a string operator, not the number operator \"%s\"" op)
-  | "<=" | ">=" | ">"  | "<"  | "<=>" ->
-      if List.exists (function Undef | List [] | List(_ :: _ :: _) -> true | _ -> false) para then
-	(* nb: allowing @l == () *)
-	warn_rule "don't do this"
-      else if List.exists (function String _ | Raw_string _ -> true | _ -> false) para then
+      else if List.exists is_a_string para then
 	warn_rule (sprintf "you should use a string operator, not the number operator \"%s\"" op)
   | "le" | "ge" | "eq" | "ne" | "gt" | "lt" | "cmp" ->
-      if List.exists (function Undef | List [] | List(_ :: _ :: _) -> true | _ -> false) para then
+      if List.exists is_not_a_scalar para then
 	warn_rule "don't do this"
       else if List.exists (function Num _ -> true | _ -> false) para then
 	warn_rule (sprintf "you should use a number operator, not the string operator \"%s\" (or replace the number with a string)" op)
