@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 21mdk
+%define release 22mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -51,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Thu Feb 20 2003 Guillaume Cottenceau <gc@mandrakesoft.com> 1.0.4-22mdk
+- snapshot (including formatError suitable for die \n() in DrakX)
+
 * Fri Feb 14 2003 Pixel <pixel@mandrakesoft.com> 1.0.4-21mdk
 - don't suggest to replace "@foo ? @foo : @bar" with "@foo || @bar", this is wrong!
 
