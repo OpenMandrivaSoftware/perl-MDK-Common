@@ -362,7 +362,7 @@ let function_to_context word_alone = function
   | "each_index" -> M_none
   | "N" | "N_" -> M_string
 
-  | "chop" | "chomp" -> M_none
+  | "chop" | "chomp" | "push" | "unshift" -> M_none	
   | "hex" | "length" | "time" | "fork" | "getppid" -> M_int
   | "eof" | "wantarray" -> M_int
   | "stat" | "lstat" -> M_list

@@ -15,3 +15,5 @@ map { xxx($_) } @l;                      if you don't use the return value, use 
 $xxx = chomp;                            () context not accepted here
                                          context () is not compatible with context scalar
 
+$xxx = push @l, 1                        () context not accepted here
+                                         context () is not compatible with context scalar
