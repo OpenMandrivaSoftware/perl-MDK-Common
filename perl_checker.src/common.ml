@@ -770,11 +770,17 @@ let rec string_fold_left f val_ s =
   done ;
   !val_
 
+(*
 let rec string_forall_with f i s =
   try
     f s.[i] && string_forall_with f (i+1) s
   with Invalid_argument _ -> true
-
+*)
+let string_forall_with f i s =
+  let len = String.length s in
+  let rec string_forall_with_ i =
+    i >= len || f s.[i] && string_forall_with_ (i+1)
+  in string_forall_with_ i
 
 let starts_with_non_lowercase s = s <> "" && s.[0] <> '_' && not (is_lowercase s.[0])
 

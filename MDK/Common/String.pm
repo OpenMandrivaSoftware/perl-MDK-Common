@@ -42,6 +42,13 @@ remove "\n"s when the next line doesn't start with a space. Otherwise keep
 handle carriage return just like LaTeX: merge lines that are not separated by
 an empty line
 
+=item begins_with(STRING, STRING)
+
+return true if first argument begins with the second argument. Use this
+instead of regexps if you don't want regexps.
+
+begins_with("hello world", "hello")  # => 1
+
 =item warp_text(STRING, INT)
 
 return a list of lines which do not exceed INT characters
@@ -62,7 +69,7 @@ L<MDK::Common>
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(bestMatchSentence formatList formatError formatTimeRaw formatLines formatAlaTeX warp_text);
+@EXPORT_OK = qw(bestMatchSentence formatList formatError formatTimeRaw formatLines formatAlaTeX begins_with warp_text);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -128,7 +135,10 @@ sub formatAlaTeX {
 }
 
 
-
+sub begins_with {
+    my ($s, $prefix) = @_;
+    index($s, $prefix) == 0;
+}
 
 sub warp_text {
     my ($text, $o_width) = @_;

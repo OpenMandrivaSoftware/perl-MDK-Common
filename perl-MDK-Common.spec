@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,13 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Jul 23 2004 Pixel <pixel@mandrakesoft.com> 1.1.15-2mdk
+- workaround bug in ocaml on ultrasparc 
+  (can't catch exception "Fatal error: out-of-bound access in array or string" in native code)
+
+* Thu Jul 22 2004 Pixel <pixel@mandrakesoft.com> 1.1.15-1mdk
+- add begins_with in MDK::Common::String
+
 * Mon Jul  5 2004 Pixel <pixel@mandrakesoft.com> 1.1.14-1mdk
 - more perlish behaviour for to_int() and to_float()
   (skipping leading spaces)
