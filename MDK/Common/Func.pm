@@ -236,20 +236,20 @@ sub every(&@) {
 sub map_index(&@) {
     my $f = shift;
     my @v; local $::i = 0;
-    map { @v = &$f($::i); $::i++; @v } @_;
+    map { @v = $f->(); $::i++; @v } @_;
 }
 sub each_index(&@) {
     my $f = shift;
     local $::i = 0;
     foreach (@_) {
-	&$f($::i);
+	&$f->();
 	$::i++;
     }
 }
 sub grep_index(&@) {
     my $f = shift;
     my $v; local $::i = 0;
-    grep { $v = &$f($::i); $::i++; $v } @_;
+    grep { $v = $f->(); $::i++; $v } @_;
 }
 sub find_index(&@) {
     my $f = shift;

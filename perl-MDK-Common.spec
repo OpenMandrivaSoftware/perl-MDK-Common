@@ -51,6 +51,11 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Apr 16 2003 Pixel <pixel@mandrakesoft.com> 1.1.0-1mdk
+- MDK::Common::Func: map_index, each_index and grep_index do not pass $::i as
+a parameter anymore (this breaks backward compatibility, but it is cleaner and
+otherwise perl_checker doesn't handle it correctly)
+
 * Fri Apr 11 2003 Pixel <pixel@mandrakesoft.com> 1.0.5-1mdk
 - many perl_checker enhancements:
   - allow 333 * `xxx` with no warning
