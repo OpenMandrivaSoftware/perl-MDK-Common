@@ -222,6 +222,8 @@ let raw_here_doc_next_line mark =
   here_doc_ref
 
 let delimit_char = ref '/'
+type string_escape_kinds = Double_quote | Qq | Delimited | Here_doc
+let string_escape_kind = ref Double_quote
 let not_ok_for_match = ref (-1)
 let string_nestness = ref 0
 
@@ -233,6 +235,7 @@ let warn lexbuf err = prerr_endline (pos2sfull_with (lexeme_start lexbuf) (lexem
 let die lexbuf err = failwith (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
 let die_in_string lexbuf err = failwith (pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ err)
 
+let warn_escape_unneeded lexbuf c = warn lexbuf ("you can replace \\" ^ c ^ " with " ^ c)
 let next_interpolated toks =
   let r = Stack.top building_current_string in
   Queue.push (!r, toks) (Stack.top building_current_interpolated_string) ;
@@ -492,7 +495,7 @@ rule token = parse
     else (
       delimit_char := '/' ;
       current_string_start_line := !current_file_current_line;
-      let s, pos = ins delimited_string lexbuf in
+      let s, pos = ins re_delimited_string lexbuf in
       let opts, _ = raw_ins pattern_options lexbuf in
       check_multi_line_delimited_string (Some opts) pos ;
       PATTERN(s, opts, pos)
@@ -504,7 +507,7 @@ rule token = parse
     else (
       putback lexbuf 1 ;
       delimit_char := '/' ;
-      let s, pos = ins delimited_string lexbuf in
+      let s, pos = ins re_delimited_string lexbuf in
       let opts, _ = raw_ins pattern_options lexbuf in
       PATTERN(s, opts, pos)
     ) 
@@ -513,7 +516,7 @@ rule token = parse
 | "m" pattern_separator {
   delimit_char := lexeme_char lexbuf 1 ;
   current_string_start_line := !current_file_current_line;
-  let s, pos = ins delimited_string lexbuf in
+  let s, pos = ins re_delimited_string lexbuf in
   let opts, _ = raw_ins pattern_options lexbuf in
   check_multi_line_delimited_string (Some opts) pos ;
   PATTERN(s, opts, pos)
@@ -522,7 +525,7 @@ rule token = parse
 | "qr" pattern_separator {
   delimit_char := lexeme_char lexbuf 2 ;
   current_string_start_line := !current_file_current_line;
-  let s, pos = ins delimited_string lexbuf in
+  let s, pos = ins re_delimited_string lexbuf in
   let opts, _ = raw_ins pattern_options lexbuf in
   check_multi_line_delimited_string (Some opts) pos ;
   QR_PATTERN(s, opts, pos)
@@ -531,7 +534,7 @@ rule token = parse
 | "s" pattern_separator {
   delimit_char := lexeme_char lexbuf 1 ;
   current_string_start_line := !current_file_current_line;
-  let s1, (start, _) = ins delimited_string lexbuf in 
+  let s1, (start, _) = ins re_delimited_string lexbuf in 
   let s2, (_, end_)  = ins delimited_string lexbuf in 
   let opts, _ = raw_ins pattern_options lexbuf in
   let pos = start, end_ in
@@ -635,7 +638,7 @@ rule token = parse
 
 and string = parse
 | '"' { () }
-| '\\' { Stack.push string next_rule ; string_escape lexbuf }
+| '\\' { Stack.push string next_rule ; string_escape_kind := Double_quote; string_escape lexbuf }
 | '$'  { Stack.push string next_rule ; string_interpolate_scalar lexbuf }
 | '@'  { Stack.push string next_rule ; string_interpolate_array lexbuf }
 | '\n' { 
@@ -646,7 +649,7 @@ and string = parse
 | eof { die_in_string lexbuf "Unterminated_string" }
 
 and delimited_string = parse
-| '\\' { Stack.push delimited_string next_rule ; string_escape lexbuf }
+| '\\' { Stack.push delimited_string next_rule ; string_escape_kind := Delimited; string_escape lexbuf }
 | '$'  { Stack.push delimited_string next_rule ; delimited_string_interpolate_scalar lexbuf }
 | '@'  { Stack.push delimited_string next_rule ; delimited_string_interpolate_array lexbuf }
 | '\n' { 
@@ -655,6 +658,17 @@ and delimited_string = parse
   }
 | eof { die_in_string lexbuf "Unterminated_delimited_string" }
 | [ ^ '\n' '\\' '$' '@'] { if lexeme_char lexbuf 0 <> !delimit_char then next delimited_string lexbuf }
+
+and re_delimited_string = parse
+| '\\' { Stack.push re_delimited_string next_rule ; re_string_escape lexbuf }
+| '$'  { Stack.push re_delimited_string next_rule ; delimited_string_interpolate_scalar lexbuf }
+| '@'  { Stack.push re_delimited_string next_rule ; delimited_string_interpolate_array lexbuf }
+| '\n' { 
+    add_a_new_line(lexeme_end lexbuf);
+    next re_delimited_string lexbuf
+  }
+| eof { die_in_string lexbuf "Unterminated_delimited_string" }
+| [ ^ '\n' '\\' '$' '@'] { if lexeme_char lexbuf 0 <> !delimit_char then next re_delimited_string lexbuf }
 
 and rawstring = parse
 | ''' { () }
@@ -675,7 +689,7 @@ and qqstring = parse
     incr string_nestness;
     next qqstring lexbuf
   }
-| '\\' { Stack.push qqstring next_rule ; string_escape lexbuf }
+| '\\' { Stack.push qqstring next_rule ; string_escape_kind := Qq; string_escape lexbuf }
 | '$'  { Stack.push qqstring next_rule ; string_interpolate_scalar lexbuf }
 | '@'  { Stack.push qqstring next_rule ; string_interpolate_array lexbuf }
 | '\n' { 
@@ -701,7 +715,7 @@ and qstring = parse
 | eof { die_in_string lexbuf "Unterminated_qstring" }
 
 and here_doc = parse
-| '\\' { Stack.push here_doc next_rule ; string_escape lexbuf }
+| '\\' { Stack.push here_doc next_rule ; string_escape_kind := Here_doc; string_escape lexbuf }
 | '$'  { Stack.push here_doc next_rule ; string_interpolate_scalar lexbuf }
 | '@'  { Stack.push here_doc next_rule ; string_interpolate_array lexbuf }
 | [ ^ '\n' '\\' '$' '@' ]* {
@@ -731,18 +745,49 @@ and raw_here_doc = parse
 
 
 and string_escape = parse
-| '0' { next_s "\000" (Stack.pop next_rule) lexbuf }
-| '"' { next_s "\"" (Stack.pop next_rule) lexbuf }
-| ''' { next_s "'"  (Stack.pop next_rule) lexbuf }
-| ':' { next_s ":"  (Stack.pop next_rule) lexbuf }
+| ['0'-'9'] { next_s (String.make 1 (Char.chr (int_of_string (lexeme lexbuf)))) (Stack.pop next_rule) lexbuf }
 | '\\'{ next_s "\\" (Stack.pop next_rule) lexbuf }
 | 'n' { next_s "\n" (Stack.pop next_rule) lexbuf }
 | 't' { next_s "\t" (Stack.pop next_rule) lexbuf }
 | "x{" [^ '}']* '}' { hex_in_string lexbuf next_rule (skip_n_char_ 2 1 (lexeme lexbuf)) }
 | 'x' [^ '{'] _ { hex_in_string lexbuf next_rule (skip_n_char 1 (lexeme lexbuf)) }
 | '\n' { die lexbuf "do not use \"\\\" before end-of-line, it's useless and generally bad" }
-| _ { next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| ['b' 'f' '$' '@' '%' 'a' 'r'] { next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| _   { 
+    let c = lexeme lexbuf in
+    (match !string_escape_kind with
+    | Double_quote -> 
+	if c = "\"" then
+	  (* don't warn since it's used a lot, esp. in N("xxx \"xxx\" xxx") *)
+	  (*warn lexbuf "you can replace \"xxx\\\"xxx\" with qq(xxx\"xxx), that way you don't need to escape <\">"*)
+	  ()
+	else warn_escape_unneeded lexbuf c
+    | Qq -> if c <> "(" && c <> ")" then warn_escape_unneeded lexbuf c
+    | Here_doc -> warn_escape_unneeded lexbuf c
+    | Delimited -> if c = String.make 1 !delimit_char then 
+          warn lexbuf ("change the delimit character " ^ String.make 1 !delimit_char ^ " to get rid of this escape")
+        else warn_escape_unneeded lexbuf c);
+    next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf 
+  }
 
+and re_string_escape = parse
+| ['0'-'9'] { next_s (String.make 1 (Char.chr (int_of_string (lexeme lexbuf)))) (Stack.pop next_rule) lexbuf }
+| '\\'{ next_s "\\" (Stack.pop next_rule) lexbuf }
+| 'n' { next_s "\n" (Stack.pop next_rule) lexbuf }
+| 't' { next_s "\t" (Stack.pop next_rule) lexbuf }
+| "x{" [^ '}']* '}' { hex_in_string lexbuf next_rule (skip_n_char_ 2 1 (lexeme lexbuf)) }
+| 'x' [^ '{'] _ { hex_in_string lexbuf next_rule (skip_n_char 1 (lexeme lexbuf)) }
+| '\n' { die lexbuf "do not use \"\\\" before end-of-line, it's useless and generally bad" }
+| ['b' 'f' '$' '@' '%' '"' 's' 'S' 'd' 'D' 'w' 'W' 'Q' 'E' 'b' '.' '*' '+' '?' '[' ']' '(' ')' '|' '{' '}' '-'] { 
+     next (Stack.pop next_rule) lexbuf 
+  }
+| _  { 
+     let c = lexeme lexbuf in 
+     if c = String.make 1 !delimit_char then 
+       warn lexbuf ("change the delimit character " ^ String.make 1 !delimit_char ^ " to get rid of this escape")
+     else warn_escape_unneeded lexbuf c ;
+     next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf 
+  }
 
 and string_interpolate_scalar = parse
 | '$' ident
