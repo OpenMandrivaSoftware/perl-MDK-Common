@@ -242,7 +242,7 @@ sub each_index(&@) {
     my $f = shift;
     local $::i = 0;
     foreach (@_) {
-	&$f->();
+	$f->();
 	$::i++;
     }
 }
