@@ -21,7 +21,7 @@ MDK/Common.pm: %: %.pl
 	perl $< > $@
 
 perl_checker.src/perl_checker:
-	$(MAKE) -C perl_checker.src build_ml $(PERL_CHECKER_TARGET) VENDORLIB=$(VENDORLIB)
+	$(MAKE) -C perl_checker.src build_ml $(PERL_CHECKER_TARGET) VENDORLIB=$(VENDORLIB) DEBUG=0
 
 test: perl_checker.src/perl_checker
 	perl_checker.src/perl_checker MDK/Common/*.pm

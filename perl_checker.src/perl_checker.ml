@@ -33,7 +33,7 @@ let rec parse_file from_basedir require_name per_files file =
     try
       Info.start_a_new_file file ;
       let tokens = Lexer.get_token Lexer.token lexbuf in
-      let _ = Unix.close_process_in channel in
+      if not Build.debugging then ignore (Unix.close_process_in channel) ;
       let t = Parser_helper.parse_tokens Parser.prog tokens (Some lexbuf) in
       let per_file = get_global_info_from_package from_basedir require_name build_time t in
       set_basedir per_files per_file ;
@@ -102,7 +102,7 @@ let parse_options =
   let usage = "Usage: perl_checker [-v] [-q] <files>\nOptions are:" in
   Arg.parse options (lpush args_r) usage;
 
-  let files = if !args_r = [] then ["../t.pl"] else !args_r in
+  let files = if !args_r = [] && Build.debugging then ["../t.pl"] else !args_r in
   let files = List.map Info.file_to_absolute_file files in
 
   let required_packages, per_files = collect_withenv (parse_file true None) (default_per_files()) files in

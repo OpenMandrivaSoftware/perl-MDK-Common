@@ -7,6 +7,7 @@ BCSUFFIX = _debug
 SOURCES = build.ml common.ml flags.ml config_file.ml types.mli info.ml parser_helper.ml parser.mly lexer.mll tree.ml global_checks.ml perl_checker.ml
 LIBS = unix
 VENDORLIB = $(shell dirname `pwd`)
+DEBUG = 1
 
 NAME = shyant
 
@@ -19,6 +20,7 @@ build_ml:
 build.ml:
 	date '+let date = %s' > $@
 	echo 'let fake_packages_dir = "'$(VENDORLIB)'/perl_checker_fake_packages"' >> $@
+	echo 'let debugging = $(DEBUG) > 0' >> $@
 
 tags: 
 	ocamltags *.ml

@@ -257,7 +257,7 @@ let read_xs_extension_from_so global_vars_declared package pos =
 	let fq, name = find_package_name [] 0 in
 	Hashtbl.replace global_vars_declared (I_func, String.concat "::" fq, name) (pos, None)
     ) () channel;
-    let _ = Unix.close_process_in channel in
+    if not Build.debugging then ignore (Unix.close_process_in channel) ;
     true
   with Not_found -> false
 
