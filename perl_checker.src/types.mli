@@ -42,3 +42,4 @@ type fromparser =
    | Label of string
 
    | Too_complex
+   | Semi_colon

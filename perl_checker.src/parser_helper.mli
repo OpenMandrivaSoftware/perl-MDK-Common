@@ -1,4 +1,7 @@
 val bpos : int * int
+val not_complex : Types.fromparser -> bool
+val not_simple : Types.fromparser -> bool
+val string_of_Ident : Types.fromparser -> string
 val msg_with_pos : int * int -> string -> string
 val die_with_pos : int * int -> string -> 'a
 val warn : int * int -> string -> unit
@@ -16,8 +19,21 @@ val sp_1 : 'a * (Types.spaces * (int * 'b)) -> unit
 val sp_n : 'a * (Types.spaces * (int * 'b)) -> unit
 val sp_p : 'a * (Types.spaces * (int * 'b)) -> unit
 val sp_cr : 'a * (Types.spaces * (int * 'b)) -> unit
-val not_complex : Types.fromparser -> bool
-val string_of_Ident : Types.fromparser -> string
+val sp_same :
+  'a * (Types.spaces * (int * 'b)) ->
+  'c * (Types.spaces * (int * 'd)) -> unit
+val op : 'a -> 'b * 'c -> (unit * 'c) * 'a
+val op_p :
+  'a ->
+  'b * (Types.spaces * (int * 'c)) ->
+  (unit * (Types.spaces * (int * 'c))) * 'a
+val call_op :
+  (('a * (Types.spaces * (int * 'b))) * string) *
+  ('c * (Types.spaces * (int * 'd))) * Types.fromparser list ->
+  Types.fromparser
+val check_lines_after_BRACKET :
+  Types.fromparser list * (Types.spaces * (int * 'a)) -> unit
+val check_word_alone : Types.fromparser * 'a -> Types.fromparser
 val check_parenthesized_first_argexpr :
   string -> Types.fromparser list * (Types.spaces * (int * 'a)) -> unit
 val check_foreach : string * ('a * (int * int)) -> unit

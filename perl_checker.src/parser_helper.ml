@@ -2,6 +2,22 @@ open Types
 open Common
 
 let bpos = -1, -1
+
+
+let not_complex = function
+  | Call_op("?:", _) -> false
+  | _ -> true
+
+let not_simple = function
+  | Num _ | Ident _ | Deref(_, Ident _) -> false
+  | _ -> true
+
+let string_of_Ident = function
+  | Ident(None, s, _) -> s
+  | Ident(Some fq, s, _) -> fq ^ "::" ^ s
+  | _ -> internal_error "string_of_Ident"
+
+
 let msg_with_pos (start, end_) msg = Info.pos2sfull_current start end_ ^ msg
 let die_with_pos raw_pos msg = failwith      (msg_with_pos raw_pos msg)
 let warn         raw_pos msg = prerr_endline (msg_with_pos raw_pos msg)
@@ -16,6 +32,7 @@ let warn_too_many_space start = warn (start, start) "you should have only one sp
 let warn_no_space	start = warn (start, start) "you should have a space here"
 let warn_cr		start = warn (start, start) "you should not have a carriage-return (\\n) here"
 let warn_space		start = warn (start, start) "you should not have a space here"
+
 
 let sp_0(_, (spaces, (start, _))) =
   match spaces with
@@ -65,14 +82,23 @@ let sp_cr(_, (spaces, (start, _))) =
   | Space_n -> warn (start, start) "you should have a carriage-return (\\n) here"
   | Space_cr -> ()
 
-let not_complex = function
-  | Call_op("?:", _) -> false
-  | _ -> true
+let sp_same (_, (spaces1, _) as ter1) (_, (spaces2, _) as ter2) =
+  if spaces1 <> Space_0 then sp_p ter2
+  else if spaces2 <> Space_0 then sp_p ter1
 
-let string_of_Ident = function
-  | Ident(None, s, _) -> s
-  | Ident(Some fq, s, _) -> fq ^ "::" ^ s
-  | _ -> internal_error "string_of_Ident"
+let op s (_, both) = ((), both), s
+let op_p s e = sp_p e ; op s e
+
+let call_op((prev_ter, op), ter, para) = 
+  sp_same prev_ter ter ;
+  Call_op(op, para)
+
+let check_lines_after_BRACKET (l, both) =
+  (match l with Semi_colon :: _ -> sp_0 | _ -> sp_p)(l, both)
+
+let check_word_alone (word, _) =
+  if string_of_Ident word = "time" then die_rule "please use time() instead of time";
+  word
 
 let check_parenthesized_first_argexpr word (e, (_, (start, _)) as ex) =
   let want_space = word.[0] = '-' in
@@ -82,7 +108,9 @@ let check_parenthesized_first_argexpr word (e, (_, (start, _)) as ex) =
 	if l = [] then sp_n(ex) else die_with_pos (start, start) "can't handle this nicely"
       else
 	if l = [] then sp_0(ex) else die_with_pos (start, start) "you must not have a space here"
-  | _ -> sp_p(ex)
+  | _ -> 
+      if word = "time" then die_rule "please use time() instead of time";
+      sp_p(ex)
 
 let check_foreach (s, (_, pos)) = if s = "for"     then warn pos "write \"foreach\" instead of \"for\""
 let check_for     (s, (_, pos)) = if s = "foreach" then warn pos "write \"for\" instead of \"foreach\""
