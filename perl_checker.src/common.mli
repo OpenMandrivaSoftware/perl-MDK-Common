@@ -111,7 +111,6 @@ val split_last : 'a list -> 'a list * 'a
 val iter_assoc_val : ('a -> unit) -> ('b * 'a) list -> unit
 val map_assoc_val : ('a -> 'b) -> ('c * 'a) list -> ('c * 'b) list
 val assoc_or_fail : 'a -> ('a * 'b) list -> 'b
-val assoc_has_key : 'a -> ('a * 'b) list -> bool
 val assoc_by : ('a -> 'b -> bool) -> 'a -> ('b * 'c) list -> 'c
 val update_assoc_by :
   ('a -> 'b -> bool) -> ('c -> 'c) -> 'a -> ('b * 'c) list -> ('b * 'c) list

@@ -31,8 +31,8 @@ type state = {
   }
 
 type vars = { 
-    my_vars : (context * string) list list ;
-    our_vars : (context * string) list list ;
+    my_vars : ((context * string) * (pos * bool ref)) list list ;
+    our_vars : ((context * string) * (pos * bool ref)) list list ;
     locally_imported : ((context * string) * string) list ;
     required_vars : (context * string * string) list ;
     current_package : per_package ;
@@ -251,23 +251,26 @@ let rec fold_tree f env e =
   | Anonymous_sub(e')
   | Ref(_, e')
   | Deref(_, e')
-      -> fold_tree f env e'
+    -> fold_tree f env e'
 
   | Diamond(e')
-       -> fold_tree_option f env e'
+    -> fold_tree_option f env e'
+
+  | String(l, _)
+    -> List.fold_left (fun env (_, e) -> fold_tree f env e) env l
 
   | Sub_declaration(e1, _, e2)
   | Deref_with(_, _, e1, e2)
-       -> 
-	 let env = fold_tree f env e1 in
-	 let env = fold_tree f env e2 in
-	 env
+    -> 
+      let env = fold_tree f env e1 in
+      let env = fold_tree f env e2 in
+      env
 
   | Use(_, l)
   | List l
   | Block l
   | Call_op(_, l, _)
-      -> List.fold_left (fold_tree f) env l
+    -> List.fold_left (fold_tree f) env l
 
   | Call(e', l)
     -> 
@@ -306,6 +309,10 @@ let get_global_info_from_package t =
 	| Call(Deref(I_func, Ident (None, "require", pos)), [Ident _ as pkg]) ->
 	    let package = string_of_Ident pkg in
 	    if uses_external_package package then None else Some((package, pos) :: l)
+	| Call(Deref(I_func, Ident (None, "require", pos)), [Raw_string(pkg, _)])
+	    when not (String.contains pkg '/') && Filename.check_suffix pkg ".pm" ->
+	    let package = Filename.chop_suffix pkg ".pm" in
+	    if uses_external_package package then None else Some((package, pos) :: l)
 	| _ -> None)
       ) required_packages t in
     { 
@@ -320,8 +327,14 @@ let get_global_info_from_package t =
     }, required_packages
   ) [] current_packages
 
-let is_my_declared vars t = List.exists (List.exists ((=) t)) vars.my_vars
-let is_our_declared vars t = List.exists (List.exists ((=) t)) vars.our_vars
+let is_my_declared vars t = 
+  List.exists (fun l ->
+    List.mem_assoc t l && (snd (List.assoc t l) := true ; true)
+  ) vars.my_vars
+let is_our_declared vars t = 
+  List.exists (fun l ->
+    List.mem_assoc t l && (snd (List.assoc t l) := true ; true)
+  ) vars.our_vars
 let is_var_declared vars (context, name) = 
   List.mem_assoc (context, name) vars.locally_imported ||
   List.mem_assoc (context, name) (get_imports vars.state vars.current_package) ||
@@ -403,18 +416,18 @@ let declare_My vars (mys, pos) =
   ) mys in
   let l_pre = List.hd vars.my_vars in
   List.iter (fun v ->
-    if List.exists ((=) v) l_pre then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
+    if List.mem_assoc v l_pre then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
   ) l_new ;
-  { vars with my_vars = (l_new @ l_pre) :: List.tl vars.my_vars }
+  { vars with my_vars = (List.map (fun v -> v, (pos, ref false)) l_new @ l_pre) :: List.tl vars.my_vars }
 
 let declare_Our vars (ours, pos) =
   match vars.our_vars with
   | [] -> vars (* we're at the toplevel, already declared in vars_declared *)
   | l_pre :: other ->
       List.iter (fun v ->
-	if List.exists ((=) v) l_pre then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
+	if List.mem_assoc v l_pre then warn_with_pos pos (sprintf "redeclared variable %s" (variable2s v))
       ) ours ;
-      { vars with our_vars = (ours @ l_pre) :: other }
+      { vars with our_vars = (List.map (fun v -> v, (pos, ref false)) ours @ l_pre) :: other }
 
 let declare_My_our vars (my_or_our, l, pos) =
   match my_or_our with
@@ -423,18 +436,26 @@ let declare_My_our vars (my_or_our, l, pos) =
   | "our" -> declare_Our vars (l, pos)
   | _ -> internal_error "declare_My_our"
 
+let check_unused_local_variables vars =
+  List.iter (fun ((_, s as v), (pos, used)) ->
+    if not !used && s.[0] != '_' then warn_with_pos pos (sprintf "unused variable %s" (variable2s v))
+  ) (List.hd vars.my_vars)
+  
+
 
 let check_variables vars t = 
   let rec check_variables_ vars t = fold_tree check vars t
   and check vars = function
     | Block l ->
 	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
-	let _vars' = List.fold_left check_variables_ vars' l in
+	let vars' = List.fold_left check_variables_ vars' l in
+	check_unused_local_variables vars' ;
 	Some vars
-    | Call(Deref(I_func, Ident(None, "sort", _)), (Anonymous_sub(Block f) :: l)) ->
+    | Call(Deref(I_func, Ident(None, "sort", pos)), (Anonymous_sub(Block f) :: l)) ->
 	let vars = List.fold_left check_variables_ vars l in
-	let vars' = { vars with my_vars = [ I_scalar, "a" ; I_scalar, "b" ] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
-	let _vars' = List.fold_left check_variables_ vars' f in
+	let vars' = { vars with my_vars = [ (I_scalar, "a"), (pos, ref true) ; (I_scalar, "b"), (pos, ref true) ] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
+	let vars' = List.fold_left check_variables_ vars' f in
+	check_unused_local_variables vars' ;
 	Some vars
 
     | Call_op("foreach my", [my; expr; Block block], _) ->
@@ -444,8 +465,16 @@ let check_variables vars t =
     | Call_op(op, cond :: Block first_bl :: other, _) when op = "if" || op = "while" || op = "unless" || op = "until" ->
 	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
 	let vars' = check_variables_ vars' cond in
-	let _vars' = List.fold_left check_variables_ vars' first_bl in
+	let vars' = List.fold_left check_variables_ vars' first_bl in
+	check_unused_local_variables vars' ;
 	let vars = List.fold_left check_variables_ vars other in
+	Some vars
+
+    | Sub_declaration(Ident(None, "AUTOLOAD", pos) as ident, _proto, Block l) ->
+	let vars = declare_Our vars ([ I_func, string_of_Ident ident ], pos) in
+	let vars' = { vars with my_vars = [ (I_scalar, "AUTOLOAD"), (pos, ref true) ] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
+	let vars' = List.fold_left check_variables_ vars' l in
+	check_unused_local_variables vars' ;
 	Some vars
 
     | Sub_declaration(Ident(_, _, pos) as ident, _proto, body) ->

@@ -224,8 +224,8 @@ term:
 | term PATTERN_MATCH PATTERN_SUBST {sp_n($2); sp_p($3); check_unneeded_var_dollar_s  ($1); to_Call_op_(P_expr, "s///", sndfst $1 :: from_PATTERN_SUBST $3) (sp_pos_range $1 $3)}
 | term PATTERN_MATCH_NOT PATTERN_SUBST {die_with_rawpos (sndsnd $2) "use =~ instead of !~ and negate the return value"}
 
-| term PATTERN_MATCH     scalar { (P_expr, Too_complex), sp_pos_range $1 $3}
-| term PATTERN_MATCH_NOT scalar { (P_expr, Too_complex), sp_pos_range $1 $3}
+| term PATTERN_MATCH     scalar { (P_expr, Call(Too_complex, [sndfst $1 ; fst $3 ])), sp_pos_range $1 $3}
+| term PATTERN_MATCH_NOT scalar { (P_expr, Call(Too_complex, [sndfst $1 ; fst $3 ])), sp_pos_range $1 $3}
 
 | term PATTERN_MATCH     RAW_STRING {die_with_rawpos (sndsnd $3) "use a regexp, not a string"}
 | term PATTERN_MATCH_NOT RAW_STRING {die_with_rawpos (sndsnd $3) "use a regexp, not a string"}
@@ -311,7 +311,7 @@ term:
 | PRINT_TO_STAR           { to_Call_op_(P_call_no_paren, fstfst $1, Deref(I_star, Ident(None, sndfst $1, get_pos $1)) :: [ var_dollar_ ]) (snd $1)}
 | PRINT_TO_STAR argexpr   { to_Call_op_(P_call_no_paren, fstfst $1, Deref(I_star, Ident(None, sndfst $1, get_pos $1)) :: sndfst $2) (sp_pos_range $1 $2)}
 
-| hash PKG_SCOPE {sp_0($2); (P_tok, Too_complex), sp_pos_range $1 $2} /* %main:: */
+| hash PKG_SCOPE {sp_0($2); (P_tok, Call(Too_complex, [fst $1])), sp_pos_range $1 $2} /* %main:: */
 
 | terminal {$1}
 
@@ -323,7 +323,7 @@ terminal:
 | REVISION {(P_tok, to_Raw_string $1), snd $1}
 | COMMAND_STRING {to_Call_op_(P_expr, "``", [to_String false $1]) (snd $1)}
 | QUOTEWORDS {to_Call_op_(P_tok, "qw", [to_Raw_string $1]) (snd $1)}
-| HERE_DOC {(P_tok, String([], raw_pos2pos (sndfst $1))), snd $1}
+| HERE_DOC {(P_tok, to_String false (fstfst $1, snd $1)), snd $1}
 | RAW_HERE_DOC {(P_tok, Raw_string(fstfst $1, raw_pos2pos (sndfst $1))), snd $1}
 | PATTERN {to_Call_op_(P_expr, "m//", var_dollar_ :: from_PATTERN $1) (snd $1)}
 | PATTERN_SUBST {to_Call_op_(P_expr, "s///", var_dollar_ :: from_PATTERN_SUBST $1) (snd $1)}
@@ -334,7 +334,7 @@ diamond:
 | LT term GT {sp_0($2); sp_0($3); to_Call_op("<>", [sndfst $2]) (sp_pos_range $1 $3)}
 
 subscripted: /* Some kind of subscripted expression */
-| variable PKG_SCOPE bracket_subscript {sp_0($2); sp_0($3); Too_complex, sp_pos_range $1 $3} /* $foo::{something} */
+| variable PKG_SCOPE bracket_subscript {sp_0($2); sp_0($3); Call(Too_complex, [fst $3]), sp_pos_range $1 $3} /* $foo::{something} */
 | scalar bracket_subscript             {sp_0($2); to_Deref_with(I_hash , I_scalar, from_scalar $1, fst      $2), sp_pos_range $1 $2} /* $foo{bar} */
 | scalar arrayref                      {sp_0($2); to_Deref_with(I_array, I_scalar, from_scalar $1, only_one $2), sp_pos_range $1 $2} /* $array[$element] */
 | term ARROW bracket_subscript         {sp_0($2); sp_0($3); check_arrow_needed $1 $2; to_Deref_with(I_hash , I_scalar, sndfst $1, fst      $3), sp_pos_range $1 $3} /* somehref->{bar} */
@@ -345,7 +345,7 @@ subscripted: /* Some kind of subscripted expression */
 | subscripted parenthesized            {sp_0($2); to_Deref_with(I_func , I_scalar, fst $1, List(sndfst $2)), sp_pos_range $1 $2} /* $foo->{bar}(@args) */
 
 restricted_subscripted: /* Some kind of subscripted expression */
-| variable PKG_SCOPE bracket_subscript {sp_0($2); sp_0($3); Too_complex, sp_pos_range $1 $3} /* $foo::{something} */
+| variable PKG_SCOPE bracket_subscript {sp_0($2); sp_0($3); Call(Too_complex, [fst $3]), sp_pos_range $1 $3} /* $foo::{something} */
 | scalar bracket_subscript             {sp_0($2); to_Deref_with(I_hash , I_scalar, from_scalar $1, fst      $2), sp_pos_range $1 $2} /* $foo{bar} */
 | scalar arrayref                      {sp_0($2); to_Deref_with(I_array, I_scalar, from_scalar $1, only_one $2), sp_pos_range $1 $2} /* $array[$element] */
 | restricted_subscripted bracket_subscript        {sp_0($2); to_Deref_with(I_hash , I_scalar, fst $1, fst      $2), sp_pos_range $1 $2} /* $foo->[bar]{baz} */

@@ -390,9 +390,6 @@ let map_assoc_val f l = map (fun (k,v) -> k, f v) l
 let assoc_or_fail e l =
   try assoc e l with Not_found -> failwith "assoc failed"
 
-let assoc_has_key e l =
-  try let _ = assoc e l in true with Not_found -> false  
-
 let assoc_by is_same e l = 
   find_some (fun (a,b) -> if is_same e a then Some b else None) l
 
