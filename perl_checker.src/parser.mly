@@ -319,20 +319,20 @@ term:
 | array BRACKET expr BRACKET_END {sp_0($2); sp_0($3); sp_0($4); new_pesp M_list P_expr (to_Deref_with(I_hash, I_array, from_array $1, $3.any.expr)) $1 $4} /* hash slice: @hash{@keys} */
 
 /* function_calls */
-| ONE_SCALAR_PARA RAW_STRING               {call_one_scalar_para $1 [to_Raw_string $2] $1 $2}
-| ONE_SCALAR_PARA STRING                   {call_one_scalar_para $1 [to_String true $2] $1 $2}
-| ONE_SCALAR_PARA variable                 {call_one_scalar_para $1 [$2.any] $1 $2}
-| ONE_SCALAR_PARA restricted_subscripted   {call_one_scalar_para $1 [$2.any] $1 $2}
-| ONE_SCALAR_PARA parenthesized            {call_one_scalar_para $1 $2.any.expr $1 $2}
-| ONE_SCALAR_PARA BRACKET lines BRACKET_END {sp_n($2); new_pesp M_unknown P_tok (call(Deref(I_func, Ident(None, $1.any, raw_pos2pos $1.pos)), [anonymous_sub None $3 $4])) $1 $4} /* eval { foo } */
-| ONE_SCALAR_PARA diamond {call_one_scalar_para $1 [$2.any] $1 $2}
-| ONE_SCALAR_PARA %prec PREC_LOW {call_one_scalar_para $1 [] $1 $1}
-| ONE_SCALAR_PARA word argexpr {check_parenthesized_first_argexpr_with_Ident  $2.any $3; call_one_scalar_para $1 [call(Deref(I_func, $2.any), $3.any.expr)] $1 $3} /* ref foo $a, $b */
-| ONE_SCALAR_PARA hash PKG_SCOPE {sp_0($3); call_one_scalar_para $1 [ Call(Too_complex, [$2.any]) ] $1 $3} /* keys %main:: */
-| ONE_SCALAR_PARA BAREWORD {if $2.any = "_" && $1.any.[0] = '-' then new_pesp M_bool P_mul Too_complex $1 $2 else die_rule "syntax error"} /* -e "foo" && -f _ */
+| ONE_SCALAR_PARA RAW_STRING               {call_one_scalar_para P_uniop $1 [to_Raw_string $2] $1 $2}
+| ONE_SCALAR_PARA STRING                   {call_one_scalar_para P_uniop $1 [to_String true $2] $1 $2}
+| ONE_SCALAR_PARA variable                 {call_one_scalar_para P_uniop $1 [$2.any] $1 $2}
+| ONE_SCALAR_PARA restricted_subscripted   {call_one_scalar_para P_uniop $1 [$2.any] $1 $2}
+| ONE_SCALAR_PARA parenthesized            {call_one_scalar_para P_tok $1 $2.any.expr $1 $2}
+| ONE_SCALAR_PARA BRACKET lines BRACKET_END {sp_n($2); new_pesp M_unknown P_uniop (call(Deref(I_func, Ident(None, $1.any, raw_pos2pos $1.pos)), [anonymous_sub None $3 $4])) $1 $4} /* eval { foo } */
+| ONE_SCALAR_PARA diamond {call_one_scalar_para P_uniop $1 [$2.any] $1 $2}
+| ONE_SCALAR_PARA %prec PREC_LOW {call_one_scalar_para P_tok $1 [] $1 $1}
+| ONE_SCALAR_PARA word argexpr {check_parenthesized_first_argexpr_with_Ident  $2.any $3; call_one_scalar_para P_uniop $1 [call(Deref(I_func, $2.any), $3.any.expr)] $1 $3} /* ref foo $a, $b */
+| ONE_SCALAR_PARA hash PKG_SCOPE {sp_0($3); call_one_scalar_para P_uniop $1 [ Call(Too_complex, [$2.any]) ] $1 $3} /* keys %main:: */
+| ONE_SCALAR_PARA BAREWORD {if $2.any = "_" && $1.any.[0] = '-' then new_pesp M_bool P_uniop Too_complex $1 $2 else die_rule "syntax error"} /* -e "foo" && -f _ */
 
-| ONE_SCALAR_PARA array arrayref {call_one_scalar_para $1 [to_Deref_with(I_array, I_array, from_array $2, List $3.any)] $1 $3} /* array slice: @array[vals] */
-| ONE_SCALAR_PARA array BRACKET expr BRACKET_END {sp_0($3); sp_0($4); sp_0($5); call_one_scalar_para $1 [to_Deref_with(I_hash, I_array, from_array $2, $4.any.expr)] $1 $5} /* hash slice: @hash{@keys} */
+| ONE_SCALAR_PARA array arrayref {call_one_scalar_para P_uniop $1 [to_Deref_with(I_array, I_array, from_array $2, List $3.any)] $1 $3} /* array slice: @array[vals] */
+| ONE_SCALAR_PARA array BRACKET expr BRACKET_END {sp_0($3); sp_0($4); sp_0($5); call_one_scalar_para P_uniop $1 [to_Deref_with(I_hash, I_array, from_array $2, $4.any.expr)] $1 $5} /* hash slice: @hash{@keys} */
 
 | func parenthesized {sp_0($2); call_func $1 $2} /* &foo(@args) */
 | word argexpr {check_parenthesized_first_argexpr_with_Ident $1.any $2; call_no_paren $1 $2} /* foo $a, $b */

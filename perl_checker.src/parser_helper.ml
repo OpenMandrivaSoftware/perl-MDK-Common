@@ -317,6 +317,8 @@ let rec prio_less = function
   | P_eq, _ -> false
   | _, P_cmp -> true
   | P_cmp, _ -> false
+  | _, P_uniop -> true
+  | P_uniop, _ -> false
   | _, P_add -> true
   | P_add, _ -> false
   | _, P_mul -> true
@@ -337,8 +339,10 @@ let prio_lo_check pri_out pri_in pos expr =
 	   prio_less(pri_in', pri_out) && not_complex (un_parenthesize expr) then 
 	  warn [Warn_suggest_simpler] pos "unneeded parentheses"
     | _ -> ())
-  else 
+  else
     (match expr with
+    | Call(Deref(I_func, Ident(None, f, _)), _) when f <> "delete" && pri_in = P_uniop && pri_out = P_add 
+      -> () (* ugly special case since we don't parse uniop correctly (eg: -d $_ . "foo" *)	
     | Call_op ("print", [Deref (I_star, Ident (None, "STDOUT", _)); (Deref(I_scalar, _) as ident)], _) -> 
 	 warn [Warn_traps] pos (sprintf "use parentheses: replace \"print %s ...\" with \"print(%s ...)\"" (string_of_fromparser ident) (string_of_fromparser ident))
     | _ -> warn [Warn_traps] pos "missing parentheses (needed for clarity)")
@@ -1088,8 +1092,8 @@ let call_with_paren esp_func esp_para = check_return esp_func esp_para; call_and
 let call_func esp_func esp_para = 
   call_and_context(esp_func.any, esp_para.any.expr) true P_tok esp_func esp_para
 
-let call_one_scalar_para { any = e ; pos = pos } para esp_start esp_end =
-  let para =
+let call_one_scalar_para prio { any = e ; pos = pos } para esp_start esp_end =
+  let para' =
     match para with
     | [] ->
 	  if e = "shift" || e = "pop" then 
@@ -1099,7 +1103,7 @@ let call_one_scalar_para { any = e ; pos = pos } para esp_start esp_end =
 	     [var_dollar_ (raw_pos2pos pos)])
     | _ -> para
   in
-  new_pesp M_unknown P_mul (call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)) esp_start esp_end
+  new_pesp M_unknown prio (call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para')) esp_start esp_end
 
 
 let (current_lexbuf : Lexing.lexbuf option ref) = ref None

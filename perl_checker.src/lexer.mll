@@ -540,6 +540,7 @@ rule token = parse
 | "printf"   { PRINT(lexeme lexbuf, pos lexbuf) }
 | "new"      { NEW(pos lexbuf) }
 | "format"   { let pos = pos lexbuf in FORMAT(here_doc_next_line ".", pos) }
+| "delete"
 | "defined"
 | "length" 
 | "keys" 

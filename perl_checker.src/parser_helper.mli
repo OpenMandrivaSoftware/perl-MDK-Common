@@ -235,6 +235,7 @@ val call_func :
   Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
 val call_one_scalar_para :
+  Types.priority ->
   string Types.any_spaces_pos ->
   Types.fromparser list ->
   'a Types.any_spaces_pos ->

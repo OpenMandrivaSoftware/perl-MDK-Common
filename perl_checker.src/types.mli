@@ -72,6 +72,7 @@ type priority =
 | P_tight
 | P_mul
 | P_add
+| P_uniop
 | P_cmp
 | P_eq
 | P_expr
