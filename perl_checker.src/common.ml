@@ -663,7 +663,7 @@ let rec graph_sort_by eq l =
 
 let int_sort l = sort (fun a b -> a - b) l
 
-let str_begins_with s prefix =
+let str_begins_with prefix s =
   String.sub s 0 (min (String.length s) (String.length prefix)) = prefix
 
 let rec strstr s subs =
@@ -838,12 +838,12 @@ let to_CamelCase s_ =
   Some (s' ^ String.sub s offset (String.length s - offset))
 
 let concat_symlink file link =
-  if str_begins_with link "..//" then (* ..//foo => /foo *)
+  if str_begins_with "..//" link then (* ..//foo => /foo *)
     skip_n_char 3 link
   else
     let file = if str_ends_with file "/" then chop file else file in (* s|/$|| *)
     let rec reduce file link =
-      if str_begins_with link "../" then
+      if str_begins_with "../" link then
 	let file = String.sub file 0 (String.rindex file '/') in (* s|/[^/]+$|| *)
 	reduce file (skip_n_char 3 link)
       else
@@ -995,3 +995,6 @@ let stringSet_to_list = StringSet.elements
 let stringSet_add set e = StringSet.add e set
 let stringSet_difference = StringSet.diff
 let list_to_StringSet l = fold_left stringSet_add StringSet.empty l
+
+(* this character messes emacs caml mode *)
+let char_quote = '"'

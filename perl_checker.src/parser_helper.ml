@@ -728,8 +728,8 @@ let cook_call_op op para pos =
   | "or", [ List [ Deref(I_scalar, id) ]; List [ Call_op("=", [ Deref(I_scalar, id_); _], _) ] ] when is_same_fromparser id id_ ->
       warn_rule "\"$foo or $foo = ...\" can be written \"$foo ||= ...\""
 
-  | "and", [ cond ; expr ] -> check_My_under_condition "replace \"<cond> and my $foo = ...\" with \"my $foo = <cond> && ...\"" expr
-  | "or",  [ cond ; expr ] -> check_My_under_condition "replace \"<cond> or my $foo = ...\" with \"my $foo = !<cond> && ...\"" expr
+  | "and", [ _cond ; expr ] -> check_My_under_condition "replace \"<cond> and my $foo = ...\" with \"my $foo = <cond> && ...\"" expr
+  | "or",  [ _cond ; expr ] -> check_My_under_condition "replace \"<cond> or my $foo = ...\" with \"my $foo = !<cond> && ...\"" expr
       
   | _ -> ());
 

@@ -35,9 +35,9 @@ let absolute_file_to_file =
     let s3 = Filename.dirname s2 in (* allow up to ../../../xxx *)
     if String.length s3 < 4 then s2 else s3 in
   memoize (fun abs_file ->
-    if str_begins_with abs_file (short_cwd ^ "/") then
+    if str_begins_with (short_cwd ^ "/") abs_file then
       let rec to_file rel cwd =
-	if str_begins_with abs_file (cwd ^ "/") then
+	if str_begins_with (cwd ^ "/") abs_file then
 	  rel ^ skip_n_char_ (String.length cwd + 1) 0 abs_file
 	else
 	  to_file ("../" ^ rel) (Filename.dirname cwd)

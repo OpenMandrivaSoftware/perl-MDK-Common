@@ -245,7 +245,7 @@ let read_xs_extension_from_so global_vars_declared package pos =
     if !Flags.verbose then print_endline_flush (sprintf "using shared-object symbols from %s" so) ;
     fold_lines (fun () s ->
       let s = skip_n_char 11 s in
-      if str_begins_with s "XS_" then
+      if str_begins_with "XS_" s then
 	let s = skip_n_char 3 s in
 	let len = String.length s in
 	let rec find_package_name accu i =
@@ -396,7 +396,7 @@ let get_global_info_from_package from_basedir require_name build_time t =
     let required_packages = List.map (fun (s, (_, pos)) -> s, pos) uses in
     let required_packages = List.fold_left (fold_tree (fun l -> 
       function
-	| Perl_checker_comment(s, pos) when str_begins_with s "require " ->
+	| Perl_checker_comment(s, pos) when str_begins_with "require " s ->
 	    Some((skip_n_char 8 s, pos) :: l)
 	| Call(Deref(I_func, Ident (None, "require", pos)), [Ident _ as pkg]) ->
 	    let package = string_of_Ident pkg in

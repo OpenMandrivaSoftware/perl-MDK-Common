@@ -2,7 +2,7 @@ exception Found
 exception Not_comparable
 exception GraphSort_circular_deps
 type ('a, 'b) either = Left of 'a | Right of 'b
-and ('a, 'b) or_option = Or_some of 'a | Or_error of 'b
+type ('a, 'b) or_option = Or_some of 'a | Or_error of 'b
 val internal_error : string -> 'a
 val id : 'a -> 'a
 val double : 'a -> 'a * 'a
@@ -244,7 +244,7 @@ module OrderedString : sig type t = string val compare : 'a -> 'a -> int end
 module StringSet :
   sig
     type elt = OrderedString.t
-    and t = Set.Make(OrderedString).t
+    type t = Set.Make(OrderedString).t
     val empty : t
     val is_empty : t -> bool
     val mem : elt -> t -> bool
@@ -268,8 +268,10 @@ module StringSet :
     val min_elt : t -> elt
     val max_elt : t -> elt
     val choose : t -> elt
+    val split : elt -> t -> t * bool * t
   end
 val stringSet_to_list : StringSet.t -> StringSet.elt list
 val stringSet_add : StringSet.t -> StringSet.elt -> StringSet.t
 val stringSet_difference : StringSet.t -> StringSet.t -> StringSet.t
 val list_to_StringSet : StringSet.elt list -> StringSet.t
+val char_quote : char
