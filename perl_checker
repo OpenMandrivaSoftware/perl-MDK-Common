@@ -205,7 +205,15 @@ sub syntax_warnings {
 }
 
 sub syntax_warnings_after_removing_strings_and_regexps {
+    local $_ = $_;
+    s/\bqw\([^)]*\)/'foo'/g;
 
+    if (my ($before, $f, $pkg, $after) = /(.*[^a-zA-Z0-9_:@*%&\$])((\w+::)+\w+)\s*([^a-zA-Z0-9_(: {].*)/) {
+	if ($before !~ /(sub|use|package|require|new|->)\s*$/ && $after !~ /^->/) {
+	    $pkg =~ s/::$//;
+	    warn_(qq($f must be written $f() otherwise it will not work if "use $pkg" is replaced by "require $pkg"), info());
+	}
+    }
 
     if (/\}->([{\[])/) {
 	warn_(qq("}->$2" is better written "}$2"), info());
