@@ -477,6 +477,5 @@ expr_or_empty: {default_esp (Block [])} | expr {new_1esp $1.any.expr $1 }
 
 %%
 
-;;
 prog_ref := Some prog
 ;;
