@@ -59,9 +59,13 @@ let pos2s (file, a, b) = sprintf "(%s, %d, %d)" file a b
 
 let pos2sfull pos = 
   try
-    let (file, line, n1,n2) = pos2line pos in
+    let file, line, n1, n2 = pos2line pos in
     sprintf "File \"%s\", line %d, character %d-%d\n" (absolute_file_to_file file) (line + 1) n1 n2
   with Not_found -> failwith ("bad position " ^ pos2s pos)
+
+let pos2s_for_po pos =
+  let file, line, _, _ = pos2line pos in
+  absolute_file_to_file file ^ ":" ^ string_of_int (line + 1)
 
 let is_on_same_line file (a,b) =
   let line_a, _ = raw_pos2raw_line file a in

@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Jan  9 2004 Pixel <pixel@mandrakesoft.com> 1.1.10-2mdk
+- perl_checker: entries in generated pot file are sorted by files
+
 * Wed Jan  7 2004 Pixel <pixel@mandrakesoft.com> 1.1.10-1mdk
 - add whereis_binary()
 

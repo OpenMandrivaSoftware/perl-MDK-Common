@@ -687,7 +687,6 @@ let followed_by_comma expr true_comma =
 
 
 let pot_strings = Hashtbl.create 16
-let pot_strings_and_file = Hashtbl.create 16
 let po_comments = ref []
 let po_comment esp = lpush po_comments esp.any
 
@@ -736,21 +735,25 @@ msgstr \"\"
     | '\n' -> output_string fd "\\n\"\n\""
     | c -> output_char fd c
   in
-  Hashtbl.iter (fun s po_comments ->
-    match Hashtbl.find_all pot_strings_and_file s with
+  let sorted_pot_strings = List.sort (fun (_, pos_a) (_, pos_b) -> compare pos_a pos_b)
+      (Hashtbl.fold (fun k (v, _) l -> (k,v) :: l) pot_strings [] ) in
+  List.iter (fun (s, _) ->
+    match Hashtbl.find_all pot_strings s with
     | [] -> ()
     | l ->
-	List.iter (fun po_comment -> output_string fd ("#. " ^ po_comment ^ "\n")) po_comments;
+	List.iter (fun _ -> Hashtbl.remove pot_strings s) l ;
 
-	List.iter (fun _ -> Hashtbl.remove pot_strings_and_file s) l ;
-	fprintf fd "#: %s\n" (String.concat " " (List.map (fun s -> Info.absolute_file_to_file s ^ ":1") l)) ;
+	List.iter (fun po_comment -> output_string fd ("#. " ^ po_comment ^ "\n")) (collect snd l);
+
+	let pos_l = List.sort compare (List.map fst l) in
+	fprintf fd "#: %s\n" (String.concat " " (List.map Info.pos2s_for_po pos_l)) ;
 	output_string fd "#, c-format\n" ;
 
 	output_string fd (if String.contains s '\n' then "msgid \"\"\n\"" else "msgid \"") ;
 	String.iter print_formatted_char s ;
 	output_string fd "\"\n" ;
 	output_string fd "msgstr \"\"\n\n"
-  ) pot_strings ;      
+  ) sorted_pot_strings ;      
   close_out fd
 
 let call_raw force_non_builtin_func (e, para) =
@@ -769,13 +772,12 @@ let call_raw force_non_builtin_func (e, para) =
 
       | "N" | "N_" ->
 	  (match para with
-	  | [ List(String([ s, List [] ], (file, pos_a, _)) :: para) ] -> 
+	  | [ List(String([ s, List [] ], (_, pos_offset, _ as pos)) :: para) ] -> 
 	      if !Flags.generate_pot then (
-		Hashtbl.replace pot_strings s ((try Hashtbl.find pot_strings s with Not_found -> []) @ !po_comments) ;
-		po_comments := [] ;
-		Hashtbl.add pot_strings_and_file s file ;
+		Hashtbl.add pot_strings s (pos, !po_comments) ;
+		po_comments := []
 	      ) ;
-	      let contexts = check_format_a_la_printf s pos_a in
+	      let contexts = check_format_a_la_printf s pos_offset in
 	      if f = "N" then
 		if List.length para < List.length contexts then
 		  warn_rule "not enough parameters"
