@@ -566,7 +566,11 @@ let to_Local esp =
   else die_with_rawpos esp.pos "bad argument to \"local\""
 
 let sub_declaration (name, proto) body = Sub_declaration(name, proto, Block body)
-let anonymous_sub body = Anonymous_sub (Block body.any, raw_pos2pos body.pos)
+let anonymous_sub proto body = Anonymous_sub (proto, Block body.any, raw_pos2pos body.pos)
+let call_with_same_para_special f = Call(f, [Deref(I_star, (Ident(None, "_", raw_pos2pos bpos)))])
+let remove_call_with_same_para_special = function
+  | Call(f, [Deref(I_star, (Ident(None, "_", _)))]) -> f
+  | e -> e
 
 let cook_call_op op para pos =
   (match op with
@@ -604,19 +608,19 @@ let cook_call_op op para pos =
   | "=", [ Deref(I_star, (Ident _ as f1)); Deref(I_star, (Ident _ as f2)) ] ->
       let s1, s2 = string_of_Ident f1, string_of_Ident f2 in
       warn pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
-      sub_declaration (f1, "") [ Deref(I_func, f2) ]
+      sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ]
   | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Deref(I_star, (Ident _ as f2)) ] ->
       let s2 = string_of_Ident f2 in
       warn pos (sprintf "\"*{'%s'} = *%s\" is better written \"*{'%s'} = \\&%s\"" sf1 s2 sf1 s2) ;
-      sub_declaration (Ident(None, sf1, pos_f1), "") [ Deref(I_func, f2) ]
+      sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ]
 
   | "=", [ Deref(I_star, (Ident _ as f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
-      sub_declaration (f1, "") [ Deref(I_func, f2) ]
+      sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ]
   | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
-      sub_declaration (Ident(None, sf1, pos_f1), "") [ Deref(I_func, f2) ]
+      sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ]
 
-  | "=", [ Deref(I_star, (Ident _ as f1)); (Anonymous_sub _ as sub) ] ->
-      sub_declaration (f1, "") [ sub ]
+  | "=", [ Deref(I_star, (Ident _ as f1)); (Anonymous_sub(proto, sub, _)) ] ->
+      sub_declaration (f1, proto) [ sub ]
 
   | "||", e :: _ when is_always_true  e -> warn_rule "<constant> || ... is the same as <constant>"; call
   | "&&", e :: _ when is_always_false e -> warn_rule "<constant> && ... is the same as <constant>"; call

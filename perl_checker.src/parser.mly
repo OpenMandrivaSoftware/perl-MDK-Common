@@ -23,6 +23,7 @@
 %token <((string * ((int * int) * token) list) list * (string * ((int * int) * token) list) list * string) Types.any_spaces_pos> PATTERN_SUBST
 
 %token <(string option * string) Types.any_spaces_pos> SCALAR_IDENT ARRAY_IDENT HASH_IDENT FUNC_IDENT STAR_IDENT RAW_IDENT RAW_IDENT_PAREN ARRAYLEN_IDENT
+%token <string Types.any_spaces_pos> SUB_WITH_PROTO
 %token <(string * string) Types.any_spaces_pos> FUNC_DECL_WITH_PROTO
 
 %token <string Types.any_spaces_pos> FOR PRINT
@@ -154,14 +155,14 @@ sideff: /* An expression which may have a side-effect */
 decl:
 | FORMAT BAREWORD ASSIGN {new_esp M_special Too_complex $1 $3}
 | FORMAT ASSIGN {new_esp M_special Too_complex $1 $2}
-| func_decl semi_colon {if snd $1.any = "" then die_rule "there is no need to pre-declare in Perl!" else (warn_rule "please don't use prototype pre-declaration" ; new_esp M_special Too_complex $1 $2) }
+| func_decl semi_colon {if snd $1.any = None then die_rule "there is no need to pre-declare in Perl!" else (warn_rule "please don't use prototype pre-declaration" ; new_esp M_special Too_complex $1 $2) }
 | func_decl BRACKET BRACKET_END {sp_n($2); sp_0_or_cr($3); let name, proto = $1.any in new_esp M_none (sub_declaration (name, proto) []) $1 $3}
 | func_decl BRACKET lines BRACKET_END {sp_n($2); check_block_sub $3 $4; new_esp M_none (sub_declaration $1.any $3.any) $1 $4}
 | func_decl BRACKET BRACKET expr BRACKET_END            BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_esp M_none (sub_declaration $1.any [Ref(I_hash, prio_lo P_loose $4)]) $1 $6}
 | func_decl BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); new_esp M_none (sub_declaration $1.any [Ref(I_hash, prio_lo P_loose $4); Semi_colon]) $1 $7}
 | PACKAGE word semi_colon {sp_0_or_cr($1); sp_1($2); new_esp M_none (Package $2.any) $1 $3}
-| BEGIN BRACKET lines BRACKET_END {sp_0_or_cr($1); sp_1($2); check_block_sub $3 $4; new_esp M_none (Sub_declaration(Ident(None, "BEGIN", get_pos $1), "", Block $3.any)) $1 $4}
-| END   BRACKET lines BRACKET_END {sp_0_or_cr($1); sp_1($2); check_block_sub $3 $4; new_esp M_none (Sub_declaration(Ident(None, "END",   get_pos $1), "", Block $3.any)) $1 $4}
+| BEGIN BRACKET lines BRACKET_END {sp_0_or_cr($1); sp_1($2); check_block_sub $3 $4; new_esp M_none (Sub_declaration(Ident(None, "BEGIN", get_pos $1), None, Block $3.any)) $1 $4}
+| END   BRACKET lines BRACKET_END {sp_0_or_cr($1); sp_1($2); check_block_sub $3 $4; new_esp M_none (Sub_declaration(Ident(None, "END",   get_pos $1), None, Block $3.any)) $1 $4}
 | use {$1}
 
 use:
@@ -179,8 +180,8 @@ use_revision:
 | USE {$1}
 
 func_decl:
-| SUB word { new_esp M_none ($2.any, "") $1 $2}
-| FUNC_DECL_WITH_PROTO {new_1esp (Ident(None, fst $1.any, get_pos $1), snd $1.any) $1 }
+| SUB word { new_esp M_none ($2.any, None) $1 $2}
+| FUNC_DECL_WITH_PROTO {new_1esp (Ident(None, fst $1.any, get_pos $1), Some (snd $1.any)) $1 }
 
 listexpr: /* Basic list expressions */
 | %prec PREC_LOW { default_pesp P_tok []}
@@ -276,18 +277,27 @@ term:
 
 | BRACKET BRACKET_END {new_pesp (M_ref M_hash) P_expr (Ref(I_hash, List [])) $1 $2} /* empty hash */
 | BRACKET_HASHREF expr BRACKET_END %prec PREC_HIGH {sp_p($3); new_pesp (M_ref M_hash) P_expr (Ref(I_hash, $2.any.expr)) $1 $3} /* { foo => "Bar" } */
-| SUB BRACKET BRACKET_END %prec PREC_HIGH {sp_n($2); sp_0($3); new_pesp (M_ref M_sub) P_expr (anonymous_sub (new_esp (M_ref M_array) [] $2 $2)) $1 $3}
-| SUB BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); check_block_sub $3 $4; new_pesp (M_ref M_sub) P_expr (anonymous_sub $3) $1 $4}
+| SUB            BRACKET BRACKET_END %prec PREC_HIGH {sp_n($2); sp_0($3); new_pesp (M_ref M_sub) P_expr (anonymous_sub None          (new_esp (M_ref M_array) [] $2 $2)) $1 $3}
+| SUB_WITH_PROTO BRACKET BRACKET_END %prec PREC_HIGH {sp_n($2); sp_0($3); new_pesp (M_ref M_sub) P_expr (anonymous_sub (Some $1.any) (new_esp (M_ref M_array) [] $2 $2)) $1 $3}
+| SUB            BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); check_block_sub $3 $4; new_pesp (M_ref M_sub) P_expr (anonymous_sub None          $3) $1 $4}
+| SUB_WITH_PROTO BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); check_block_sub $3 $4; new_pesp (M_ref M_sub) P_expr (anonymous_sub (Some $1.any) $3) $1 $4}
 
 | termdo {new_1pesp P_tok $1.any $1}
-| REF term {new_pesp (M_ref $2.mcontext) P_expr (Ref(I_scalar, $2.any.expr)) $1 $2} /* \$x, \@y, \%z */
+| REF term {new_pesp (M_ref $2.mcontext) P_expr (Ref(I_scalar, remove_call_with_same_para_special $2.any.expr)) $1 $2} /* \$x, \@y, \%z */
 | my_our %prec UNIOP {new_1pesp P_expr $1.any $1}
 | LOCAL term    %prec UNIOP {sp_n($2); new_pesp $2.mcontext P_expr (to_Local $2) $1 $2}
 
 | parenthesized {new_1pesp $1.any.priority (List $1.any.expr) $1} /* (1, 2) */
 | parenthesized arrayref {sp_0($2); let is_slice = not (is_only_one_in_List $2.any) in new_pesp (if is_slice then M_list else M_scalar) P_tok (to_Deref_with(I_array, (if is_slice then I_array else I_scalar), List $1.any.expr, List $2.any)) $1 $2} /* list indexing or slicing */
 
-| variable {new_1pesp P_tok $1.any $1}
+| variable { 
+    let e = 
+      match $1.any with
+      | Deref(I_func, Ident _) ->
+	  call_with_same_para_special $1.any (* not the same as f(@_) *)
+      | e -> e in
+    new_1pesp P_tok e $1 
+  }
 
 | subscripted {new_1pesp P_tok $1.any $1}
 
@@ -308,9 +318,9 @@ term:
 | func parenthesized {sp_0($2); new_pesp M_unknown P_tok (call_func true ($1.any, $2.any.expr)) $1 $2} /* &foo(@args) */
 | word argexpr {check_parenthesized_first_argexpr_with_Ident  $1.any $2; new_pesp M_unknown P_call_no_paren (call(Deref(I_func, $1.any), $2.any.expr)) $1 $2} /* foo $a, $b */
 | word_paren parenthesized {sp_0($2); new_pesp M_unknown P_tok (call(Deref(I_func, $1.any), $2.any.expr)) $1 $2} /* foo(@args) */
-| word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); check_block_sub $3 $4; new_pesp M_unknown (if $5.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub $3 :: $5.any.expr)) $1 $5} /* map { foo } @bar */
-| word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_pesp M_unknown (if $7.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub(new_esp (M_ref M_hash) [ Ref(I_hash, $4.any.expr) ] $4 $4) :: $7.any.expr)) $1 $7} /* map { { foo } } @bar */
-| word BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); new_pesp M_unknown (if $8.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub(new_esp (M_ref M_hash) [ Ref(I_hash, $4.any.expr); Semi_colon ] $4 $4) :: $8.any.expr)) $1 $8} /* map { { foo }; } @bar */
+| word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); check_block_sub $3 $4; new_pesp M_unknown (if $5.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None $3 :: $5.any.expr)) $1 $5} /* map { foo } @bar */
+| word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_pesp M_unknown (if $7.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ Ref(I_hash, $4.any.expr) ] $4 $4) :: $7.any.expr)) $1 $7} /* map { { foo } } @bar */
+| word BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); new_pesp M_unknown (if $8.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ Ref(I_hash, $4.any.expr); Semi_colon ] $4 $4) :: $8.any.expr)) $1 $8} /* map { { foo }; } @bar */
 
 | term ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, $4.any.expr)) $1 $4} /* $foo->bar(list) */
 | term ARROW word_or_scalar {sp_0($2); sp_0($3); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, [])) $1 $3} /* $foo->bar */

@@ -10,6 +10,7 @@ type state = {
     methods : (string, (pos * bool ref * prototype option) list) Hashtbl.t ;
     global_vars_declared : (context * string * string, pos * prototype option) Hashtbl.t ;
     global_vars_used : ((context * string * string) * pos) list ref ;
+    packages_being_classes : (string, unit) Hashtbl.t ;
   }
 
 type vars = { 
@@ -232,7 +233,7 @@ let un_parenthesize_one_elt_List = function
 
 let check_unused_local_variables vars =
   List.iter (fun ((_, s as v), (pos, used, _proto)) ->
-    if not !used && s.[0] != '_' && not (List.mem s [ "BEGIN"; "END"; "DESTROY" ]) then warn_with_pos pos (sprintf "unused variable %s" (variable2s v))
+    if not !used && (s.[0] != '_' || s = "_") && not (List.mem s [ "BEGIN"; "END"; "DESTROY" ]) then warn_with_pos pos (sprintf "unused variable %s" (variable2s v))
   ) (List.hd vars.my_vars)
   
 
@@ -245,14 +246,14 @@ let check_variables vars t =
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
 	Some vars
-    | Call(Deref(I_func, Ident(None, "sort", _)), (Anonymous_sub(Block f, pos) :: l)) ->
+    | Call(Deref(I_func, Ident(None, "sort", _)), (Anonymous_sub(_, Block f, pos) :: l)) ->
 	let vars = List.fold_left check_variables_ vars l in
 	let vars' = { vars with my_vars = [ (I_scalar, "a"), (pos, ref true, None) ; (I_scalar, "b"), (pos, ref true, None) ] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' f in
 	check_unused_local_variables vars' ;
 	Some vars
 
-    | Call(Deref(I_func, Ident(None, func, func_pos)), Anonymous_sub(Block f, pos) :: l) 
+    | Call(Deref(I_func, Ident(None, func, func_pos)), Anonymous_sub(_, Block f, pos) :: l) 
       when List.mem func [ "grep" ; "map" ; "substInFile" ; "map_index" ; "each_index" ; "partition" ; "find_index" ; "grep_index" ; "find" ; "any" ; "every" ] ->
 	let vars = List.fold_left check_variables_ vars l in
 	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_scalar, "_"), (pos, ref true, None)] :: vars.our_vars } in
@@ -261,10 +262,16 @@ let check_variables vars t =
 	check_variable (I_func, Ident(None, func, func_pos)) vars None ;
 	Some vars
 
+    | Call(Deref(I_func, (Ident _ as ident)), [ Deref(I_star, (Ident(None, "_", _))) ]) ->
+	(* the &f case: allow access to @_ *)
+	check_variable (I_func, ident) vars None ;
+	let _ = is_my_declared vars (I_array, "_") in
+	Some vars
+
     | Call(Deref(I_func, (Ident _ as ident)), [ List [ Deref(I_array, (Ident(None, "_", pos))) ] ]) ->
 	(* special warning if @_ is unbound *)
 	check_variable (I_func, ident) vars None ;
-	if not (is_our_declared vars (I_array, "_")) then
+	if not (is_my_declared vars (I_array, "_")) then
 	  warn_with_pos pos (sprintf "replace %s(@_) with &%s" (string_of_Ident ident) (string_of_Ident ident)) ;
 	Some vars
 
@@ -293,27 +300,32 @@ let check_variables vars t =
 	check_unused_local_variables vars' ;
 	Some vars
 
-    | Sub_declaration(Ident(fq, name, pos) as ident, _perl_proto, Block body) ->
+    | Sub_declaration(Ident(fq, name, pos) as ident, perl_proto, Block body) ->
 	let vars = declare_Our vars ([ I_func, string_of_Ident ident ], pos) in
 
-	let local_vars, l =
-	  match has_proto (Block body) with
+	let my_vars, l =
+	  match has_proto perl_proto (Block body) with
 	  | Some(mys, mys_pos, body) ->
 	      [], My_our ("my", mys, mys_pos) :: body
-	  | _ -> [(I_array, "_"), (pos, ref true, None)], body
+	  | _ -> 
+	      let dont_check_use = 
+		fq = None && List.mem name ["BEGIN"; "END"; "DESTROY"] ||
+		Hashtbl.mem vars.state.packages_being_classes (some_or fq vars.current_package.package_name)
+	      in
+	      [(I_array, "_"), (pos, ref dont_check_use, None)], body
 	in
 	let local_vars = 
 	  if fq = None && name = "AUTOLOAD" 
-	  then ((I_scalar, "AUTOLOAD"), (pos, ref true, None)) :: local_vars 
-	  else local_vars in
+	  then [ (I_scalar, "AUTOLOAD"), (pos, ref true, None) ]
+	  else [] in
 
-	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = local_vars :: vars.our_vars } in
+	let vars' = { vars with my_vars = my_vars :: vars.my_vars ; our_vars = local_vars :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
 	Some vars
 
-    | Anonymous_sub(Block l, pos) ->
-	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [(I_array, "_"), (pos, ref true, None)] :: vars.our_vars } in
+    | Anonymous_sub(_, Block l, pos) ->
+	let vars' = { vars with my_vars = [(I_array, "_"), (pos, ref true, None)] :: vars.my_vars } in
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
 	Some vars
@@ -452,8 +464,8 @@ let arrange_global_vars_declared state =
   { state with global_vars_declared = h }
 
 let get_methods_available state =
-  let get_classes state =
-    let l = hashtbl_collect (fun _ package ->
+  let classes = uniq (
+    hashtbl_collect (fun _ package ->
       match package.isa with
       | None ->
 	  if Hashtbl.mem package.vars_declared (I_func, "new") then [package] else []
@@ -463,20 +475,20 @@ let get_methods_available state =
 	      Hashtbl.find state.per_package pkg
 	    with Not_found -> die_with_pos pos ("bad package " ^ pkg)
 	  ) l
-    ) state.per_package in
-    uniq l
-  in
+    ) state.per_package
+  ) in
   List.iter (fun pkg ->
+    Hashtbl.replace state.packages_being_classes pkg.package_name () ;
     Hashtbl.iter (fun (context, v) (pos, is_used, proto) ->
       if context = I_func then
 	let l = try Hashtbl.find state.methods v with Not_found -> [] in
 	Hashtbl.replace state.methods v ((pos, is_used, proto) :: l)
     ) pkg.vars_declared
-  ) (get_classes state) ;
+  ) classes ;
   state
 
 
-let default_state() = { per_package = Hashtbl.create 16; methods = Hashtbl.create 256 ; global_vars_declared = Hashtbl.create 256; global_vars_used = ref [] }
+let default_state() = { per_package = Hashtbl.create 16; methods = Hashtbl.create 256 ; global_vars_declared = Hashtbl.create 256; global_vars_used = ref []; packages_being_classes = Hashtbl.create 16 }
 
 let cache_cache = Hashtbl.create 16
 

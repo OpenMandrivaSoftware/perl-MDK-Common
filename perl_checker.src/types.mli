@@ -47,10 +47,10 @@ type fromparser =
    | Call of fromparser * fromparser list
    | Method_call of fromparser * fromparser * fromparser list
 
-   | Anonymous_sub of fromparser * pos
+   | Anonymous_sub of string option * fromparser * pos (* prototype, expr, pos *)
    | My_our of string * (context * string) list * pos
    | Use of fromparser * fromparser list
-   | Sub_declaration of fromparser * string * fromparser (* name, prototype, body *)
+   | Sub_declaration of fromparser * string option * fromparser (* name, prototype, body *)
    | Package of fromparser
    | Label of string
    | Perl_checker_comment of string * pos

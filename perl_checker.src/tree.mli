@@ -40,7 +40,7 @@ val findfile : string list -> string -> string
 
 val get_global_info_from_package : bool -> int -> fromparser list -> per_package list
 
-val has_proto : fromparser -> ((context * string) list * pos * fromparser list) option
+val has_proto : string option -> fromparser -> ((context * string) list * pos * fromparser list) option
 val get_vars_declaration : (context * string * string, pos * prototype option) Hashtbl.t -> per_package -> unit
 
 val die_with_pos : string * int * int -> string -> 'a

@@ -6,6 +6,7 @@ type state = {
     methods : (string, (pos * bool ref * prototype option) list) Hashtbl.t ;
     global_vars_declared : (context * string * string, pos * prototype option) Hashtbl.t;
     global_vars_used : ((context * string * string) * pos) list ref;
+    packages_being_classes : (string, unit) Hashtbl.t ;
   } 
 
 val default_state : unit -> state

@@ -116,7 +116,7 @@ let get_exported t =
 	if exports.export_ok <> [] then warn_with_pos pos "weird, @EXPORT_OK set twice" ;
 	(match v with
 	| Call(Deref(I_func, Ident(None, "map", _)), 
-	       [ Anonymous_sub(Block [List [Deref(I_array, Deref(I_scalar, Ident (None, "_", _)))]], _);
+	       [ Anonymous_sub(_, Block [List [Deref(I_array, Deref(I_scalar, Ident (None, "_", _)))]], _);
 		 Call(Deref(I_func, Ident(None, "values", _)), [ Deref(I_hash, Ident(None, "EXPORT_TAGS", _))])]) ->
 		   { exports with export_ok = collect snd exports.export_tags }
 	| _ -> { exports with export_ok = from_qw v })
@@ -151,7 +151,7 @@ let get_exported t =
 		    Ref(I_array,
 			List[List[
 			     Call(Deref(I_func, Ident(None, "map", _)),
-				  [Anonymous_sub(Block [List [Deref(I_array, Deref(I_scalar, Ident(None, "_", _)))]], _);
+				  [Anonymous_sub(_, Block [List [Deref(I_array, Deref(I_scalar, Ident(None, "_", _)))]], _);
 				   Call(Deref(I_func, Ident(None, "values", _)), [Deref(I_hash, Ident(None, "EXPORT_TAGS", _))])])
 			   ]])
 		  ], _)] ->
@@ -246,25 +246,31 @@ let read_xs_extension_from_so global_vars_declared package pos =
     true
   with Not_found -> false
 
-let has_proto = function
-  | Block (List [Call_op ("=", [My_our ("my", mys, mys_pos); Deref(I_array, Ident(None, "_", _))], _pos)] :: body) ->
-      Some(mys, mys_pos, body)
-  | _ -> None
+let has_proto perl_proto body = 
+  match perl_proto with
+  | Some "" -> Some([], raw_pos2pos bpos, [body])
+  | _ -> 
+      match body with
+      | Block [] ->
+	  Some([ I_array, "_empty" ], raw_pos2pos bpos, [])
+      | Block (List [Call_op ("=", [My_our ("my", mys, mys_pos); Deref(I_array, Ident(None, "_", _))], _pos)] :: body) ->
+	  Some(mys, mys_pos, body)
+      | _ -> None
 
-let get_proto body =
+let get_proto perl_proto body =
   map_option (fun (mys, _pos, _) ->
     let scalars, others = break_at (fun (context, _) -> context <> I_scalar) mys in
     let must_have, optional = break_at (fun (_, s) -> String.length s > 2 && (s.[0] = 'o' || s.[0] = 'b') && s.[1] = '_') scalars in
     let min = List.length must_have in    
     { proto_nb_min = min; proto_nb_max = if others = [] then Some(min + List.length optional) else None }
-  ) (has_proto body)
+  ) (has_proto perl_proto body)
 
 let get_vars_declaration global_vars_declared package = 
   List.iter (function
-    | Sub_declaration(Ident(None, name, pos), _perl_proto, body) ->
-	Hashtbl.replace package.vars_declared (I_func, name) (pos, ref false, get_proto body)
-    | Sub_declaration(Ident(Some fq, name, pos), _perl_proto, body) ->
-	Hashtbl.replace global_vars_declared (I_func, fq, name) (pos, get_proto body)
+    | Sub_declaration(Ident(None, name, pos), perl_proto, body) ->
+	Hashtbl.replace package.vars_declared (I_func, name) (pos, ref false, get_proto perl_proto body)
+    | Sub_declaration(Ident(Some fq, name, pos), perl_proto, body) ->
+	Hashtbl.replace global_vars_declared (I_func, fq, name) (pos, get_proto perl_proto body)
 
     | List [ Call_op("=", [My_our("our", ours, pos); _], _) ]
     | List [ Call_op("=", [My_our("local", ([ I_scalar, "_" ] as ours), pos); _], _) ]
@@ -293,7 +299,7 @@ let rec fold_tree f env e =
   | Some env -> env
   | None ->
   match e with
-  | Anonymous_sub(e', _)
+  | Anonymous_sub(_, e', _)
   | Ref(_, e')
   | Deref(_, e')
     -> fold_tree f env e'

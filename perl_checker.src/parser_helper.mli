@@ -149,9 +149,13 @@ val to_Local :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
   Types.fromparser
 val sub_declaration :
-  Types.fromparser * string -> Types.fromparser list -> Types.fromparser
+  Types.fromparser * string option ->
+  Types.fromparser list -> Types.fromparser
 val anonymous_sub :
+  string option ->
   Types.fromparser list Types.any_spaces_pos -> Types.fromparser
+val call_with_same_para_special : Types.fromparser -> Types.fromparser
+val remove_call_with_same_para_special : Types.fromparser -> Types.fromparser
 val cook_call_op :
   string -> Types.fromparser list -> int * int -> Types.fromparser
 val to_Call_op :
