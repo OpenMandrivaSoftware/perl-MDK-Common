@@ -73,10 +73,15 @@ finds the value that follow the scalar in the list (circular):
 C<next_val_in_array(3, [1, 2, 3])> gives C<1>
 (do not use a list with duplicates)
 
+=item group_by2(LIST)
+
+interprets the list as an ordered hash, returns a list of [key,value]:
+C<list2kv(1 => 2, 3 => 4, 5 => 6)> gives C<[1,2], [3,4], [5,6]>
+
 =item list2kv(LIST)
 
-interprets the list as an hash, returns the keys and the values:
-C<list2kv(1 => 2, 3 => 4)> gives C<[1,3], [2,4]>
+interprets the list as an ordered hash, returns the keys and the values:
+C<list2kv(1 => 2, 3 => 4, 5 => 6)> gives C<[1,3,5], [2,4,6]>
 
 =back
 
@@ -94,7 +99,7 @@ use MDK::Common::Func;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(ikeys add2hash add2hash_ put_in_hash member invbool listlength deref is_empty_array_ref is_empty_hash_ref uniq difference2 intersection next_val_in_array list2kv);
+@EXPORT_OK = qw(ikeys add2hash add2hash_ put_in_hash member invbool listlength deref is_empty_array_ref is_empty_hash_ref uniq difference2 intersection next_val_in_array group_by2 list2kv);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -131,5 +136,14 @@ sub list2kv {
     }
     \@k, \@v;
 }
+
+sub group_by2 {
+    my @l;
+    for (my $i = 0; $i < @_ ; $i += 2) {
+	push @l, [ $_[$i], $_[$i+1] ];
+    }
+    @l;
+}
+
 
 1;
