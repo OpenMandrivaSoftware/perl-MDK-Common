@@ -390,6 +390,8 @@ let ident_start = ['a'-'z' 'A'-'Z' '_']
 let ident = ident_start ['0'-'9' 'A'-'Z' 'a'-'z' '_'] *
 let pattern_separator = [ '/' '!' ',' '|' '@' ]
 
+let in_string_expr = (ident | (ident? ("::" ident)+)) "->"? (('{' [^ '{' '}' '\n']* '}') | ('[' [^ '[' ']' '\n']* ']'))*
+
 rule token = parse
 | [' ' '\t']+ { 
     (* propagate not_ok_for_match when it was set by the previous token *)
@@ -887,7 +889,7 @@ and string_interpolate_scalar = parse
 | '$' ident
 | ['0'-'9']
 | '{' [^ '{' '}']* '}'
-| (ident | (ident? ("::" ident)+)) "->"? (('{' [^ '{' '}' '\n']* '}') | ('[' [^ '[' ']' '\n']* ']'))*
+| in_string_expr
 | [^ '{' '}' ' ' '\n' '"'] { (* eg: $! $$ *)
       string_interpolate token "$" lexbuf
   }
@@ -926,7 +928,7 @@ and delimited_string_interpolate_scalar = parse (* needed for delimited string l
 and string_interpolate_array = parse
 | '$' ident
 | '{' [^ '{' '}']* '}'
-| (ident | (ident? ("::" ident)+)) { string_interpolate token "@" lexbuf }
+| in_string_expr { string_interpolate token "@" lexbuf }
 
 | [ '@' '*' '<' '>' ']' '.' '(' ' ' ] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 | '"' { putback lexbuf 1; next_s "@" (Stack.pop next_rule) lexbuf }
@@ -936,7 +938,8 @@ and string_interpolate_array = parse
 and delimited_string_interpolate_array = parse
 | '$' ident
 | '{' [^ '{' '}']* '}'
-| (ident | (ident? ("::" ident)+)) { string_interpolate token "@" lexbuf }
+| in_string_expr
+    { string_interpolate token "@" lexbuf }
 
 | [ '@' '*' '<' '>' ']' '.' '(' ' ' ] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 | eof { next_s "@" (Stack.pop next_rule) lexbuf }
