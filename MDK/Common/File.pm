@@ -174,13 +174,13 @@ sub cp_with_option {
 
 	unlink $dest;
 
-	if (-d $src) {
-	    -d $dest or mkdir $dest, (stat($src))[2] or die "mkdir: can't create directory $dest: $!\n";
-	    cp_af(glob_($src), $dest);
-	} elsif (-l $src && $keep_special) {
+	if (-l $src && $keep_special) {
 	    unless (symlink(readlink($src) || die("readlink failed: $!"), $dest)) {
 		warn "symlink: can't create symlink $dest: $!\n";
 	    }
+	} elsif (-d $src) {
+	    -d $dest or mkdir $dest, (stat($src))[2] or die "mkdir: can't create directory $dest: $!\n";
+	    cp_af(glob_($src), $dest);
 	} elsif ((-b $src || -c $src) && $keep_special) {
 	    my @stat = stat($src);
 	    require MDK::Common::System;
