@@ -10,15 +10,20 @@ val var_STDOUT : Types.fromparser
 val split_name_or_fq_name : string -> string option * string
 val is_var_dollar_ : Types.fromparser -> bool
 val is_var_number_match : Types.fromparser -> bool
+val non_scalar_context : Types.context -> bool
+val is_scalar_context : Types.context -> bool
+val is_not_a_scalar : Types.fromparser -> bool
+val is_a_scalar : Types.fromparser -> bool
 val is_parenthesized : Types.fromparser -> bool
 val un_parenthesize : Types.fromparser -> Types.fromparser
 val un_parenthesize_full : Types.fromparser -> Types.fromparser
+val is_always_true : Types.fromparser -> bool
+val is_always_false : Types.fromparser -> bool
 val not_complex : Types.fromparser -> bool
 val not_simple : Types.fromparser -> bool
 val string_of_Ident : Types.fromparser -> string
 val context2s : Types.context -> string
 val variable2s : Types.context * string -> string
-val non_scalar_context : Types.context -> bool
 val is_same_fromparser : Types.fromparser -> Types.fromparser -> bool
 val from_scalar : Types.fromparser * 'a -> Types.fromparser
 val from_array : Types.fromparser * 'a -> Types.fromparser
@@ -66,6 +71,7 @@ val check_hash_subscript :
   ('a * Types.fromparser) * ('b * (int * int)) -> unit
 val check_arrow_needed :
   ('a * Types.fromparser) * 'b -> 'c * ('d * (int * int)) -> unit
+val check_scalar_subscripted : Types.fromparser * 'a -> unit
 val check_ternary_paras :
   Types.fromparser * Types.fromparser * Types.fromparser ->
   Types.fromparser list
@@ -94,7 +100,6 @@ val only_one_array_ref :
 val only_one_in_List :
   ('a * Types.fromparser) * ('b * (int * int)) -> Types.fromparser
 val is_only_one_in_List : Types.fromparser list -> bool
-val is_not_a_scalar : Types.fromparser -> bool
 val maybe_to_Raw_string : Types.fromparser -> Types.fromparser
 val to_List : Types.fromparser list -> Types.fromparser
 val deref_arraylen : Types.fromparser -> Types.fromparser
@@ -134,6 +139,8 @@ val to_Call_op_ :
   'b * (int * int) -> ('a * Types.fromparser) * ('b * (int * int))
 val followed_by_comma :
   ('a * Types.fromparser list) * 'b -> bool * 'c -> Types.fromparser list
+val pot_strings : (string, string list) Hashtbl.t
+val pot_strings_and_file : (string, string) Hashtbl.t
 val po_comments : string list ref
 val po_comment : string * 'a -> unit
 val check_format_a_la_printf : string -> int -> unit

@@ -58,6 +58,19 @@ let rec un_parenthesize_full = function
   | List[e] -> un_parenthesize_full e
   | e -> e
 
+let is_always_true = function
+  | Num(n, _) -> float_of_string n <> 0.
+  | Raw_string(s, _) -> s <> ""
+  | String(l, _) -> l <> []
+  | Ref _ -> true
+  | _ -> false
+
+let is_always_false = function
+  | Num(n, _) -> float_of_string n = 0.
+  | Raw_string(s, _) -> s = ""
+  | String(l, _) -> l = []
+  | _ -> false
+
 let not_complex e =
   if is_parenthesized e then true else
   let rec not_complex_ op = function
@@ -296,7 +309,7 @@ let check_parenthesized_first_argexpr_with_Ident ident ((prio, e), _ as ex) =
       (match e with
       | [e] when is_parenthesized e -> ()
       | _ -> warn_rule "use parentheses around argument (otherwise it might cause syntax errors if the package is \"require\"d and not \"use\"d")
-  | Ident(None, word, _) when List.mem word ["ref"] ->
+  | Ident(None, word, _) when List.mem word ["ref" ; "readlink"] ->
       if prio <> P_tok then warn_rule "use parentheses around argument"
   | _ -> ());
   check_parenthesized_first_argexpr (string_of_Ident ident) ex
@@ -316,6 +329,11 @@ let check_arrow_needed ((_, e), _) ter =
   match e with
   | Deref_with(I_array, I_scalar, List [List [Call _]], _) -> () (* "->" needed for (f())[0]->{XX} *)
   | Deref_with _ -> warn (sndsnd ter) "the arrow \"->\" is unneeded"
+  | _ -> ()
+
+let check_scalar_subscripted (e, _) =
+  match e with
+  | Deref(I_scalar, Deref _) -> warn_rule "for complex dereferencing, use \"->\""
   | _ -> ()
 
 let check_ternary_paras(cond, a, b) =
@@ -432,6 +450,9 @@ let deref_raw context e =
   | Raw_string(s, pos) -> 
       let fq, ident = split_name_or_fq_name s in
       Ident(fq, ident, pos)
+  | Deref(I_scalar, (Ident _ as ident)) ->
+      warn_rule (sprintf "%s{$%s} can be written %s$%s" (context2s context) (string_of_Ident ident) (context2s context) (string_of_Ident ident));
+      e
   | _ -> e
   in Deref(context, e)
 
@@ -507,6 +528,11 @@ let cook_call_op(op, para, pos) =
 
   | "=", [ Deref(I_star, (Ident _ as f1)); (Anonymous_sub _ as sub) ] ->
       sub_declaration (f1, "") [ sub ]
+
+  | "||", e :: _ when is_always_true  e -> warn_rule "<constant> || ... is the same as <constant>"; call
+  | "&&", e :: _ when is_always_false e -> warn_rule "<constant> && ... is the same as <constant>"; call
+  | "||", e :: _ when is_always_false e -> warn_rule "<constant> || ... is the same as ..."; call
+  | "&&", e :: _ when is_always_true  e -> warn_rule "<constant> && ... is the same as ..."; call
 
   | _ -> 
       call

@@ -349,8 +349,8 @@ diamond:
 
 subscripted: /* Some kind of subscripted expression */
 | variable PKG_SCOPE bracket_subscript {sp_0($2); sp_0($3); Call(Too_complex, [fst $3]), sp_pos_range $1 $3} /* $foo::{something} */
-| scalar bracket_subscript             {sp_0($2); to_Deref_with(I_hash , I_scalar, from_scalar $1, fst                $2), sp_pos_range $1 $2} /* $foo{bar} */
-| scalar arrayref                      {sp_0($2); to_Deref_with(I_array, I_scalar, from_scalar $1, only_one_array_ref $2), sp_pos_range $1 $2} /* $array[$element] */
+| scalar bracket_subscript             {sp_0($2); check_scalar_subscripted $1; to_Deref_with(I_hash , I_scalar, from_scalar $1, fst                $2), sp_pos_range $1 $2} /* $foo{bar} */
+| scalar arrayref                      {sp_0($2); check_scalar_subscripted $1; to_Deref_with(I_array, I_scalar, from_scalar $1, only_one_array_ref $2), sp_pos_range $1 $2} /* $array[$element] */
 | term ARROW bracket_subscript         {sp_0($2); sp_0($3); check_arrow_needed $1 $2; to_Deref_with(I_hash , I_scalar, sndfst $1, fst                $3), sp_pos_range $1 $3} /* somehref->{bar} */
 | term ARROW arrayref                  {sp_0($2); sp_0($3); check_arrow_needed $1 $2; to_Deref_with(I_array, I_scalar, sndfst $1, only_one_array_ref $3), sp_pos_range $1 $3} /* somearef->[$element] */
 | term ARROW parenthesized             {sp_0($2); sp_0($3); to_Deref_with(I_func , I_scalar, sndfst $1, List(sndfst $3)), sp_pos_range $1 $3} /* $subref->(@args) */
@@ -360,8 +360,8 @@ subscripted: /* Some kind of subscripted expression */
 
 restricted_subscripted: /* Some kind of subscripted expression */
 | variable PKG_SCOPE bracket_subscript {sp_0($2); sp_0($3); Call(Too_complex, [fst $3]), sp_pos_range $1 $3} /* $foo::{something} */
-| scalar bracket_subscript             {sp_0($2); to_Deref_with(I_hash , I_scalar, from_scalar $1, fst                $2), sp_pos_range $1 $2} /* $foo{bar} */
-| scalar arrayref                      {sp_0($2); to_Deref_with(I_array, I_scalar, from_scalar $1, only_one_array_ref $2), sp_pos_range $1 $2} /* $array[$element] */
+| scalar bracket_subscript             {sp_0($2); check_scalar_subscripted $1; to_Deref_with(I_hash , I_scalar, from_scalar $1, fst                $2), sp_pos_range $1 $2} /* $foo{bar} */
+| scalar arrayref                      {sp_0($2); check_scalar_subscripted $1; to_Deref_with(I_array, I_scalar, from_scalar $1, only_one_array_ref $2), sp_pos_range $1 $2} /* $array[$element] */
 | restricted_subscripted bracket_subscript        {sp_0($2); to_Deref_with(I_hash , I_scalar, fst $1, fst                $2), sp_pos_range $1 $2} /* $foo->[bar]{baz} */
 | restricted_subscripted arrayref                 {sp_0($2); to_Deref_with(I_array, I_scalar, fst $1, only_one_array_ref $2), sp_pos_range $1 $2} /* $foo->[$bar][$baz] */
 | restricted_subscripted parenthesized            {sp_0($2); to_Deref_with(I_func , I_scalar, fst $1, List(sndfst $2)), sp_pos_range $1 $2} /* $foo->{bar}(@args) */
