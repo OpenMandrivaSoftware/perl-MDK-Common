@@ -234,6 +234,7 @@ let raw_here_doc_next_line mark =
 let delimit_char = ref '/'
 type string_escape_kinds = Double_quote | Qq | Delimited | Here_doc
 let string_escape_kind = ref Double_quote
+let string_quote_escape = ref false
 let string_escape_useful = ref (Left false)
 let not_ok_for_match = ref (-1)
 let string_nestness = ref 0
@@ -275,18 +276,24 @@ let raw_ins_to_string t lexbuf =
   RAW_STRING(s, pos)
 let ins_to_string t lexbuf =
   string_escape_useful := Left false ;
+  string_quote_escape := false ;
   let s, pos = ins t lexbuf in
 
   if not !string_is_i18n then
     (match !string_escape_useful, s with
     | Right c, [ _, [] ] ->
-	let msg = 
-	  if c = "\"" then
-	    "or you can replace \"xxx\\" ^ c ^ "xxx\" with 'xxx" ^ c ^ "xxx'"
-	  else
-	    "you can replace \"xxx\\" ^ c ^ "xxx\" with 'xxx" ^ c ^ "xxx'" in
-	warn_with_pos pos msg
-    | _ -> ());
+	warn_with_pos pos ("you can replace \"xxx\\" ^ c ^ "xxx\" with 'xxx" ^ c ^ "xxx', that way you don't need to escape <" ^ c ^ ">")
+    | _ -> 
+	if !string_quote_escape then
+	  let full_s = String.concat "" (List.map fst s) in
+	  let nb = string_fold_left (fun nb c ->
+	    if nb < 0 then nb else
+	    if c = '(' then nb + 1 else
+	    if c = ')' then nb - 1 else nb
+	  ) 0 full_s in
+	  if nb = 0 then
+	    warn_with_pos pos "you can replace \"xxx\\\"xxx\" with qq(xxx\"xxx), that way you don't need to escape <\">"
+    );
 
   not_ok_for_match := lexeme_end lexbuf; 
   string_is_i18n := false ;
@@ -832,7 +839,8 @@ and string_escape = parse
 | 'x' [^ '{'] _     { string_escape_useful := Left true; hex_in_string lexbuf next_rule (skip_n_char 1 (lexeme lexbuf)) }
 | '\n' { die lexbuf "do not use \"\\\" before end-of-line, it's useless and generally bad" }
 | '\\'{ next_s "\\" (Stack.pop next_rule) lexbuf }
-| ['b' 'f' '$' '@' '%' 'a' 'r' '{' '['] { 
+| ['b' 'f' 'a' 'r'] { string_escape_useful := Left true; next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| ['$' '@' '%' '{' '['] { 
 	if !string_escape_useful = Left false then string_escape_useful := Right (lexeme lexbuf) ;
 	next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf 
   }
@@ -842,10 +850,10 @@ and string_escape = parse
     | Double_quote -> 
 	if c <> "\"" then
 	  warn_escape_unneeded lexbuf c
-	else if not !string_is_i18n then (
+	else (
 	  if !string_escape_useful = Left false then string_escape_useful := Right c ;
-	  warn lexbuf "you can replace \"xxx\\\"xxx\" with qq(xxx\"xxx), that way you don't need to escape <\">"
-	)
+	  string_quote_escape := true
+        )
     | Qq -> if c <> "(" && c <> ")" then warn_escape_unneeded lexbuf c
     | Here_doc -> warn_escape_unneeded lexbuf c
     | Delimited -> if c = String.make 1 !delimit_char then 

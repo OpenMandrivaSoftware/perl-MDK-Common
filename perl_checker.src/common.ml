@@ -756,6 +756,13 @@ let count_chars_in_string s c =
       Not_found -> 0
   in rec_count_chars_in_string 0
 
+let rec string_fold_left f val_ s =
+  let val_ = ref val_ in
+  for i = 0 to String.length s - 1 do
+    val_ := f !val_ s.[i]
+  done ;
+  !val_
+
 let rec string_forall_with f i s =
   try
     f s.[i] && string_forall_with f (i+1) s
