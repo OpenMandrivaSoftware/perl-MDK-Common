@@ -170,7 +170,8 @@ let sp_same (_, (spaces1, _) as ter1) (_, (spaces2, _) as ter2) =
   else if spaces2 <> Space_0 then sp_p ter1
 
 let check_word_alone (word, _) =
-  if string_of_Ident word = "time" then die_rule "please use time() instead of time";
+  let s = string_of_Ident word in
+  if s = "time" || s = "wantarray" then die_rule (sprintf "please use %s() instead of %s" s s);
   word
 
 let check_parenthesized_first_argexpr word ((_, e), (_, (start, _)) as ex) =

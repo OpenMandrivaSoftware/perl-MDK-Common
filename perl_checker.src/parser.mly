@@ -235,7 +235,7 @@ term:
 | term DECR    {sp_0($2); (P_tight, Call_op("-- post", [sndfst $1])), pos_range $1 $2}
 | NOT argexpr  {(P_and, Call_op("not", sndfst $2)), pos_range $1 $2}
 
-| DEFINED scalar {(P_expr, Call(Ident(None, "defined", get_pos $1), [fst $2])), pos_range $1 $2}
+| DEFINED variable {(P_expr, Call(Ident(None, "defined", get_pos $1), [fst $2])), pos_range $1 $2}
 | DEFINED subscripted {(P_expr, Call(Ident(None, "defined", get_pos $1), [fst $2])), pos_range $1 $2}
 | DEFINED parenthesized {(P_expr, Call(Ident(None, "defined", get_pos $1), sndfst $2)), pos_range $1 $2}
 | DEFINED word_paren parenthesized {(P_expr, Call(Ident(None, "defined", get_pos $1), [Call(fst $2, sndfst $3)])), pos_range $1 $3}
