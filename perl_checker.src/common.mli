@@ -205,14 +205,19 @@ val string_forall_with : (char -> bool) -> int -> string -> bool
 val starts_with_non_lowercase : string -> bool
 val fold_lines : ('a -> string -> 'a) -> 'a -> in_channel -> 'a
 val readlines : in_channel -> string list
-val updir : string -> int -> string
 val split_at : char -> string -> string list
 val split_at2 : char -> char -> string -> string list
 val words : string -> string list
 val to_CamelCase : string -> string option
+val concat_symlink : string -> string -> string
+val expand_symlinks : string -> string
+val file_to_absolute_file : string -> string
+val mtime : string -> int
+val updir : string -> int -> string
 val string_of_ref : 'a ref -> string
 val print_endline_flush_quiet : bool ref
 val print_endline_flush : string -> unit
+val print_endline_flush_always : string -> unit
 val is_int : float -> bool
 val compare_lists : ('a -> 'b -> int) -> 'a list -> 'b list -> int
 val compare_best : int -> int -> int

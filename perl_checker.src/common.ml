@@ -752,16 +752,6 @@ let rec fold_lines f init chan =
   with End_of_file -> init
 let readlines chan = List.rev (fold_lines (fun l e -> e::l) [] chan)
 
-let rec updir dir nb =
-  if nb = 0 then dir else
-  match dir with
-  | "." -> String.concat "/" (times ".." nb)
-  | _ -> 
-      if Filename.basename dir = ".." then
-	dir ^ "/" ^ String.concat "/" (times ".." nb)
-      else
-	updir (Filename.dirname dir) (nb-1)
-
 let split_at c s =
   let rec split_at_ accu i =
     try
@@ -808,11 +798,57 @@ let to_CamelCase s_ =
   ) (0, "") (rev !l) in
   Some (s' ^ String.sub s offset (String.length s - offset))
 
+let concat_symlink file link =
+  if str_begins_with link "..//" then (* ..//foo => /foo *)
+    skip_n_char 3 link
+  else
+    let file = if str_ends_with file "/" then chop file else file in (* s|/$|| *)
+    let rec reduce file link =
+      if str_begins_with link "../" then
+	let file = String.sub file 0 (String.rindex file '/') in (* s|/[^/]+$|| *)
+	reduce file (skip_n_char 3 link)
+      else
+	file ^ "/" ^ link
+    in
+    reduce file link
+
+let expand_symlinks file =
+  match split_at '/' file with
+  | "" :: l ->
+      let rec remove_dotdot accu nb = function
+	| [] -> if nb = 0 then accu else failwith "remove_dotdot"
+	| ".." :: l -> remove_dotdot accu (nb + 1) l
+	| e :: l -> if nb > 0 then remove_dotdot accu (nb - 1) l else remove_dotdot (e :: accu) nb l
+      in
+      let l = remove_dotdot [] 0 (List.rev l) in
+      List.fold_left (fun file piece ->
+	fix_point (fun file -> 
+	  try concat_symlink file ("../" ^ Unix.readlink file) 
+	  with _ -> file
+        ) (file ^ "/" ^ piece)) "" l
+  | _ -> internal_error (Printf.sprintf "expand_symlinks: %s is relative\n" file)
+
+let file_to_absolute_file file =
+  if file.[0] = '/' then file else expand_symlinks (Unix.getcwd() ^ "/" ^ file)
+
+let mtime f = int_of_float ((Unix.stat f).Unix.st_mtime)
+
+let rec updir dir nb =
+  if nb = 0 then dir else
+  match dir with
+  | "." -> String.concat "/" (times ".." nb)
+  | _ -> 
+      if Filename.basename dir = ".." then
+	dir ^ "/" ^ String.concat "/" (times ".." nb)
+      else
+	updir (Filename.dirname dir) (nb-1)
+
 let (string_of_ref : 'a ref -> string) = fun r ->
   Printf.sprintf "0x%x" (Obj.magic r : int)
 
 let print_endline_flush_quiet = ref false
 let print_endline_flush s = if not !print_endline_flush_quiet then (print_endline s ; flush stdout)
+let print_endline_flush_always s = print_endline s ; flush stdout
 
 let is_int n = n = floor n
 

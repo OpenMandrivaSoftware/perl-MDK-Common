@@ -18,7 +18,6 @@ type prototype = {
   }
 
 type per_package = {
-    file_name : string ;
     package_name : string ; has_package_name : bool ;
     vars_declared : (context * string, pos * bool ref * prototype option) Hashtbl.t;
     imported : ((context * string) * (string * bool ref * prototype option)) list option ref;
@@ -27,9 +26,14 @@ type per_package = {
     required_packages : (string * pos) list ;
     body : fromparser list;
     isa : (string * pos) list option ;
+  }
+
+type per_file = {
+    file_name : string ;
+    require_name : string option ;
     lines_starts : int list ;
     build_time : int ;
-    from_cache : bool ;
+    packages : per_package list ;
     from_basedir : bool ;
   }
 
@@ -39,10 +43,10 @@ val use_lib : string list ref
 val uses_external_package : string -> bool
 val findfile : string list -> string -> string
 
-val get_global_info_from_package : bool -> int -> fromparser list -> per_package list
+val get_global_info_from_package : bool -> string option -> int -> fromparser list -> per_file
 
 val has_proto : string option -> fromparser -> ((context * string) list * pos * fromparser list) option
-val get_vars_declaration : (context * string * string, pos * prototype option) Hashtbl.t -> per_package -> unit
+val get_vars_declaration : (context * string * string, pos * prototype option) Hashtbl.t -> string -> per_package -> unit
 
 val die_with_pos : string * int * int -> string -> 'a
 val warn_with_pos : string * int * int -> string -> unit

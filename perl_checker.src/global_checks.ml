@@ -6,9 +6,9 @@ open Parser_helper
 open Tree
 
 type state = {
-    per_package : (string, per_package) Hashtbl.t ;
+    per_files : (string, per_file) Hashtbl.t ;
+    per_packages : (string, per_package) Hashtbl.t ;
     methods : (string, (pos * bool ref * prototype option) list) Hashtbl.t ;
-    global_vars_declared : (context * string * string, pos * prototype option) Hashtbl.t ;
     global_vars_used : ((context * string * string) * pos) list ref ;
     packages_being_classes : (string, unit) Hashtbl.t ;
   }
@@ -25,7 +25,7 @@ type vars = {
 
 let rec get_imported state current_package (package_name, (imports, pos)) =
   try
-    let package_used = Hashtbl.find state.per_package package_name in
+    let package_used = Hashtbl.find state.per_packages package_name in
     let exports = package_used.exports in
     let get_var_by_name var =
       let (b, prototype) =
@@ -131,11 +131,10 @@ let is_var_declared vars var para =
   is_var_declared_and_set vars.state vars.current_package var para
 
 let is_global_var_declared vars (context, fq, name) para =
-  Hashtbl.mem vars.state.global_vars_declared (context, fq, name) ||
-  (try
-    let package = Hashtbl.find vars.state.per_package fq in
+  try
+    let package = Hashtbl.find vars.state.per_packages fq in
     is_var_declared_and_set vars.state package (context, name) para
-  with Not_found -> false)
+  with Not_found -> false
  
 
 let is_global_var context ident = 
@@ -390,7 +389,7 @@ let check_variables vars t =
 	let rec search pkg =
 	  if is_global_var_declared vars (I_func, pkg, method_) (Some(pos, [ List (class_ :: un_parenthesize_one_elt_List para) ])) then true
 	  else
-	    let package = Hashtbl.find vars.state.per_package pkg in
+	    let package = Hashtbl.find vars.state.per_packages pkg in
 	    List.exists search (List.map fst (some_or package.isa []))
 	in
 	(try
@@ -428,33 +427,40 @@ let check_variables vars t =
 
 let check_tree state package =
   let vars = { my_vars = [[]]; our_vars = []; locally_imported = []; required_vars = []; current_package = package; state = state } in
+  if !Flags.verbose then print_endline_flush_always ("checking package " ^ package.package_name) ;
   let _vars = check_variables vars package.body in
   ()
 
 let add_package_to_state state package = 
   let package =
     try
-      let existing_package = Hashtbl.find state.per_package package.package_name in
+      let existing_package = Hashtbl.find state.per_packages package.package_name in
       (*print_endline_flush (existing_package.file_name ^ " vs " ^ package.file_name); *)
       let vars_declared = existing_package.vars_declared in
       Hashtbl.iter (fun var pos -> Hashtbl.replace vars_declared var pos) package.vars_declared ;
-      let p = if existing_package.build_time > package.build_time then existing_package else package in
-      let p = { p with
+      let p = {
+	package_name = package.package_name ; has_package_name = package.has_package_name ;
 	isa = if existing_package.isa = None then package.isa else existing_package.isa ;
-	body = (if existing_package.from_cache then [] else existing_package.body) @ package.body ;
-	uses = (if existing_package.from_cache then [] else existing_package.uses) @ package.uses ;
+	body = existing_package.body @ package.body ;
+	uses = existing_package.uses @ package.uses ;
+	required_packages = existing_package.required_packages @ package.required_packages ;
 	vars_declared = vars_declared ;
-	build_time = max existing_package.build_time package.build_time ;
+	imported = 
+	  ref (if !(existing_package.imported) = None && !(package.imported) = None then None else
+	  Some (some_or !(existing_package.imported) [] @ some_or !(package.imported) [])) ;
 	exports = { export_ok   = existing_package.exports.export_ok   @ package.exports.export_ok ;
 		    export_auto = existing_package.exports.export_auto @ package.exports.export_auto ;
 		    export_tags = existing_package.exports.export_tags @ package.exports.export_tags ;
 		    special_export = None }
       } in
-      Hashtbl.replace state.per_package package.package_name p ;
+      Hashtbl.replace state.per_packages package.package_name p ;
       p
     with Not_found -> package
   in
-  Hashtbl.replace state.per_package package.package_name package
+  Hashtbl.replace state.per_packages package.package_name package
+
+let add_file_to_files per_files file = 
+  Hashtbl.replace per_files file.file_name file
 
 let check_unused_vars package =
   Hashtbl.iter (fun (context, name) (pos, is_used, _proto) ->
@@ -462,17 +468,15 @@ let check_unused_vars package =
       warn_with_pos pos (sprintf "unused %s%s::%s" (if context = I_func then "function " else "variable " ^ context2s context) package.package_name name)
   ) package.vars_declared
 
-let arrange_global_vars_declared state =
-  let h = Hashtbl.create 16 in
-  Hashtbl.iter (fun (context, fq, name) (file, _, _ as pos, proto) ->
+let arrange_global_vars_declared global_vars_declared state =
+  Hashtbl.iter (fun (context, fq, name) (pos, proto) ->
     let package =
       try
-	Hashtbl.find state.per_package fq
+	Hashtbl.find state.per_packages fq
       with Not_found ->
    (* creating a new shadow package *)
 	let package = 
 	  { 
-	    file_name = file ; 
 	    package_name = fq;
 	    has_package_name = true ;
 	    exports = empty_exports ;
@@ -482,19 +486,15 @@ let arrange_global_vars_declared state =
 	    required_packages = [] ;
 	    body = [] ;
 	    isa = None ;
-	    lines_starts = [] ;
-	    build_time = 0 ;
-	    from_cache = false ;
-	    from_basedir = false ;
 	  } in
-	Hashtbl.add state.per_package fq package ;
+	Hashtbl.add state.per_packages fq package ;
 	package
     in
     if not (Hashtbl.mem package.vars_declared (context, name)) then
       Hashtbl.add package.vars_declared (context, name) (pos, ref false, proto)
 	(* otherwise dropping this second declaration *)
-  ) state.global_vars_declared ;
-  { state with global_vars_declared = h }
+  ) global_vars_declared ;
+  state
 
 let get_methods_available state =
   let classes = uniq (
@@ -505,10 +505,10 @@ let get_methods_available state =
       | Some l ->
 	  package :: List.map (fun (pkg, pos) -> 
 	    try
-	      Hashtbl.find state.per_package pkg
+	      Hashtbl.find state.per_packages pkg
 	    with Not_found -> die_with_pos pos ("bad package " ^ pkg)
 	  ) l
-    ) state.per_package
+    ) state.per_packages
   ) in
   List.iter (fun pkg ->
     Hashtbl.replace state.packages_being_classes pkg.package_name () ;
@@ -521,11 +521,12 @@ let get_methods_available state =
   state
 
 
-let default_state() = { per_package = Hashtbl.create 16; methods = Hashtbl.create 256 ; global_vars_declared = Hashtbl.create 256; global_vars_used = ref []; packages_being_classes = Hashtbl.create 16 }
+let default_per_files() = Hashtbl.create 16
+let default_state per_files = { per_files = per_files; per_packages = Hashtbl.create 16; methods = Hashtbl.create 256 ; global_vars_used = ref []; packages_being_classes = Hashtbl.create 16 }
 
 let cache_cache = Hashtbl.create 16
 
-let read_packages_from_cache state dir =
+let read_packages_from_cache per_files dir =
   if !Flags.no_cache || Hashtbl.mem cache_cache dir then () else
   try
     Hashtbl.add cache_cache dir ();
@@ -536,24 +537,22 @@ let read_packages_from_cache state dir =
     let l = Marshal.from_channel fh in
     close_in fh ;
 
-    let l = List.filter (fun pkg -> not (Hashtbl.mem state.per_package pkg.package_name)) l in
+    let l = List.filter (fun file -> not (Hashtbl.mem per_files file.file_name) && file.build_time > mtime file.file_name) l in
 
-    if !Flags.verbose then print_endline_flush (sprintf "using cached packages %s from %s" (String.concat " " (List.map (fun pkg -> pkg.package_name) l)) file) ;
+    if !Flags.verbose then print_endline_flush (sprintf "using cached files\n%sfrom %s" (String.concat "" (List.map (fun s -> "   " ^ s ^ "\n") (List.sort compare (List.map (fun pkg -> pkg.file_name) l)))) file) ;
 
-    List.iter (fun pkg -> 
-      Info.add_a_file pkg.file_name pkg.lines_starts ;
-      add_package_to_state state { pkg with from_cache = true }
+    List.iter (fun file -> 
+      Info.add_a_file file.file_name file.lines_starts ;
+      add_file_to_files per_files file
     ) l
   with Sys_error _ -> ()
 
-let write_packages_cache state dir =
+let write_packages_cache per_files dir =
   try
     let file = dir ^ "/.perl_checker.cache" in
     let fh = open_out file in
     output_string fh ("perl_checker cache " ^ string_of_int Build.date ^ "\n") ;
-    let l = List.filter (fun pkg -> pkg.has_package_name) (List.map (fun pkg -> { pkg with imported = ref None }) (hashtbl_values state.per_package)) in
-    (*List.iter (fun pkg -> prerr_endline ("XXXX " ^ pkg.package_name ^ ": " ^ String.concat " " (List.map snd (hashtbl_keys pkg.vars_declared)))) l ;*)
-    Marshal.to_channel fh l [] ;
+    Marshal.to_channel fh (List.filter (fun per_file -> per_file.require_name <> None) (hashtbl_values per_files)) [] ;
     close_out fh ;
     if !Flags.verbose then print_endline_flush ("saving cached packages in " ^ file)
   with Sys_error _ -> ()

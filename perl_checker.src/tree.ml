@@ -21,18 +21,22 @@ type prototype = {
   }
 
 type per_package = {
-    file_name : string ;
     package_name : string ; has_package_name : bool ;
-    vars_declared : (context * string, pos * bool ref * prototype option) Hashtbl.t ;
-    imported : ((context * string) * (string * bool ref * prototype option)) list option ref ;
+    vars_declared : (context * string, pos * bool ref * prototype option) Hashtbl.t;
+    imported : ((context * string) * (string * bool ref * prototype option)) list option ref;
     exports : exports ;
     uses : uses ;
     required_packages : (string * pos) list ;
-    body : fromparser list ;
+    body : fromparser list;
     isa : (string * pos) list option ;
+  }
+
+type per_file = {
+    file_name : string ;
+    require_name : string option ;
     lines_starts : int list ;
     build_time : int ;
-    from_cache : bool ;
+    packages : per_package list ;
     from_basedir : bool ;
   }
 
@@ -204,9 +208,9 @@ let get_isa t =
     | _ -> isa, exporter
   ) (None, None) t
 
-let read_xs_extension_from_c global_vars_declared package pos =
+let read_xs_extension_from_c global_vars_declared file_name package pos =
   try
-    let cfile = Filename.chop_extension package.file_name ^ ".c" in
+    let cfile = Filename.chop_extension file_name ^ ".c" in
     let prefix = "newXS(\"" ^ package.package_name ^ "::" in
     ignore (fold_lines (fun in_bootstrap s ->
       if in_bootstrap then
@@ -222,6 +226,7 @@ let read_xs_extension_from_c global_vars_declared package pos =
 	 with Not_found -> ());
       in_bootstrap || str_contains s "XS_VERSION_BOOTCHECK"
     ) false (open_in cfile));
+    if !Flags.verbose then print_endline_flush (sprintf "using xs symbols from %s" cfile) ;
     true
   with Invalid_argument _ | Sys_error _ -> false
 
@@ -285,7 +290,7 @@ let get_proto perl_proto body =
     { proto_nb_min = min; proto_nb_max = if others = [] then Some(min + List.length optional) else None }
   ) (has_proto perl_proto body)
 
-let get_vars_declaration global_vars_declared package = 
+let get_vars_declaration global_vars_declared file_name package = 
   List.iter (function
     | Sub_declaration(Ident(None, name, pos), perl_proto, body, _) ->
 	Hashtbl.replace package.vars_declared (I_func, name) (pos, ref false, get_proto perl_proto body)
@@ -308,7 +313,7 @@ let get_vars_declaration global_vars_declared package =
 	if pkg <> package.package_name then
 	  warn_with_pos pos "strange bootstrap (the package name is not the same as the current package)"
 	else
-	  if not (read_xs_extension_from_c global_vars_declared package pos) then 
+	  if not (read_xs_extension_from_c global_vars_declared file_name package pos) then 
 	    if not (read_xs_extension_from_so global_vars_declared package pos) then
 	      ignore_package pkg
     | _ -> ()
@@ -361,9 +366,9 @@ and fold_tree_option f env = function
   | Some e -> fold_tree f env e
 
 
-let get_global_info_from_package from_basedir build_time t =
+let get_global_info_from_package from_basedir require_name build_time t =
   let current_packages = get_current_package t in
-  List.map (fun (current_package, t) ->
+  let packages = List.map (fun (current_package, t) ->
     let exports = get_exported t in
     let exporting_something() = exports.export_ok <> [] || exports.export_auto <> [] || exports.export_tags <> [] || exports.special_export = Some Re_export_all in
 
@@ -399,7 +404,6 @@ let get_global_info_from_package from_basedir build_time t =
 	| _ -> None)
       ) required_packages t in
     { 
-      file_name = !Info.current_file ; 
       package_name = package_name;
       has_package_name = current_package <> None ;
       exports = exports ;
@@ -409,9 +413,21 @@ let get_global_info_from_package from_basedir build_time t =
       required_packages = required_packages ;
       body = t ;
       isa = isa ;
-      lines_starts = !Info.current_file_lines_starts ;
-      build_time = build_time ;
-      from_cache = false ;
-      from_basedir = from_basedir ;
     }
-  ) current_packages
+  ) current_packages in
+
+  let require_name = match require_name with
+  | Some require_name -> Some require_name
+  | None -> match packages with
+    | [ pkg ] when pkg.has_package_name -> Some pkg.package_name
+    | _ -> None
+  in
+  {
+   file_name = !Info.current_file ; 
+   require_name = require_name ;
+   lines_starts = !Info.current_file_lines_starts ;
+   build_time = build_time ;
+   packages = packages ;
+   from_basedir = from_basedir ;
+  }
+

@@ -10,21 +10,19 @@ let search_basedir file_name nb =
   updir dir nb
 
 let basedir = ref ""
-let set_basedir state package =
+let set_basedir per_files file =
   if !basedir = "" then
-    let nb = List.length (split_at2 ':'':' package.package_name) - 1 in
-    let dir = search_basedir package.file_name nb in
+    let nb = List.length (split_at2 ':'':' (List.hd file.packages).package_name) - 1 in
+    let dir = search_basedir file.file_name nb in
     lpush Tree.use_lib dir ;
     Config_file.read_any dir 1 ;
-    read_packages_from_cache state dir ;
+    read_packages_from_cache per_files dir ;
     if !Flags.verbose then print_endline_flush ("basedir is " ^ dir);
     basedir := dir
 
-let mtime f = int_of_float ((Unix.stat f).Unix.st_mtime)
-
-let rec parse_file from_basedir state file =
+let rec parse_file from_basedir require_name per_files file =
   try
-    if !Flags.verbose then print_endline_flush ("checking " ^ file) ;
+    if !Flags.verbose then print_endline_flush_always ("parsing " ^ file) ;
     let build_time = int_of_float (Unix.time()) in
     let command = 
       match !Flags.expand_tabs with
@@ -37,15 +35,12 @@ let rec parse_file from_basedir state file =
       let tokens = Lexer.get_token Lexer.token lexbuf in
       let _ = Unix.close_process_in channel in
       let t = Parser_helper.parse_tokens Parser.prog tokens (Some lexbuf) in
-      let packages = get_global_info_from_package from_basedir build_time t in
-      let required_packages =
-	collect (fun package ->
-	  get_vars_declaration state.global_vars_declared package ;
-	  Global_checks.add_package_to_state state package ;
-	  set_basedir state package ;
-	  package.required_packages
-        ) packages in
-      required_packages, state
+      let per_file = get_global_info_from_package from_basedir require_name build_time t in
+      set_basedir per_files per_file ;
+      Global_checks.add_file_to_files per_files per_file ;
+
+      let required_packages = collect (fun package -> package.required_packages) per_file.packages in
+      required_packages, per_files
     with Failure s -> (
       print_endline_flush s ;
       exit 1
@@ -53,8 +48,8 @@ let rec parse_file from_basedir state file =
   with 
   | Not_found -> internal_error "runaway Not_found"
 
-and parse_package_if_needed state (package_name, pos) =
-  if List.mem package_name !Config_file.ignored_packages then [], state else
+and parse_package_if_needed per_files (package_name, pos) =
+  if List.mem package_name !Config_file.ignored_packages then [], per_files else
   let splitted = split_at2 ':'':' package_name in
   let rel_file = String.concat "/" splitted ^ ".pm" in
 
@@ -65,34 +60,24 @@ and parse_package_if_needed state (package_name, pos) =
     Config_file.read_any (Filename.dirname file) (List.length splitted) ;
     let already_done =
       try
-	let pkg = Hashtbl.find state.per_package package_name in
-	if pkg.from_cache then
-	  if pkg.build_time > mtime file then (
-	    Hashtbl.replace state.per_package package_name { pkg with from_cache = false };
-	    (*print_endline_flush (package_name ^ " wants " ^ String.concat " " (List.map fst pkg.required_packages)) ; *)
-	    Some pkg.required_packages
-	  ) else (
-	    if !Flags.verbose then print_endline_flush (Printf.sprintf "cached version of %s is outdated, re-parsing" file);
-	    Hashtbl.remove state.per_package package_name ; (* so that check on file name below doesn't need to check from_cache *)
-	    None
-	  )
-	else Some []
+	let per_file = Hashtbl.find per_files file in
+	Some (collect (fun pkg -> pkg.required_packages) per_file.packages)
       with Not_found -> None in
     match already_done with
-    | Some required_packages -> required_packages, state
-    | None ->
-	if hashtbl_exists (fun _ pkg -> pkg.file_name = file) state.per_package
-	then [], state (* already seen, it happens when many files have the same package_name *)
-	else parse_file (dir = !basedir) state file
+    | Some required_packages -> required_packages, per_files
+    | None -> parse_file (dir = !basedir) (Some package_name) per_files file
   with Not_found -> 
     warn_with_pos pos (Printf.sprintf "can't find package %s" package_name) ;
-    [], state
+    [], per_files
 
-let rec parse_required_packages state = function
-  | [] -> state
+let rec parse_required_packages state already_done = function
+  | [] -> state, already_done
   | e :: l ->
-      let el, state = parse_package_if_needed state e in
-      parse_required_packages state (el @ l)
+      if List.mem e already_done then
+	parse_required_packages state already_done l
+      else
+	let el, state = parse_package_if_needed state e in
+	parse_required_packages state (e :: already_done) (el @ l)
 
 
 let parse_options =
@@ -118,29 +103,54 @@ let parse_options =
   Arg.parse options (lpush args_r) usage;
 
   let files = if !args_r = [] then ["../t.pl"] else !args_r in
+  let files = List.map file_to_absolute_file files in
 
-  let required_packages, state = collect_withenv (parse_file true) (default_state()) files in
+  let required_packages, per_files = collect_withenv (parse_file true None) (default_per_files()) files in
   let required_packages = uniq_ (fun (a,_) (b,_) -> a = b) required_packages in
 
   if !Flags.generate_pot then Parser_helper.generate_pot !pot_file else (
 
   if !restrict_to_files then Common.print_endline_flush_quiet := true ;
-  let state = parse_required_packages state required_packages in
+  let per_files, required_packages = parse_required_packages per_files [] required_packages in
+  let l_required_packages = List.map fst required_packages in
   if !restrict_to_files then Common.print_endline_flush_quiet := false ;
 
-  let state = arrange_global_vars_declared state in
+  write_packages_cache per_files !basedir ;
 
-  write_packages_cache state !basedir ;
+  (* removing non needed files from per_files (those files come from the cache) *)
+  List.iter (fun k ->
+    let per_file = Hashtbl.find per_files k in
+    if not (per_file.require_name = None || List.mem (some per_file.require_name) l_required_packages) then
+      Hashtbl.remove per_files k
+  ) (hashtbl_keys per_files);
+
+  let state = default_state per_files in
+
+  Hashtbl.iter (fun _ per_file -> List.iter (add_package_to_state state) per_file.packages) per_files ;
+
+  let state = 
+    let global_vars_declared = Hashtbl.create 16 in
+    let package_name_to_file_name = hashtbl_collect (fun _ per_file -> List.map (fun pkg -> pkg.package_name, per_file.file_name) per_file.packages) per_files in
+    Hashtbl.iter (fun _ pkg -> 
+      let file_name = List.assoc pkg.package_name package_name_to_file_name in
+      get_vars_declaration global_vars_declared file_name pkg
+    ) state.per_packages ;
+    arrange_global_vars_declared global_vars_declared state
+  in
 
   let state = Global_checks.get_methods_available state in
 
-  let l = List.map snd (hashtbl_to_list state.per_package) in
-  let l = List.filter (fun pkg -> not pkg.from_cache && pkg.from_basedir) l in
+  let l = hashtbl_values per_files in
+  let l = if !restrict_to_files then List.filter (fun file -> List.mem file.file_name files) l else l in
+
+  let l = uniq (collect (fun file -> List.map (fun pkg -> pkg.package_name) file.packages) l) in
+  let l = List.map (Hashtbl.find state.per_packages) l in
+  
   (* HACK: skip ignored_packages. Some package may have appeared in ignored_packages due to the xs bootstrap hack *)
   let l = List.filter (fun pkg -> not (List.mem pkg.package_name !Config_file.ignored_packages)) l in
 
-  let l = if !restrict_to_files then List.filter (fun pkg -> List.mem pkg.file_name files) l else l in
-
   List.iter (Global_checks.check_tree state) l;
+
   if !Flags.check_unused_global_vars then List.iter Global_checks.check_unused_vars l 
+
   )
