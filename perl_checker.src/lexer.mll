@@ -639,7 +639,10 @@ rule token = parse
 | stash "::" { putback lexbuf 2; ident_type_from_char None "main" lexbuf (lexeme_char lexbuf 0) }
 
 | ident? ("::" ident)+ { ident_from_lexbuf lexbuf }
-| ident { not_ok_for_match := lexeme_end lexbuf; BAREWORD(lexeme lexbuf, pos lexbuf) }
+| ident { not_ok_for_match := lexeme_end lexbuf; 
+	  let word = lexeme lexbuf in
+	  if word = "qx" then die lexbuf "don't use qx{...}, use `...` instead" else
+	  BAREWORD(word, pos lexbuf) }
 
 | ident ":" { LABEL(lexeme lexbuf, pos lexbuf) }
 
