@@ -141,8 +141,17 @@ sub add_use {
 
     my $already = $use_info{$package}->{$p};
 #    warn_("reused " . $already->{file} . " " . $already->{line}, info()) if $already && $ARGV ne $already->{file};
-    
-    $use{$package}->{$p} = [ @{$use{$package}->{$p}}, split ' ', $op ];
+
+    $use{$package}->{$p} ||= []; # create it
+
+    foreach (split ' ', $op) {
+	if (/^:(.*)/) {
+	    push @{$use_tags{$package}->{$p}}, $1;
+	} else {
+	    push @{$use{$package}->{$p}}, $_;
+	}
+    }
+	    
     $use_info{$package}->{$p} = info();
 
     $path{$p} and return;
@@ -195,21 +204,10 @@ sub warn_ {
 END {
     foreach my $package (reverse @re_exported) {
 	my $h = $export{$package} ||= {};
-	foreach (keys %{$use{$package}}) {	
-	    %$h = (%$h, %{$export{$_}}, map { %$_ } values %{$export_tags{$_}});
-	}
-    }
-
-    while (my ($package, $v) = each %use) {
-	while (my ($k, $s) = each %$v) {
-	    @$s and defined($export_tags{$k}) || err("package $k does not export tags");
-	    foreach (@$s) {
-		s/\"//g;
-		s/^:// or err("<<use $k qw(@$s ...)>>  should be  <<use $k qw(:@$s ...)>>", $use_info{$package}->{$k});
-
-		exists $export_tags{$k}->{$_} or err("package $k does not export tag $_", $use_info{$package}->{$k});
-	    }
-	}
+	%$h = (%$h, 
+	       (map { %{$export{$_}} } keys %{$use{$package}}),
+	       (map { %$_ } map { values %{$export_tags{$_}} } keys %{$use{$package}}),
+	       );
     }
 
 #    while (my ($package, $vars) = each %usevar) {
@@ -234,7 +232,7 @@ END {
 	    foreach my $k (keys %{$use{$pkg}}) {
 		exists $export{$k}->{$func} and next here; # ok, exported by $k
 
-		foreach (@{$use{$pkg}->{$k}}) {
+		foreach (@{$use_tags{$pkg}->{$k}}) {
 		    exists $export_tags{$k}->{$_}->{$func} and next here; # ok, exported by $k in tag $_
 		}
 	    }
