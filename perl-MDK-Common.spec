@@ -52,6 +52,7 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Tue Aug 27 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-13mdk
 - give a meaning to the return value of cdie
+- fix typo in mkdir_p error message
 
 * Mon Aug 12 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-12mdk
 - add setExportedVarsInSh and setExportedVarsInCsh

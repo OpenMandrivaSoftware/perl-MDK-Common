@@ -128,7 +128,7 @@ sub mkdir_p {
 	die "mkdir: error creating directory $dir: $root is a file and i won't delete it\n";
     } else {
 	mkdir_p(dirname($dir));
-	mkdir($dir, 0755) or die "mkdir: error creating directory $_: $!\n";
+	mkdir($dir, 0755) or die "mkdir: error creating directory $dir: $!\n";
     }
 }
 
