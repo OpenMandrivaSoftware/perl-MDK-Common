@@ -16,7 +16,8 @@ type context = I_scalar | I_hash | I_array | I_func | I_raw | I_star | I_arrayle
 type fromparser = 
    | Ident of string option * string * pos
    | Num of string * pos
-   | String of string * pos
+   | Raw_string of string * pos
+   | String of (string * fromparser) list * pos
 
    | Ref of context * fromparser
    | Deref of context * fromparser

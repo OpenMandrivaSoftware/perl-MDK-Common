@@ -42,6 +42,7 @@ val fold_right1 : ('a -> 'a -> 'a) -> 'a list -> 'a
 val for_all2_ : ('a -> 'b -> bool) -> 'a list -> 'b list -> bool
 val maxl : 'a list -> 'a
 val stack2list : 'a Stack.t -> 'a list
+val queue2list : 'a Queue.t -> 'a list
 val fix_point : ('a -> 'a) -> 'a -> 'a
 val fix_point_withenv : ('a -> 'b -> 'b * 'a) -> 'a -> 'b -> 'b * 'a
 val fix_point_ : int -> ('a -> 'a) -> 'a -> 'a * int

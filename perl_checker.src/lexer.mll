@@ -4,31 +4,37 @@ open Types
 open Lexing
 open Info
 
+let bpos = -1,-1
+
 type raw_token =
   | EOF of raw_pos
   | SPACE of int
   | CR
   | NUM of (string * raw_pos)
-  | STRING of (string * raw_pos)
+  | RAW_STRING of (string * raw_pos)
+  | STRING of (raw_interpolated_string * raw_pos)
+  | PATTERN of (raw_interpolated_string * string * raw_pos)
+  | PATTERN_SUBST of (raw_interpolated_string * raw_interpolated_string * string * raw_pos)
   | BAREWORD of (string * raw_pos)
+  | BAREWORD_PAREN of (string * raw_pos)
   | REVISION of (string * raw_pos)
   | COMMENT of (string * raw_pos)
   | POD of (string * raw_pos)
   | LABEL of (string * raw_pos)
-  | COMMAND_STRING of (string * raw_pos)
+  | COMMAND_STRING of (raw_interpolated_string * raw_pos)
   | PRINT_TO_STAR of (string * raw_pos)
   | PRINT_TO_SCALAR of (string * raw_pos)
   | QUOTEWORDS of (string * raw_pos)
   | COMPACT_HASH_SUBSCRIPT of (string * raw_pos)
-  | HERE_DOC of ((string * raw_pos) ref * raw_pos)
-  | PATTERN of (string * string * raw_pos)
-  | PATTERN_SUBST of (string * string * string * raw_pos)
+  | RAW_HERE_DOC of ((string * raw_pos) ref * raw_pos)
+  | HERE_DOC of (raw_interpolated_string * raw_pos) ref * raw_pos
   | SCALAR_IDENT of (string option * string * raw_pos)
   | ARRAY_IDENT of (string option * string * raw_pos)
   | HASH_IDENT of (string option * string * raw_pos)
   | FUNC_IDENT of (string option * string * raw_pos)
   | STAR_IDENT of (string option * string * raw_pos)
   | RAW_IDENT of (string option * string * raw_pos)
+  | RAW_IDENT_PAREN of (string option * string * raw_pos)
   | ARRAYLEN_IDENT of (string option * string * raw_pos)
   | FUNC_DECL_WITH_PROTO of (string * string * raw_pos)
 
@@ -43,150 +49,152 @@ type raw_token =
   | BIT_AND of raw_pos | BIT_OR of raw_pos | BIT_XOR of raw_pos | AND_TIGHT of raw_pos | OR_TIGHT of raw_pos | DOTDOT of (string * raw_pos)
   | QUESTION_MARK of raw_pos | COLON of raw_pos | ASSIGN of (string * raw_pos) | COMMA of raw_pos | RIGHT_ARROW of raw_pos | NOT of raw_pos | AND of raw_pos | OR of raw_pos | XOR of raw_pos
 
-let saved_token = ref None
+and raw_interpolated_string = (string * raw_token list) list
 
-let concat_bareword_paren get_token lexbuf =
-  let token = match !saved_token with
-  | None -> get_token lexbuf
-  | Some t -> t
-  in
-  let token, next =
-    match token with
-    | Parser.PRINT(s, both)
-    | Parser.BAREWORD(s, both) ->
-	let next_token = get_token lexbuf in
-	(match next_token with Parser.PAREN(_, (Space_0, _)) -> Parser.BAREWORD_PAREN(s, both) | _ -> token), Some next_token
-    | Parser.RAW_IDENT(ident, both) ->
-	let next_token = get_token lexbuf in
-	(match next_token with Parser.PAREN(_, (Space_0, _)) -> Parser.RAW_IDENT_PAREN(ident, both) | _ -> token), Some next_token
-    | _ -> token, None
-  in
-  saved_token := next ; token
+let rec concat_bareword_paren = function
+  | PRINT(s, pos1) :: PAREN(pos2) :: l
+  | BAREWORD(s, pos1) :: PAREN(pos2) :: l ->
+      BAREWORD_PAREN(s, pos1) :: PAREN(pos2) :: concat_bareword_paren l
+  | RAW_IDENT(kind, ident, pos1) :: PAREN(pos2) :: l -> 
+      RAW_IDENT_PAREN(kind, ident, pos1) :: PAREN(pos2) :: concat_bareword_paren l
+  | [] -> []
+  | e :: l -> e :: concat_bareword_paren l
 
-let rec concat_spaces get_token lexbuf =
-  let rec get_spaces spaces lexbuf =
-    match get_token lexbuf with
-    | CR -> get_spaces Space_cr lexbuf
-    | SPACE n ->
-	let spaces' = 
-	  match spaces with
-	  | Space_cr -> Space_cr
-	  | Space_0 -> if n = 1 then Space_1 else Space_n
-	  | _ -> Space_n
-	in
-	get_spaces spaces' lexbuf
-    | token -> token, spaces
-  in
-  let token, spaces = get_spaces Space_0 lexbuf in
-  match token with
-  | NUM(s, pos) -> Parser.NUM(s, (spaces, pos))
-  | STRING(s, pos) -> Parser.STRING(s, (spaces, pos))
-  | BAREWORD(s, pos) -> Parser.BAREWORD(s, (spaces, pos))
-  | REVISION(s, pos) -> Parser.REVISION(s, (spaces, pos))
-  | COMMENT(s, pos) -> Parser.COMMENT(s, (spaces, pos))
-  | POD(s, pos) -> Parser.POD(s, (spaces, pos))
-  | LABEL(s, pos) -> Parser.LABEL(s, (spaces, pos))
-  | COMMAND_STRING(s, pos) -> Parser.COMMAND_STRING(s, (spaces, pos))
-  | PRINT(s, pos) -> Parser.PRINT(s, (spaces, pos))
-  | PRINT_TO_STAR(s, pos) -> Parser.PRINT_TO_STAR(s, (spaces, pos))
-  | PRINT_TO_SCALAR(s, pos) -> Parser.PRINT_TO_SCALAR(s, (spaces, pos))
-  | QUOTEWORDS(s, pos) -> Parser.QUOTEWORDS(s, (spaces, pos))
-  | COMPACT_HASH_SUBSCRIPT(s, pos) -> Parser.COMPACT_HASH_SUBSCRIPT(s, (spaces, pos))
-  | HERE_DOC(r, pos) -> Parser.HERE_DOC(r, (spaces, pos))
-  | PATTERN(s, opts, pos) -> Parser.PATTERN((s, opts), (spaces, pos))
-  | PATTERN_SUBST(from, to_, opts, pos) -> Parser.PATTERN_SUBST((from, to_, opts), (spaces, pos))
-  | SCALAR_IDENT(kind, name, pos) -> Parser.SCALAR_IDENT((kind, name), (spaces, pos))
-  | ARRAY_IDENT(kind, name, pos) -> Parser.ARRAY_IDENT((kind, name), (spaces, pos))
-  | HASH_IDENT(kind, name, pos) -> Parser.HASH_IDENT((kind, name), (spaces, pos))
-  | FUNC_IDENT(kind, name, pos) -> Parser.FUNC_IDENT((kind, name), (spaces, pos))
-  | STAR_IDENT(kind, name, pos) -> Parser.STAR_IDENT((kind, name), (spaces, pos))
-  | RAW_IDENT(kind, name, pos) -> Parser.RAW_IDENT((kind, name), (spaces, pos))
-  | ARRAYLEN_IDENT(kind, name, pos) -> Parser.ARRAYLEN_IDENT((kind, name), (spaces, pos))
-  | FUNC_DECL_WITH_PROTO(name, proto, pos) -> Parser.FUNC_DECL_WITH_PROTO((name, proto), (spaces, pos))
+let rec raw_token_to_pos_and_token spaces = function
+  | NUM(s, pos) -> pos, Parser.NUM(s, (spaces, pos))
+  | RAW_STRING(s, pos) -> pos, Parser.RAW_STRING(s, (spaces, pos))
+  | RAW_HERE_DOC(r, pos) -> pos, Parser.RAW_HERE_DOC(!r, (spaces, pos))
+  | STRING(l, pos) -> pos, Parser.STRING(raw_interpolated_string_to_tokens l, (spaces, pos))
+  | COMMAND_STRING(l, pos) -> pos, Parser.COMMAND_STRING(raw_interpolated_string_to_tokens l, (spaces, pos))
+  | PATTERN(s, opts, pos) -> pos, Parser.PATTERN((raw_interpolated_string_to_tokens s, opts), (spaces, pos))
+  | PATTERN_SUBST(from, to_, opts, pos) -> pos, Parser.PATTERN_SUBST((raw_interpolated_string_to_tokens from, raw_interpolated_string_to_tokens to_, opts), (spaces, pos))
+  | HERE_DOC(l, pos) -> pos, Parser.HERE_DOC((raw_interpolated_string_to_tokens (fst !l), snd !l), (spaces, pos))
+  | BAREWORD(s, pos) -> pos, Parser.BAREWORD(s, (spaces, pos))
+  | BAREWORD_PAREN(s, pos) -> pos, Parser.BAREWORD_PAREN(s, (spaces, pos))
+  | REVISION(s, pos) -> pos, Parser.REVISION(s, (spaces, pos))
+  | COMMENT(s, pos) -> pos, Parser.COMMENT(s, (spaces, pos))
+  | POD(s, pos) -> pos, Parser.POD(s, (spaces, pos))
+  | LABEL(s, pos) -> pos, Parser.LABEL(s, (spaces, pos))
+  | PRINT(s, pos) -> pos, Parser.PRINT(s, (spaces, pos))
+  | PRINT_TO_STAR(s, pos) -> pos, Parser.PRINT_TO_STAR(s, (spaces, pos))
+  | PRINT_TO_SCALAR(s, pos) -> pos, Parser.PRINT_TO_SCALAR(s, (spaces, pos))
+  | QUOTEWORDS(s, pos) -> pos, Parser.QUOTEWORDS(s, (spaces, pos))
+  | COMPACT_HASH_SUBSCRIPT(s, pos) -> pos, Parser.COMPACT_HASH_SUBSCRIPT(s, (spaces, pos))
+  | SCALAR_IDENT(kind, name, pos) -> pos, Parser.SCALAR_IDENT((kind, name), (spaces, pos))
+  | ARRAY_IDENT(kind, name, pos) -> pos, Parser.ARRAY_IDENT((kind, name), (spaces, pos))
+  | HASH_IDENT(kind, name, pos) -> pos, Parser.HASH_IDENT((kind, name), (spaces, pos))
+  | FUNC_IDENT(kind, name, pos) -> pos, Parser.FUNC_IDENT((kind, name), (spaces, pos))
+  | STAR_IDENT(kind, name, pos) -> pos, Parser.STAR_IDENT((kind, name), (spaces, pos))
+  | RAW_IDENT(kind, name, pos) -> pos, Parser.RAW_IDENT((kind, name), (spaces, pos))
+  | RAW_IDENT_PAREN(kind, name, pos) -> pos, Parser.RAW_IDENT_PAREN((kind, name), (spaces, pos))
+  | ARRAYLEN_IDENT(kind, name, pos) -> pos, Parser.ARRAYLEN_IDENT((kind, name), (spaces, pos))
+  | FUNC_DECL_WITH_PROTO(name, proto, pos) -> pos, Parser.FUNC_DECL_WITH_PROTO((name, proto), (spaces, pos))
 
-  | NEW(pos) -> Parser.NEW((), (spaces, pos))
-  | FORMAT(pos) -> Parser.FORMAT((), (spaces, pos))
-  | COMPARE_OP(s, pos) -> Parser.COMPARE_OP(s, (spaces, pos))
-  | EQ_OP(s, pos) -> Parser.EQ_OP(s, (spaces, pos))
-  | ASSIGN(s, pos) -> Parser.ASSIGN(s, (spaces, pos))
-  | FOR(s, pos) -> Parser.FOR(s, (spaces, pos))
+  | NEW(pos) -> pos, Parser.NEW((), (spaces, pos))
+  | FORMAT(pos) -> pos, Parser.FORMAT((), (spaces, pos))
+  | COMPARE_OP(s, pos) -> pos, Parser.COMPARE_OP(s, (spaces, pos))
+  | EQ_OP(s, pos) -> pos, Parser.EQ_OP(s, (spaces, pos))
+  | ASSIGN(s, pos) -> pos, Parser.ASSIGN(s, (spaces, pos))
+  | FOR(s, pos) -> pos, Parser.FOR(s, (spaces, pos))
 
-  | DOTDOT(s, pos) -> Parser.DOTDOT(s, (spaces, pos))
-  | MULT(s, pos) -> Parser.MULT(s, (spaces, pos))
-  | BIT_SHIFT(s, pos) -> Parser.BIT_SHIFT(s, (spaces, pos))
-  | PLUS(s, pos) -> Parser.PLUS(s, (spaces, pos))
-  | ONE_SCALAR_PARA(s, pos) -> Parser.ONE_SCALAR_PARA(s, (spaces, pos))
+  | DOTDOT(s, pos) -> pos, Parser.DOTDOT(s, (spaces, pos))
+  | MULT(s, pos) -> pos, Parser.MULT(s, (spaces, pos))
+  | BIT_SHIFT(s, pos) -> pos, Parser.BIT_SHIFT(s, (spaces, pos))
+  | PLUS(s, pos) -> pos, Parser.PLUS(s, (spaces, pos))
+  | ONE_SCALAR_PARA(s, pos) -> pos, Parser.ONE_SCALAR_PARA(s, (spaces, pos))
 
-  | EOF              (pos) -> Parser.EOF              ((), (spaces, pos))
-  | IF               (pos) -> Parser.IF               ((), (spaces, pos))
-  | ELSIF            (pos) -> Parser.ELSIF            ((), (spaces, pos))
-  | ELSE             (pos) -> Parser.ELSE             ((), (spaces, pos))
-  | UNLESS           (pos) -> Parser.UNLESS           ((), (spaces, pos))
-  | DO               (pos) -> Parser.DO               ((), (spaces, pos))
-  | WHILE            (pos) -> Parser.WHILE            ((), (spaces, pos))
-  | UNTIL            (pos) -> Parser.UNTIL            ((), (spaces, pos))
-  | MY               (pos) -> Parser.MY               ((), (spaces, pos))
-  | CONTINUE         (pos) -> Parser.CONTINUE         ((), (spaces, pos))
-  | SUB              (pos) -> Parser.SUB              ((), (spaces, pos))
-  | LOCAL            (pos) -> Parser.LOCAL            ((), (spaces, pos))
-  | USE              (pos) -> Parser.USE              ((), (spaces, pos))
-  | PACKAGE          (pos) -> Parser.PACKAGE          ((), (spaces, pos))
-  | BEGIN            (pos) -> Parser.BEGIN            ((), (spaces, pos))
-  | END              (pos) -> Parser.END              ((), (spaces, pos))
-  | AT               (pos) -> Parser.AT               ((), (spaces, pos))
-  | DOLLAR           (pos) -> Parser.DOLLAR           ((), (spaces, pos))
-  | PERCENT          (pos) -> Parser.PERCENT          ((), (spaces, pos))
-  | AMPERSAND        (pos) -> Parser.AMPERSAND        ((), (spaces, pos))
-  | STAR             (pos) -> Parser.STAR             ((), (spaces, pos))
-  | ARRAYLEN         (pos) -> Parser.ARRAYLEN         ((), (spaces, pos))
-  | SEMI_COLON       (pos) -> Parser.SEMI_COLON       ((), (spaces, pos))
-  | PKG_SCOPE        (pos) -> Parser.PKG_SCOPE        ((), (spaces, pos))
-  | PAREN            (pos) -> Parser.PAREN            ((), (spaces, pos))
-  | PAREN_END        (pos) -> Parser.PAREN_END        ((), (spaces, pos))
-  | BRACKET          (pos) -> Parser.BRACKET          ((), (spaces, pos))
-  | BRACKET_END      (pos) -> Parser.BRACKET_END      ((), (spaces, pos))
-  | BRACKET_HASHREF  (pos) -> Parser.BRACKET_HASHREF  ((), (spaces, pos))
-  | ARRAYREF         (pos) -> Parser.ARRAYREF         ((), (spaces, pos))
-  | ARRAYREF_END     (pos) -> Parser.ARRAYREF_END     ((), (spaces, pos))
-  | ARROW            (pos) -> Parser.ARROW            ((), (spaces, pos))
-  | INCR             (pos) -> Parser.INCR             ((), (spaces, pos))
-  | DECR             (pos) -> Parser.DECR             ((), (spaces, pos))
-  | POWER            (pos) -> Parser.POWER            ((), (spaces, pos))
-  | TIGHT_NOT        (pos) -> Parser.TIGHT_NOT        ((), (spaces, pos))
-  | BIT_NEG          (pos) -> Parser.BIT_NEG          ((), (spaces, pos))
-  | REF              (pos) -> Parser.REF              ((), (spaces, pos))
-  | PATTERN_MATCH    (pos) -> Parser.PATTERN_MATCH    ((), (spaces, pos))
-  | PATTERN_MATCH_NOT(pos) -> Parser.PATTERN_MATCH_NOT((), (spaces, pos))
-  | LT               (pos) -> Parser.LT               ((), (spaces, pos))
-  | GT               (pos) -> Parser.GT               ((), (spaces, pos))
-  | BIT_AND          (pos) -> Parser.BIT_AND          ((), (spaces, pos))
-  | BIT_OR           (pos) -> Parser.BIT_OR           ((), (spaces, pos))
-  | BIT_XOR          (pos) -> Parser.BIT_XOR          ((), (spaces, pos))
-  | AND_TIGHT        (pos) -> Parser.AND_TIGHT        ((), (spaces, pos))
-  | OR_TIGHT         (pos) -> Parser.OR_TIGHT         ((), (spaces, pos))
-  | QUESTION_MARK    (pos) -> Parser.QUESTION_MARK    ((), (spaces, pos))
-  | COLON            (pos) -> Parser.COLON            ((), (spaces, pos))
-  | COMMA            (pos) -> Parser.COMMA            ((), (spaces, pos))
-  | RIGHT_ARROW      (pos) -> Parser.RIGHT_ARROW      ((), (spaces, pos))
-  | NOT              (pos) -> Parser.NOT              ((), (spaces, pos))
-  | AND              (pos) -> Parser.AND              ((), (spaces, pos))
-  | OR               (pos) -> Parser.OR               ((), (spaces, pos))
-  | XOR              (pos) -> Parser.XOR              ((), (spaces, pos))
+  | EOF              (pos) -> pos, Parser.EOF              ((), (spaces, pos))
+  | IF               (pos) -> pos, Parser.IF               ((), (spaces, pos))
+  | ELSIF            (pos) -> pos, Parser.ELSIF            ((), (spaces, pos))
+  | ELSE             (pos) -> pos, Parser.ELSE             ((), (spaces, pos))
+  | UNLESS           (pos) -> pos, Parser.UNLESS           ((), (spaces, pos))
+  | DO               (pos) -> pos, Parser.DO               ((), (spaces, pos))
+  | WHILE            (pos) -> pos, Parser.WHILE            ((), (spaces, pos))
+  | UNTIL            (pos) -> pos, Parser.UNTIL            ((), (spaces, pos))
+  | MY               (pos) -> pos, Parser.MY               ((), (spaces, pos))
+  | CONTINUE         (pos) -> pos, Parser.CONTINUE         ((), (spaces, pos))
+  | SUB              (pos) -> pos, Parser.SUB              ((), (spaces, pos))
+  | LOCAL            (pos) -> pos, Parser.LOCAL            ((), (spaces, pos))
+  | USE              (pos) -> pos, Parser.USE              ((), (spaces, pos))
+  | PACKAGE          (pos) -> pos, Parser.PACKAGE          ((), (spaces, pos))
+  | BEGIN            (pos) -> pos, Parser.BEGIN            ((), (spaces, pos))
+  | END              (pos) -> pos, Parser.END              ((), (spaces, pos))
+  | AT               (pos) -> pos, Parser.AT               ((), (spaces, pos))
+  | DOLLAR           (pos) -> pos, Parser.DOLLAR           ((), (spaces, pos))
+  | PERCENT          (pos) -> pos, Parser.PERCENT          ((), (spaces, pos))
+  | AMPERSAND        (pos) -> pos, Parser.AMPERSAND        ((), (spaces, pos))
+  | STAR             (pos) -> pos, Parser.STAR             ((), (spaces, pos))
+  | ARRAYLEN         (pos) -> pos, Parser.ARRAYLEN         ((), (spaces, pos))
+  | SEMI_COLON       (pos) -> pos, Parser.SEMI_COLON       ((), (spaces, pos))
+  | PKG_SCOPE        (pos) -> pos, Parser.PKG_SCOPE        ((), (spaces, pos))
+  | PAREN            (pos) -> pos, Parser.PAREN            ((), (spaces, pos))
+  | PAREN_END        (pos) -> pos, Parser.PAREN_END        ((), (spaces, pos))
+  | BRACKET          (pos) -> pos, Parser.BRACKET          ((), (spaces, pos))
+  | BRACKET_END      (pos) -> pos, Parser.BRACKET_END      ((), (spaces, pos))
+  | BRACKET_HASHREF  (pos) -> pos, Parser.BRACKET_HASHREF  ((), (spaces, pos))
+  | ARRAYREF         (pos) -> pos, Parser.ARRAYREF         ((), (spaces, pos))
+  | ARRAYREF_END     (pos) -> pos, Parser.ARRAYREF_END     ((), (spaces, pos))
+  | ARROW            (pos) -> pos, Parser.ARROW            ((), (spaces, pos))
+  | INCR             (pos) -> pos, Parser.INCR             ((), (spaces, pos))
+  | DECR             (pos) -> pos, Parser.DECR             ((), (spaces, pos))
+  | POWER            (pos) -> pos, Parser.POWER            ((), (spaces, pos))
+  | TIGHT_NOT        (pos) -> pos, Parser.TIGHT_NOT        ((), (spaces, pos))
+  | BIT_NEG          (pos) -> pos, Parser.BIT_NEG          ((), (spaces, pos))
+  | REF              (pos) -> pos, Parser.REF              ((), (spaces, pos))
+  | PATTERN_MATCH    (pos) -> pos, Parser.PATTERN_MATCH    ((), (spaces, pos))
+  | PATTERN_MATCH_NOT(pos) -> pos, Parser.PATTERN_MATCH_NOT((), (spaces, pos))
+  | LT               (pos) -> pos, Parser.LT               ((), (spaces, pos))
+  | GT               (pos) -> pos, Parser.GT               ((), (spaces, pos))
+  | BIT_AND          (pos) -> pos, Parser.BIT_AND          ((), (spaces, pos))
+  | BIT_OR           (pos) -> pos, Parser.BIT_OR           ((), (spaces, pos))
+  | BIT_XOR          (pos) -> pos, Parser.BIT_XOR          ((), (spaces, pos))
+  | AND_TIGHT        (pos) -> pos, Parser.AND_TIGHT        ((), (spaces, pos))
+  | OR_TIGHT         (pos) -> pos, Parser.OR_TIGHT         ((), (spaces, pos))
+  | QUESTION_MARK    (pos) -> pos, Parser.QUESTION_MARK    ((), (spaces, pos))
+  | COLON            (pos) -> pos, Parser.COLON            ((), (spaces, pos))
+  | COMMA            (pos) -> pos, Parser.COMMA            ((), (spaces, pos))
+  | RIGHT_ARROW      (pos) -> pos, Parser.RIGHT_ARROW      ((), (spaces, pos))
+  | NOT              (pos) -> pos, Parser.NOT              ((), (spaces, pos))
+  | AND              (pos) -> pos, Parser.AND              ((), (spaces, pos))
+  | OR               (pos) -> pos, Parser.OR               ((), (spaces, pos))
+  | XOR              (pos) -> pos, Parser.XOR              ((), (spaces, pos))
 
   | SPACE _ | CR -> internal_error "raw_token_to_token"
 
-let rec lexbuf2list t lexbuf =
-  let rec f () =
-    match t lexbuf with
-    | Parser.EOF _ -> []
-    | e -> e :: f()
-  in
-  let l = f() in
-  l
+and raw_token_to_token spaces raw_token = 
+  let _, token = raw_token_to_pos_and_token spaces raw_token in
+  token
 
-let next_rule = ref None
+and raw_interpolated_string_to_tokens l =
+  List.map (fun (s, rtok) -> s, concat_spaces Space_0 rtok) l
 
-let bpos = -1,-1
+and concat_spaces spaces = function
+  | CR :: l -> concat_spaces Space_cr l
+  | SPACE n :: l ->
+      let spaces' = 
+	match spaces with
+	| Space_cr -> Space_cr
+	| Space_0 -> if n = 1 then Space_1 else Space_n
+	| _ -> Space_n
+      in
+      concat_spaces spaces' l
+  | [] -> []
+  | token :: l -> raw_token_to_pos_and_token spaces token :: concat_spaces Space_0 l
+
+let rec lexbuf2list accu t lexbuf =
+  match t lexbuf with
+  | EOF pos -> List.rev (EOF pos :: accu)
+  | e -> lexbuf2list (e :: accu) t lexbuf
+
+let get_token token lexbuf = 
+  let tokens = lexbuf2list [] token lexbuf in
+  let tokens = concat_bareword_paren tokens in
+  let tokens = concat_spaces Space_0 tokens in
+  tokens
+
+let next_rule = Stack.create()
+
+
 let pos lexbuf = lexeme_start lexbuf, lexeme_end lexbuf
 let pos2sfull_with start end_ = Info.pos2sfull (!current_file, start, end_)
 let pos2sfull lexbuf = pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf)
@@ -197,36 +205,71 @@ let add_a_new_line raw_pos =
    lpush current_file_lines_starts raw_pos
 
 let here_docs = Queue.create()
+let raw_here_docs = Queue.create()
 let current_here_doc_mark = ref ""
 
-let here_doc_next_line mark interpolate =
+let here_doc_next_line mark =
+  let here_doc_ref = ref([], bpos) in
+  Queue.push (mark, here_doc_ref) here_docs ;
+  here_doc_ref
+let raw_here_doc_next_line mark =
   let here_doc_ref = ref("", bpos) in
-  Queue.push (interpolate, mark, here_doc_ref) here_docs ;
+  Queue.push (mark, here_doc_ref) raw_here_docs ;
   here_doc_ref
 
 let delimit_char = ref '/'
 let not_ok_for_match = ref (-1)
 let string_nestness = ref 0
 
-let building_current_string = ref ""
+let building_current_interpolated_string = Stack.create()
+let building_current_string = Stack.create()
 let current_string_start_pos = ref 0
 let current_string_start_line = ref 0
-let die lexbuf err = failwith (pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ err)
+let warn lexbuf err = prerr_endline (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
+let die lexbuf err = failwith (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
+let die_in_string lexbuf err = failwith (pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ err)
 
-let ins t lexbuf = 
-  building_current_string := ""; 
+let raw_ins t lexbuf = 
+  Stack.push (ref "") building_current_string; 
   current_string_start_pos := lexeme_start lexbuf;
   t lexbuf ;
-  !building_current_string, (!current_string_start_pos, lexeme_end lexbuf)
+  !(Stack.pop building_current_string), (!current_string_start_pos, lexeme_end lexbuf)
+let raw_ins_to_string t lexbuf =
+  let s, pos = raw_ins t lexbuf in
+  not_ok_for_match := lexeme_end lexbuf; 
+  RAW_STRING(s, pos)
+
+let next_interpolated toks =
+  let r = Stack.top building_current_string in
+  Queue.push (!r, toks) (Stack.top building_current_interpolated_string) ;
+  r := ""
+
+let ins t lexbuf =
+  Stack.push (Queue.create()) building_current_interpolated_string ;
+  Stack.push (ref "") building_current_string; 
+  current_string_start_pos := lexeme_start lexbuf;
+  t lexbuf ;
+  next_interpolated [] ;
+  let _ = Stack.pop building_current_string in
+  queue2list (Stack.pop building_current_interpolated_string), (!current_string_start_pos, lexeme_end lexbuf)
 let ins_to_string t lexbuf =
   let s, pos = ins t lexbuf in
   not_ok_for_match := lexeme_end lexbuf; 
   STRING(s, pos)
 
 let next_s s t lexbuf =
-  building_current_string := !building_current_string ^ s ;
+  let r = Stack.top building_current_string in r := !r ^ s ;
   t lexbuf
 let next t lexbuf = next_s (lexeme lexbuf) t lexbuf
+
+let string_interpolate token pre lexbuf =
+   let s = lexeme lexbuf in
+   let local_lexbuf = Lexing.from_string (pre ^ s ^ " ") in (* add a space to help tokenizing "xxx$$" *)
+   local_lexbuf.lex_abs_pos <- lexeme_start lexbuf ;
+   let l = lexbuf2list [] token local_lexbuf in
+   let l = concat_bareword_paren l in
+   next_interpolated l; 
+   (Stack.pop next_rule) lexbuf
 
 let ident_type_from_char fq name lexbuf c = 
   not_ok_for_match := lexeme_end lexbuf; 
@@ -292,9 +335,14 @@ rule token = parse
 | '\n' { 
     add_a_new_line(lexeme_end lexbuf);
     (try
-      let (interpolate, mark, r) = Queue.pop here_docs in
+      let (mark, r) = Queue.pop here_docs in
       current_here_doc_mark := mark ;
-      r := ins (if interpolate then here_doc else raw_here_doc) lexbuf
+      r := ins here_doc lexbuf
+    with Queue.Empty -> 
+     try
+      let (mark, r) = Queue.pop raw_here_docs in
+      current_here_doc_mark := mark ;
+      r := raw_ins raw_here_doc lexbuf
     with Queue.Empty -> ());
     CR
   }
@@ -357,7 +405,7 @@ rule token = parse
 | "END"      { END(pos lexbuf) }
 | "print"    { PRINT(lexeme lexbuf, pos lexbuf) }
 | "new"      { NEW(pos lexbuf) }
-| "format"   { let _ = here_doc_next_line "." false in FORMAT(pos lexbuf) }
+| "format"   { let _ = raw_here_doc_next_line "." in FORMAT(pos lexbuf) }
 | "defined"  { ONE_SCALAR_PARA(lexeme lexbuf, pos lexbuf) }
 
 | "split"
@@ -408,7 +456,7 @@ rule token = parse
       delimit_char := '/' ;
       current_string_start_line := !current_file_current_line;
       let s, pos = ins delimited_string lexbuf in
-      let opts, _ = ins pattern_options lexbuf in
+      let opts, _ = raw_ins pattern_options lexbuf in
       check_multi_line_delimited_string (Some opts) pos ;
       PATTERN(s, opts, pos)
     ) 
@@ -420,7 +468,7 @@ rule token = parse
       putback lexbuf 1 ;
       delimit_char := '/' ;
       let s, pos = ins delimited_string lexbuf in
-      let opts, _ = ins pattern_options lexbuf in
+      let opts, _ = raw_ins pattern_options lexbuf in
       PATTERN(s, opts, pos)
     ) 
   }
@@ -429,7 +477,7 @@ rule token = parse
   delimit_char := lexeme_char lexbuf 1 ;
   current_string_start_line := !current_file_current_line;
   let s, pos = ins delimited_string lexbuf in
-  let opts, _ = ins pattern_options lexbuf in
+  let opts, _ = raw_ins pattern_options lexbuf in
   check_multi_line_delimited_string (Some opts) pos ;
   PATTERN(s, opts, pos)
 }
@@ -438,7 +486,7 @@ rule token = parse
   delimit_char := lexeme_char lexbuf 2 ;
   current_string_start_line := !current_file_current_line;
   let s, pos = ins delimited_string lexbuf in
-  let opts, _ = ins pattern_options lexbuf in
+  let opts, _ = raw_ins pattern_options lexbuf in
   check_multi_line_delimited_string (Some opts) pos ;
   PATTERN(s, opts, pos)
 }
@@ -448,7 +496,7 @@ rule token = parse
   current_string_start_line := !current_file_current_line;
   let s1, (start, _) = ins delimited_string lexbuf in 
   let s2, (_, end_)  = ins delimited_string lexbuf in 
-  let opts, _ = ins pattern_options lexbuf in
+  let opts, _ = raw_ins pattern_options lexbuf in
   let pos = start, end_ in
   check_multi_line_delimited_string (Some opts) pos ;
   PATTERN_SUBST(s1, s2, opts, pos)
@@ -459,7 +507,7 @@ rule token = parse
   current_string_start_line := !current_file_current_line;
   let s1, (start, _) = ins delimited_string lexbuf in 
   let s2, (_, end_)  = ins delimited_string lexbuf in 
-  let opts, _ = ins pattern_options lexbuf in
+  let opts, _ = raw_ins pattern_options lexbuf in
   let pos = start, end_ in
   check_multi_line_delimited_string None pos ;
   PATTERN_SUBST(s1, s2, opts, pos)
@@ -467,11 +515,11 @@ rule token = parse
     
 | "<<" ident { 
     not_ok_for_match := lexeme_end lexbuf; 
-    HERE_DOC(here_doc_next_line (skip_n_char 2 (lexeme lexbuf)) true, pos lexbuf)
+    HERE_DOC(here_doc_next_line (skip_n_char 2 (lexeme lexbuf)), pos lexbuf)
   }
 | "<<'" ident "'" { 
     not_ok_for_match := lexeme_end lexbuf; 
-    HERE_DOC(here_doc_next_line (skip_n_char_ 3 1 (lexeme lexbuf)) false, pos lexbuf)
+    RAW_HERE_DOC(raw_here_doc_next_line (skip_n_char_ 3 1 (lexeme lexbuf)), pos lexbuf)
   }
 | "<<" ' '+ "'"
 | "<<" ' '+ ident { 
@@ -543,32 +591,37 @@ rule token = parse
 	  COMMAND_STRING(s, pos) }
 | "q("  { ins_to_string qstring lexbuf }
 | "qq(" { ins_to_string qqstring lexbuf }
-| "qw(" { let s, pos = ins qstring lexbuf in QUOTEWORDS(s, pos) }
+| "qw(" { let s, pos = raw_ins qstring lexbuf in QUOTEWORDS(s, pos) }
 
 | eof   { EOF(pos lexbuf) }
 | _ { failwith (Printf.sprintf "%serror tokenizing <<%s>>" (pos2sfull lexbuf) (lexeme lexbuf)) }
 
 and string = parse
-  '"' { () }
-| '\\' { next_rule := Some string ; string_escape lexbuf }
+| '"' { () }
+| '\\' { Stack.push string next_rule ; string_escape lexbuf }
+| '$'  { Stack.push string next_rule ; string_interpolate_scalar lexbuf }
+| '@'  { Stack.push string next_rule ; string_interpolate_array lexbuf }
 | '\n' { 
     add_a_new_line(lexeme_end lexbuf);
     next string lexbuf
   }
-| [^ '\n' '\\' '"']+ { next string lexbuf }
-| eof { die lexbuf "Unterminated_string" }
+
+| [^ '\n' '\\' '"' '$' '@']+ { next string lexbuf }
+| eof { die_in_string lexbuf "Unterminated_string" }
 
 and delimited_string = parse
-| '\\' { next_rule := Some delimited_string ; string_escape lexbuf }
+| '\\' { Stack.push delimited_string next_rule ; string_escape lexbuf }
+| '$'  { Stack.push delimited_string next_rule ; delimited_string_interpolate_scalar lexbuf }
+| '@'  { Stack.push delimited_string next_rule ; string_interpolate_array lexbuf }
 | '\n' { 
     add_a_new_line(lexeme_end lexbuf);
     next delimited_string lexbuf
   }
-| eof { die lexbuf "Unterminated_delimited_string" }
-| [ ^ '\\' '\n' ] { if lexeme_char lexbuf 0 <> !delimit_char then next delimited_string lexbuf }
+| eof { die_in_string lexbuf "Unterminated_delimited_string" }
+| [ ^ '\n' '\\' '$' '@'] { if lexeme_char lexbuf 0 <> !delimit_char then next delimited_string lexbuf }
 
 and rawstring = parse
-  ''' { () }
+| ''' { () }
 | '\n' { 
     add_a_new_line(lexeme_end lexbuf);
     next rawstring lexbuf
@@ -576,23 +629,25 @@ and rawstring = parse
 | '\\' { next rawstring lexbuf }
 | "\\'" { next_s "'" rawstring lexbuf }
 | [^ '\n' ''' '\\']+ { next rawstring lexbuf }
-| eof { die lexbuf "Unterminated_rawstring" }
+| eof { die_in_string lexbuf "Unterminated_rawstring" }
 
 and qqstring = parse
-  ')' { 
+| ')' { 
     if !string_nestness <> 0 then (decr string_nestness; next qqstring lexbuf)
   }
 | '(' {
     incr string_nestness;
     next qqstring lexbuf
   }
-| '\\' { next_rule := Some qqstring ; string_escape lexbuf }
+| '\\' { Stack.push qqstring next_rule ; string_escape lexbuf }
+| '$'  { Stack.push qqstring next_rule ; string_interpolate_scalar lexbuf }
+| '@'  { Stack.push qqstring next_rule ; string_interpolate_array lexbuf }
 | '\n' { 
     add_a_new_line(lexeme_end lexbuf);
     next qqstring lexbuf
   }
-| [^ '\n' '(' ')' '\\']+ { next qqstring lexbuf }
-| eof { die lexbuf "Unterminated_qqstring" }
+| [^ '\n' '(' ')' '\\' '$' '@']+ { next qqstring lexbuf }
+| eof { die_in_string lexbuf "Unterminated_qqstring" }
 
 and qstring = parse
 | ')' { 
@@ -607,11 +662,13 @@ and qstring = parse
     next qstring lexbuf
   }
 | [^ '\n' '(' ')']+ { next qstring lexbuf }
-| eof { die lexbuf "Unterminated_qstring" }
+| eof { die_in_string lexbuf "Unterminated_qstring" }
 
 and here_doc = parse
-| '\\' { next_rule := Some here_doc ; string_escape lexbuf }
-| [ ^ '\n' '\\' ]* {
+| '\\' { Stack.push here_doc next_rule ; string_escape lexbuf }
+| '$'  { Stack.push here_doc next_rule ; string_interpolate_scalar lexbuf }
+| '@'  { Stack.push here_doc next_rule ; string_interpolate_array lexbuf }
+| [ ^ '\n' '\\' '$' '@' ]* {
     let s = lexeme lexbuf in
     if chomps s <> !current_here_doc_mark
     then next_s s here_doc lexbuf 
@@ -621,7 +678,7 @@ and here_doc = parse
     add_a_new_line(lexeme_end lexbuf);
     next here_doc lexbuf
   }
-| eof { die lexbuf "Unterminated_here_doc" }
+| eof { die_in_string lexbuf "Unterminated_here_doc" }
 
 and raw_here_doc = parse
 | [ ^ '\n' ]* {
@@ -634,22 +691,72 @@ and raw_here_doc = parse
     add_a_new_line(lexeme_end lexbuf);
     next raw_here_doc lexbuf
   }
-| eof { die lexbuf "Unterminated_raw_here_doc" }
+| eof { die_in_string lexbuf "Unterminated_raw_here_doc" }
 
 
 and string_escape = parse
-| '0' { next_s "\000" (some !next_rule) lexbuf }
-| '"' { next_s "\"" (some !next_rule) lexbuf }
-| ''' { next_s "'"  (some !next_rule) lexbuf }
-| 'n' { next_s "\n" (some !next_rule) lexbuf }
-| 't' { next_s "\t" (some !next_rule) lexbuf }
+| '0' { next_s "\000" (Stack.pop next_rule) lexbuf }
+| '"' { next_s "\"" (Stack.pop next_rule) lexbuf }
+| ''' { next_s "'"  (Stack.pop next_rule) lexbuf }
+| 'n' { next_s "\n" (Stack.pop next_rule) lexbuf }
+| 't' { next_s "\t" (Stack.pop next_rule) lexbuf }
 | 'x' _ _ { 
   try
     let s = String.make 1 (Char.chr (int_of_string ("0" ^ lexeme lexbuf))) in
-    next_s s (some !next_rule) lexbuf 
-  with Failure("int_of_string") -> die lexbuf ("Bad_hex_in_string \"" ^ lexeme lexbuf ^ "\"")
+    next_s s (Stack.pop next_rule) lexbuf 
+  with Failure("int_of_string") -> die_in_string lexbuf ("Bad_hex_in_string \"" ^ lexeme lexbuf ^ "\"")
   }
-| _ { next_s ("\\" ^ lexeme lexbuf) (some !next_rule) lexbuf }
+| _ { next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+
+
+and string_interpolate_scalar = parse
+| '$' ident
+| ['0'-'9']
+| '{' [^ '{' '}']* '}'
+| (ident | (ident? ("::" ident)+)) "->"? (('{' [^ '{' '}' '\n']* '}') | ('[' [^ '[' ']' '\n']* ']'))*
+| [^ '{' '}' ' ' '\n' '"'] { (* eg: $! $$ *)
+      string_interpolate token "$" lexbuf
+  }
+
+| "{"
+| ident "->"? '{'
+| eof { next_s "$" (Stack.pop next_rule) lexbuf }
+| _ { warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); next_s ("$" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+
+and delimited_string_interpolate_scalar = parse (* needed for delimited string like m!foo$! where $! should not be taken as is... *)
+| '$' ident
+| ['0'-'9']
+| '{' [^ '{' '}']* '}'
+| (ident | (ident? ("::" ident)+)) "->"? ('{' [^ '{' '}' '\n']* '}')*
+| (ident | (ident? ("::" ident)+)) "->"? (('{' [^ '{' '}' '\n']* '}') | ('[' ('$' ident | ['0'-'9']+) ']'))*
+  {
+      string_interpolate token "$" lexbuf
+  }
+
+| (ident | (ident? ("::" ident)+)) "->"? (('{' [^ '{' '}' '\n']* '}') | ('[' ['$' '0'-'9'] [^ '[' ']' '\n']* ']'))*
+  {
+   die lexbuf (Printf.sprintf "I really can't handle this, [xxx] can be indexing or not based on stellar position :-(")
+  }
+
+
+| "{"
+| ident "->"? '{'
+| eof { next_s "$" (Stack.pop next_rule) lexbuf }
+| _ { 
+    let c = lexeme_char lexbuf 0 in
+    if c <> !delimit_char && c <> '|' && c<>')' && c<>'/' then warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); 
+    putback lexbuf 1;
+    (Stack.pop next_rule) lexbuf 
+  }
+
+and string_interpolate_array = parse
+| '$' ident
+| '{' [^ '{' '}']* '}'
+| (ident | (ident? ("::" ident)+)) { string_interpolate token "@" lexbuf }
+
+| [ '*' '<' '>' ']' '.' '('] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| eof { next_s "$" (Stack.pop next_rule) lexbuf }
+| _ { warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); next_s ("$" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 
 and pattern_options = parse
 | [ 'g' 'i' 'm' 'o' 's' 'x' 'e' 'd' ] { next pattern_options lexbuf }
@@ -661,7 +768,7 @@ and pod_command = parse
   let command = String.sub s 0 (try String.index s ' ' with Not_found -> String.length s) in
   match command with
   | "cut" ->
-    if !building_current_string = "" then
+    if !(Stack.top building_current_string) = "" then
       failwith(pos2sfull lexbuf ^ "found POD command \"=cut\" but it is not a POD block")
   | "head1" | "head2" | "head3" | "head4" | "over" | "item" | "back" | "pod" | "begin" | "end" | "for" ->
       next pod lexbuf

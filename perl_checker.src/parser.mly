@@ -4,17 +4,22 @@
   open Parser_helper
 
   let parse_error msg = die_rule msg
-
+  let prog_ref = ref None
+  let to_String e = Parser_helper.to_String (some !prog_ref) e
+  let from_PATTERN e = Parser_helper.from_PATTERN (some !prog_ref) e
+  let from_PATTERN_SUBST e = Parser_helper.from_PATTERN_SUBST (some !prog_ref) e
 %}
 
 
 %token <unit   * (Types.spaces * Types.raw_pos)> EOF
-%token <string * (Types.spaces * Types.raw_pos)> NUM STRING BAREWORD BAREWORD_PAREN REVISION COMMENT POD LABEL PRINT_TO_STAR PRINT_TO_SCALAR ONE_SCALAR_PARA
-%token <string * (Types.spaces * Types.raw_pos)> COMMAND_STRING QUOTEWORDS COMPACT_HASH_SUBSCRIPT
+%token <string * (Types.spaces * Types.raw_pos)> NUM RAW_STRING BAREWORD BAREWORD_PAREN REVISION COMMENT POD LABEL PRINT_TO_STAR PRINT_TO_SCALAR ONE_SCALAR_PARA
+%token <string * (Types.spaces * Types.raw_pos)> QUOTEWORDS COMPACT_HASH_SUBSCRIPT
+%token <(string * Types.raw_pos) * (Types.spaces * Types.raw_pos)> RAW_HERE_DOC
+%token <(string * ((int * int) * token) list) list * (Types.spaces * Types.raw_pos)> STRING COMMAND_STRING
+%token <((string * ((int * int) * token) list) list * Types.raw_pos) * (Types.spaces * Types.raw_pos)> HERE_DOC
 
-%token <(string * Types.raw_pos) ref * (Types.spaces * Types.raw_pos)> HERE_DOC
-%token <(string * string) * (Types.spaces * Types.raw_pos)> PATTERN
-%token <(string * string * string) * (Types.spaces * Types.raw_pos)> PATTERN_SUBST
+%token <((string * ((int * int) * token) list) list * string) * (Types.spaces * Types.raw_pos)> PATTERN
+%token <((string * ((int * int) * token) list) list * (string * ((int * int) * token) list) list * string) * (Types.spaces * Types.raw_pos)> PATTERN_SUBST
 
 %token <(string option * string) * (Types.spaces * Types.raw_pos)> SCALAR_IDENT ARRAY_IDENT HASH_IDENT FUNC_IDENT STAR_IDENT RAW_IDENT RAW_IDENT_PAREN ARRAYLEN_IDENT
 %token <(string * string) * (Types.spaces * Types.raw_pos)> FUNC_DECL_WITH_PROTO
@@ -84,14 +89,15 @@
 %left PAREN PREC_HIGH
 %left ARRAYREF BRACKET
 
-%type <Types.fromparser list> prog
-%type <(Types.priority * Types.fromparser) * (Types.spaces * Types.raw_pos)> expr
+%type <Types.fromparser list> prog inside
+%type <(Types.priority * Types.fromparser) * (Types.spaces * Types.raw_pos)> expr term
 
-%start prog
+%start prog inside
 
 
 %%
 prog: lines EOF {check_package (fst $1); fst $1}
+inside: lines EOF {fst $1}
 
 lines: /* A collection of "lines" in the program */
 | {[], (Space_none, bpos)}
@@ -215,6 +221,8 @@ term:
 | term PATTERN_MATCH     scalar { (P_expr, Too_complex), pos_range $1 $3}
 | term PATTERN_MATCH_NOT scalar { (P_expr, Too_complex), pos_range $1 $3}
 
+| term PATTERN_MATCH     RAW_STRING {die_with_pos (sndsnd $3) "use a regexp, not a string"}
+| term PATTERN_MATCH_NOT RAW_STRING {die_with_pos (sndsnd $3) "use a regexp, not a string"}
 | term PATTERN_MATCH     STRING {die_with_pos (sndsnd $3) "use a regexp, not a string"}
 | term PATTERN_MATCH_NOT STRING {die_with_pos (sndsnd $3) "use a regexp, not a string"}
 
@@ -235,9 +243,10 @@ term:
 | term DECR    {sp_0($2); (P_tight, Call_op("-- post", [sndfst $1])), pos_range $1 $2}
 | NOT argexpr  {(P_and, Call_op("not", sndfst $2)), pos_range $1 $2}
 
+| ONE_SCALAR_PARA RAW_STRING               {call_one_scalar_para $1 [to_Raw_string $2], pos_range $1 $2}
 | ONE_SCALAR_PARA STRING                   {call_one_scalar_para $1 [to_String $2], pos_range $1 $2}
 | ONE_SCALAR_PARA variable                 {call_one_scalar_para $1 [fst $2], pos_range $1 $2}
-| ONE_SCALAR_PARA subscripted              {call_one_scalar_para $1 [fst $2], pos_range $1 $2}
+| ONE_SCALAR_PARA restricted_subscripted   {call_one_scalar_para $1 [fst $2], pos_range $1 $2}
 | ONE_SCALAR_PARA parenthesized            {call_one_scalar_para $1 (sndfst $2), pos_range $1 $2}
 | ONE_SCALAR_PARA word_paren parenthesized {call_one_scalar_para $1 [Call(fst $2, sndfst $3)], pos_range $1 $3}
 
@@ -295,10 +304,12 @@ term:
 
 | NUM {(P_tok, Num(fst $1, get_pos $1)), snd $1}
 | STRING {(P_tok, to_String $1), snd $1}
-| REVISION {(P_tok, to_String $1), snd $1}
+| RAW_STRING {(P_tok, to_Raw_string $1), snd $1}
+| REVISION {(P_tok, to_Raw_string $1), snd $1}
 | COMMAND_STRING {(P_expr, Call_op("``", [to_String $1])), snd $1}
-| QUOTEWORDS {(P_tok, Call_op("qw", [to_String $1])), snd $1}
-| HERE_DOC {(P_tok, String(fst!(fst $1), get_pos $1)), snd $1}
+| QUOTEWORDS {(P_tok, Call_op("qw", [to_Raw_string $1])), snd $1}
+| HERE_DOC {(P_tok, String([], raw_pos2pos (sndfst $1))), snd $1}
+| RAW_HERE_DOC {(P_tok, Raw_string(fstfst $1, raw_pos2pos (sndfst $1))), snd $1}
 | PATTERN {(P_expr, Call_op("m//", var_dollar_ :: from_PATTERN $1)), snd $1}
 | PATTERN_SUBST {(P_expr, Call_op("s///", var_dollar_ :: from_PATTERN_SUBST $1)), snd $1}
 | diamond {(P_expr, fst $1), snd $1}
@@ -317,6 +328,13 @@ subscripted: /* Some kind of subscripted expression */
 | subscripted bracket_subscript        {sp_0($2); Deref_with(I_hash , fst $1, fst      $2), pos_range $1 $2} /* $foo->[bar]{baz} */
 | subscripted arrayref                 {sp_0($2); Deref_with(I_array, fst $1, only_one $2), pos_range $1 $2} /* $foo->[$bar][$baz] */
 | subscripted parenthesized            {sp_0($2); Deref_with(I_func , fst $1, List(sndfst $2)), pos_range $1 $2} /* $foo->{bar}(@args) */
+
+restricted_subscripted: /* Some kind of subscripted expression */
+| scalar bracket_subscript             {sp_0($2); Deref_with(I_hash , fst $1, fst      $2), pos_range $1 $2} /* $foo{bar} */
+| scalar arrayref                      {sp_0($2); Deref_with(I_array, fst $1, only_one $2), pos_range $1 $2} /* $array[$element] */
+| restricted_subscripted bracket_subscript        {sp_0($2); Deref_with(I_hash , fst $1, fst      $2), pos_range $1 $2} /* $foo->[bar]{baz} */
+| restricted_subscripted arrayref                 {sp_0($2); Deref_with(I_array, fst $1, only_one $2), pos_range $1 $2} /* $foo->[$bar][$baz] */
+| restricted_subscripted parenthesized            {sp_0($2); Deref_with(I_func , fst $1, List(sndfst $2)), pos_range $1 $2} /* $foo->{bar}(@args) */
 
 arrayref:
 | arrayref_start ARRAYREF_END {sp_0($2); fst $1, pos_range $1 $2}
@@ -345,8 +363,8 @@ termdo: /* Things called with "do" */
 | DO BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); check_block_sub $3 $4; Block(fst $3), pos_range $1 $4} /* do { code */
 
 bracket_subscript:
-| BRACKET expr BRACKET_END {sp_0($1); sp_0($2); sp_0($3); only_one_in_List $2, pos_range $1 $3}
-| COMPACT_HASH_SUBSCRIPT {sp_0($1); to_String $1, snd $1}
+| BRACKET expr BRACKET_END {sp_0($1); sp_same $2 $3; only_one_in_List $2, pos_range $1 $3}
+| COMPACT_HASH_SUBSCRIPT {sp_0($1); to_Raw_string $1, snd $1}
 
 variable:
 | scalar   %prec PREC_HIGH {$1}
@@ -378,11 +396,17 @@ word_paren:
 | BAREWORD_PAREN { Ident(None, fst $1, get_pos $1), snd $1}
 | RAW_IDENT_PAREN { to_Ident $1, snd $1}
 
-arraylen: ARRAYLEN_IDENT {Deref(I_arraylen, to_Ident $1), snd $1} | ARRAYLEN  scalar {sp_0($2); Deref(I_arraylen, fst $2), snd $1} | ARRAYLEN  BRACKET lines BRACKET_END {sp_0($2); check_block_ref $3 $4; sp_same $3 $4; Deref(I_arraylen, Block(fst $3)), pos_range $1 $4}
-scalar:   SCALAR_IDENT   {Deref(I_scalar  , to_Ident $1), snd $1} | DOLLAR    scalar {sp_0($2); Deref(I_scalar  , fst $2), snd $1} | DOLLAR    BRACKET lines BRACKET_END {sp_0($2); check_block_ref $3 $4; sp_same $3 $4; Deref(I_scalar  , Block(fst $3)), pos_range $1 $4} | DOLLAR BRACKET BRACKET expr BRACKET_END BRACKET_END {sp_0($2); sp_0($3); sp_p($5); sp_0($6); Deref(I_scalar, Ref(I_hash, sndfst $4)), pos_range $1 $6}
-func:     FUNC_IDENT     {Deref(I_func    , to_Ident $1), snd $1} | AMPERSAND scalar {sp_0($2); Deref(I_func    , fst $2), snd $1} | AMPERSAND BRACKET lines BRACKET_END {sp_0($2); check_block_ref $3 $4; sp_same $3 $4; Deref(I_func    , Block(fst $3)), pos_range $1 $4}
-array:    ARRAY_IDENT    {Deref(I_array   , to_Ident $1), snd $1} | AT        scalar {sp_0($2); Deref(I_array   , fst $2), snd $1} | AT        BRACKET lines BRACKET_END {sp_0($2); check_block_ref $3 $4; sp_same $3 $4; Deref(I_array   , Block(fst $3)), pos_range $1 $4}
-hash:     HASH_IDENT     {Deref(I_hash    , to_Ident $1), snd $1} | PERCENT   scalar {sp_0($2); Deref(I_hash    , fst $2), snd $1} | PERCENT   BRACKET lines BRACKET_END {sp_0($2); check_block_ref $3 $4; sp_same $3 $4; Deref(I_hash    , Block(fst $3)), pos_range $1 $4}
-star:     STAR_IDENT     {Deref(I_star    , to_Ident $1), snd $1} | STAR      scalar {sp_0($2); Deref(I_star    , fst $2), snd $1} | STAR      BRACKET lines BRACKET_END {sp_0($2); check_block_ref $3 $4; sp_same $3 $4; Deref(I_star    , Block(fst $3)), pos_range $1 $4}
+arraylen: ARRAYLEN_IDENT {Deref(I_arraylen, to_Ident $1), snd $1} | ARRAYLEN  scalar {sp_0($2); Deref(I_arraylen, fst $2), snd $1} | ARRAYLEN  bracket_subscript {Deref(I_arraylen, fst $2), pos_range $1 $2}
+scalar:   SCALAR_IDENT   {Deref(I_scalar  , to_Ident $1), snd $1} | DOLLAR    scalar {sp_0($2); Deref(I_scalar  , fst $2), snd $1} | DOLLAR    bracket_subscript {Deref(I_scalar  , fst $2), pos_range $1 $2} | DOLLAR BRACKET BRACKET expr BRACKET_END BRACKET_END {sp_0($2); sp_0($3); sp_p($5); sp_0($6); Deref(I_scalar, Ref(I_hash, sndfst $4)), pos_range $1 $6}
+func:     FUNC_IDENT     {Deref(I_func    , to_Ident $1), snd $1} | AMPERSAND scalar {sp_0($2); Deref(I_func    , fst $2), snd $1} | AMPERSAND bracket_subscript {Deref(I_func    , fst $2), pos_range $1 $2}
+array:    ARRAY_IDENT    {Deref(I_array   , to_Ident $1), snd $1} | AT        scalar {sp_0($2); Deref(I_array   , fst $2), snd $1} | AT        bracket_subscript {Deref(I_array   , fst $2), pos_range $1 $2}
+hash:     HASH_IDENT     {Deref(I_hash    , to_Ident $1), snd $1} | PERCENT   scalar {sp_0($2); Deref(I_hash    , fst $2), snd $1} | PERCENT   bracket_subscript {Deref(I_hash    , fst $2), pos_range $1 $2}
+star:     STAR_IDENT     {Deref(I_star    , to_Ident $1), snd $1} | STAR      scalar {sp_0($2); Deref(I_star    , fst $2), snd $1} | STAR      bracket_subscript {Deref(I_star    , fst $2), pos_range $1 $2}
 
 expr_or_empty: {Block [], (Space_none, bpos)} | expr {sndfst $1, snd $1}
+
+%%
+
+;;
+prog_ref := Some inside
+;;

@@ -58,7 +58,7 @@ val check_block_ref :
   'a * (Types.spaces * (int * 'b)) -> unit
 val to_Ident :
   (string option * string) * ('a * (int * int)) -> Types.fromparser
-val to_String : string * ('a * (int * int)) -> Types.fromparser
+val to_Raw_string : string * ('a * (int * int)) -> Types.fromparser
 val op : 'a -> 'b -> 'c * 'd -> 'a * ((unit * 'd) * 'b)
 val op_p :
   'a ->
@@ -74,10 +74,6 @@ val only_one_in_List :
   ('a * Types.fromparser) * ('b * (int * int)) -> Types.fromparser
 val array_ident_to_hash_ident :
   Types.fromparser * ('a * (int * int)) -> Types.fromparser
-val from_PATTERN :
-  (string * string) * ('a * (int * int)) -> Types.fromparser list
-val from_PATTERN_SUBST :
-  (string * string * string) * ('a * (int * int)) -> Types.fromparser list
 val to_List : Types.fromparser list -> Types.fromparser
 val sub_declaration :
   Types.fromparser * string -> Types.fromparser list -> Types.fromparser
@@ -85,3 +81,24 @@ val call : Types.fromparser * Types.fromparser list -> Types.fromparser
 val call_one_scalar_para :
   string * ('a * (int * int)) ->
   Types.fromparser list -> Types.priority * Types.fromparser
+val current_lexbuf : Lexing.lexbuf option ref
+val list2tokens : ((int * int) * 'a) list -> Lexing.lexbuf -> 'a
+val parse_tokens :
+  ((Lexing.lexbuf -> 'a) -> Lexing.lexbuf -> 'b list) ->
+  ((int * int) * 'a) list -> Lexing.lexbuf option -> 'b list
+val parse_interpolated :
+  ((Lexing.lexbuf -> 'a) -> Lexing.lexbuf -> Types.fromparser list) ->
+  ('b * ((int * int) * 'a) list) list -> ('b * Types.fromparser) list
+val to_String :
+  ((Lexing.lexbuf -> 'a) -> Lexing.lexbuf -> Types.fromparser list) ->
+  (string * ((int * int) * 'a) list) list * ('b * (int * int)) ->
+  Types.fromparser
+val from_PATTERN :
+  ((Lexing.lexbuf -> 'a) -> Lexing.lexbuf -> Types.fromparser list) ->
+  ((string * ((int * int) * 'a) list) list * string) * ('b * (int * int)) ->
+  Types.fromparser list
+val from_PATTERN_SUBST :
+  ((Lexing.lexbuf -> 'a) -> Lexing.lexbuf -> Types.fromparser list) ->
+  ((string * ((int * int) * 'a) list) list *
+   (string * ((int * int) * 'a) list) list * string) *
+  ('b * (int * int)) -> Types.fromparser list

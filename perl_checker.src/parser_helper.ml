@@ -46,7 +46,7 @@ let warn         raw_pos msg = prerr_endline (msg_with_pos raw_pos msg)
 
 let die_rule msg = die_with_pos (Parsing.symbol_start(), Parsing.symbol_end()) msg
 let warn_rule msg = warn (Parsing.symbol_start(), Parsing.symbol_end()) msg
-let debug msg = if false then prerr_endline msg
+let debug msg = if true then prerr_endline msg
 
 let warn_too_many_space start = warn (start, start) "you should have only one space here"
 let warn_no_space	start = warn (start, start) "you should have a space here"
@@ -225,7 +225,7 @@ let check_block_ref (l, (_, (_, end_)) as ter_lines) (_, (space, _) as ter_BRACK
 
 
 let to_Ident ((fq, name), (_, pos)) = Ident(fq, name, raw_pos2pos pos)
-let to_String (s, (_, pos)) = String(s, raw_pos2pos pos)
+let to_Raw_string (s, (_, pos)) = Raw_string(s, raw_pos2pos pos)
 
 let op prio s (_, both) = prio, (((), both), s)
 let op_p prio s e = sp_p e ; op prio s e
@@ -251,9 +251,6 @@ let array_ident_to_hash_ident (e, (_, pos)) =
   match e with
   | Deref(I_array, e) -> Deref(I_hash, e)
   | _ -> die_with_pos pos "internal error (array_ident_to_hash_ident)"
-
-let from_PATTERN ((s, opts), (_, pos)) = [ String(s, raw_pos2pos pos) ; String(opts, raw_pos2pos pos) ]
-let from_PATTERN_SUBST ((s1, s2, opts), (_, pos)) = [ String(s1, raw_pos2pos pos) ; String(s2, raw_pos2pos pos) ; String(opts, raw_pos2pos pos) ]
   
 let to_List = function
   | [e] -> e
@@ -267,6 +264,7 @@ let call(e, para) =
       (match para with
       | [ Ident _ ] -> ()
       | [ String _ ] -> ()
+      | [ Raw_string _ ] -> ()
       | _ -> die_rule "use either \"require PACKAGE\" or \"require 'PACKAGE.pm'\"")
   | Ident(None, "N", _) ->
       (match para with
@@ -282,3 +280,34 @@ let call_one_scalar_para (e, (_, pos)) para =
     | _ -> P_add
   in
   pri, Call(Ident(None, e, raw_pos2pos pos), para)
+
+let (current_lexbuf : Lexing.lexbuf option ref) = ref None
+
+
+let rec list2tokens l =
+  let rl = ref l in
+  fun lexbuf ->
+    match !rl with
+    | [] -> internal_error "list2tokens"
+    | ((start, end_), e) :: l -> 
+	lexbuf.Lexing.lex_abs_pos <- 0 ;
+	lexbuf.Lexing.lex_start_pos <- start ;
+	lexbuf.Lexing.lex_curr_pos <- end_ ;
+	rl := l ; e
+
+let parse_tokens parse tokens lexbuf_opt =
+  if lexbuf_opt <> None then current_lexbuf := lexbuf_opt ;
+  if tokens = [] then [] else
+  parse (list2tokens tokens) (some !current_lexbuf)
+
+let parse_interpolated parse l = List.map (fun (s, tokens) -> s, to_List(parse_tokens parse tokens None)) l
+
+let to_String parse (l, (_, pos)) = String(parse_interpolated parse l, raw_pos2pos pos)
+
+let from_PATTERN parse ((s, opts), (_, pos)) = 
+  [ String(parse_interpolated parse s, raw_pos2pos pos) ; 
+    Raw_string(opts, raw_pos2pos pos) ]
+let from_PATTERN_SUBST parse ((s1, s2, opts), (_, pos)) = 
+  [ String(parse_interpolated parse s1, raw_pos2pos pos) ; 
+    String(parse_interpolated parse s2, raw_pos2pos pos) ; 
+    Raw_string(opts, raw_pos2pos pos) ]

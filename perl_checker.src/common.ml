@@ -186,6 +186,8 @@ let rec stack2list s =
   Stack.iter (fun e -> l := e :: !l) s ;
   !l
 
+let rec queue2list q = rev (Queue.fold (fun b a -> a :: b) [] q)
+
 let rec fix_point f p =
   let p' = f p in
   if p = p' then p else fix_point f p'
