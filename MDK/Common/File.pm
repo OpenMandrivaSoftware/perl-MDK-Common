@@ -32,9 +32,21 @@ array context it returns the lines
 
 creates a file and outputs the list (if the file exists, it is clobbered)
 
+=item output_p(FILENAME, LIST)
+
+just like C<output> but creates directories if needed
+
 =item mkdir_p(DIRNAME)
 
 creates the directory (make parent directories as needed)
+
+=item rm_rf(FILES)
+
+remove the files (including sub-directories)
+
+=item cp_af(FILES, DEST)
+
+just like "cp -af"
 
 =item linkf(SOURCE, DESTINATION)
 
@@ -88,7 +100,7 @@ package MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(dirname basename cat_ cat__ output linkf symlinkf renamef mkdir_p touch all glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
+@EXPORT_OK = qw(dirname basename cat_ cat__ output output_p linkf symlinkf renamef mkdir_p rm_rf cp_af touch all glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
@@ -96,6 +108,7 @@ sub basename { local $_ = shift; s|/*\s*$||; s|.*/||; $_ }
 sub cat_ { local *F; open F, $_[0] or return; my @l = <F>; wantarray ? @l : join '', @l }
 sub cat__ { my ($f) = @_; my @l = <$f>; wantarray ? @l : join '', @l }
 sub output { my $f = shift; local *F; open F, ">$f" or die "output in file $f failed: $!\n"; print F foreach @_; }
+sub output_p { my $f = shift; mkdir_p(dirname($f)); output($f, @_) }
 sub linkf    { unlink $_[1]; link    $_[0], $_[1] }
 sub symlinkf { unlink $_[1]; symlink $_[0], $_[1] }
 sub renamef  { unlink $_[1]; rename  $_[0], $_[1] }
@@ -110,6 +123,47 @@ sub mkdir_p {
     } else {
 	mkdir_p(dirname($dir));
 	mkdir($dir, 0755) or die "mkdir: error creating directory $_: $!\n";
+    }
+}
+
+sub rm_rf {
+    foreach (@_) {
+	if (!-l $_ && -d $_) {
+	    rm_rf(glob_($_));
+	    rmdir($_) or die "can't remove directory $_: $!\n";
+	} else { 
+	    unlink $_ or die "rm of $_ failed: $!\n";
+	}
+    }
+}
+
+sub cp_af {
+    my $dest = pop @_;
+
+    @_ or return;
+    @_ == 1 || -d $dest or die "cp: copying multiple files, but last argument ($dest) is not a directory\n";
+
+    foreach my $src (@_) {
+	my $dest = $dest;
+	-d $dest and $dest .= '/' . basename($src);
+
+	unlink $dest;
+
+	if (-d $src) {
+	    -d $dest or mkdir $dest, (stat($src))[2] or die "mkdir: can't create directory $dest: $!\n";
+	    &$cp(glob_($src), $dest);
+	} elsif (-l $src) {
+	    unless (symlink((readlink($src) || die "readlink failed: $!"), $dest)) {
+		warn "symlink: can't create symlink $dest: $!\n";
+	    }
+	} else {
+	    local (*F, *G);
+	    open F, $src or die "can't open $src for reading: $!\n";
+	    open G, "> $dest";
+	    local $_;
+	    while (<F>) { print G $_ }
+	    chmod((stat($src))[2], $dest);
+	}
     }
 }
 
