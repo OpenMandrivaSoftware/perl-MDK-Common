@@ -63,6 +63,7 @@ sub get {}
 sub get_active {}
 sub get_buffer {}
 sub get_char_count {}
+sub get_children {}
 sub get_colormap {}
 sub get_context_id {}
 sub get_cursor {}
