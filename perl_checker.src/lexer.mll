@@ -241,7 +241,8 @@ let building_current_interpolated_string = Stack.create()
 let building_current_string = Stack.create()
 let current_string_start_pos = ref 0
 let current_string_start_line = ref 0
-let warn lexbuf err = print_endline_flush (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
+let warn_with_pos (start, end_) err = print_endline_flush (pos2sfull_with start end_ ^ err)
+let warn lexbuf err = warn_with_pos (pos lexbuf) err
 let die lexbuf err = failwith (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
 let die_in_string lexbuf err = failwith (pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ err)
 
@@ -279,6 +280,14 @@ let next_s s t lexbuf =
   let r = Stack.top building_current_string in r := !r ^ s ;
   t lexbuf
 let next t lexbuf = next_s (lexeme lexbuf) t lexbuf
+
+let ins_re re_delimited_string lexbuf =
+  let s, pos = ins re_delimited_string lexbuf in
+  List.iter (fun (s, _) ->
+    if str_contains s "[^\\s]" then warn lexbuf "you can replace [^\\s] with \\S";
+    if str_contains s "[^\\w]" then warn lexbuf "you can replace [^\\w] with \\W"
+  ) s ;
+  s, pos
 
 let string_interpolate token pre lexbuf =
    let s = lexeme lexbuf in
@@ -519,7 +528,7 @@ rule token = parse
     else (
       delimit_char := '/' ;
       current_string_start_line := !current_file_current_line;
-      let s, pos = ins re_delimited_string lexbuf in
+      let s, pos = ins_re re_delimited_string lexbuf in
       let opts, _ = raw_ins pattern_options lexbuf in
       check_multi_line_delimited_string (Some opts) pos ;
       PATTERN(s, opts, pos)
@@ -531,7 +540,7 @@ rule token = parse
     else (
       putback lexbuf 1 ;
       delimit_char := '/' ;
-      let s, pos = ins re_delimited_string lexbuf in
+      let s, pos = ins_re re_delimited_string lexbuf in
       let opts, _ = raw_ins pattern_options lexbuf in
       PATTERN(s, opts, pos)
     ) 
@@ -540,7 +549,7 @@ rule token = parse
 | "m" pattern_separator {
   set_delimit_char lexbuf "m" ;
   current_string_start_line := !current_file_current_line;
-  let s, pos = ins re_delimited_string lexbuf in
+  let s, pos = ins_re re_delimited_string lexbuf in
   let opts, _ = raw_ins pattern_options lexbuf in
   check_multi_line_delimited_string (Some opts) pos ;
   PATTERN(s, opts, pos)
@@ -549,7 +558,7 @@ rule token = parse
 | "qr" pattern_separator {
   set_delimit_char lexbuf "qr" ;
   current_string_start_line := !current_file_current_line;
-  let s, pos = ins re_delimited_string lexbuf in
+  let s, pos = ins_re re_delimited_string lexbuf in
   let opts, _ = raw_ins pattern_options lexbuf in
   check_multi_line_delimited_string (Some opts) pos ;
   QR_PATTERN(s, opts, pos)
@@ -558,7 +567,7 @@ rule token = parse
 | "s" pattern_separator {
   set_delimit_char lexbuf "s" ;
   current_string_start_line := !current_file_current_line;
-  let s1, (start, _) = ins re_delimited_string lexbuf in 
+  let s1, (start, _) = ins_re re_delimited_string lexbuf in 
   let s2, (_, end_)  = ins delimited_string lexbuf in 
   let opts, _ = raw_ins pattern_options lexbuf in
   let pos = start, end_ in
