@@ -125,7 +125,11 @@ val check_for : string Types.any_spaces_pos -> unit
 val check_for_foreach :
   string Types.any_spaces_pos ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos -> unit
-val check_block_sub :
+val check_block_expr :
+  bool ->
+  Types.fromparser ->
+  'a Types.any_spaces_pos -> 'b Types.any_spaces_pos -> unit
+val check_block_lines :
   (Types.fromparser list * bool) Types.any_spaces_pos ->
   'a Types.any_spaces_pos -> unit
 val check_block_ref :

@@ -582,18 +582,21 @@ let check_for_foreach esp arg =
   | _ -> 
       if esp.any = "for" then warn [Warn_normalized_expressions] esp.pos "write \"foreach\" instead of \"for\""
 
-let check_block_sub esp_lines esp_BRACKET_END =
+let check_block_expr has_semi_colon last_expr esp_last esp_BRACKET_END =
+  sp_p esp_BRACKET_END ;
+
+  if esp_BRACKET_END.spaces = Space_cr then
+    (if not has_semi_colon then warn_verb [Warn_white_space] (get_pos_end esp_last) "missing \";\"")
+  else
+    (if last_expr = Semi_colon then warn_verb [Warn_white_space] (get_pos_end esp_last) "spurious \";\" before closing block")
+
+let check_block_lines esp_lines esp_BRACKET_END =
   match fst esp_lines.any with
   | [] -> 
       sp_0_or_cr esp_BRACKET_END
   | l ->
       (if List.hd l = Semi_colon then sp_0 else sp_p) esp_lines ;
-      sp_p esp_BRACKET_END ;
-
-      if esp_BRACKET_END.spaces = Space_cr then
-	(if not (snd esp_lines.any) then warn_verb [Warn_white_space] (get_pos_end esp_lines) "missing \";\"")
-      else
-	(if last l = Semi_colon then warn_verb [Warn_white_space] (get_pos_end esp_lines) "spurious \";\" before closing block")
+      check_block_expr (snd esp_lines.any) (last l) esp_lines esp_BRACKET_END
 
 let check_block_ref esp_lines esp_BRACKET_END =
   let l = esp_lines.any in
@@ -679,7 +682,7 @@ let to_Deref_with(from_context, to_context, ref_, para) =
   Deref_with(from_context, to_context, ref_, para)
 
 let lines_to_Block esp_lines esp_BRACKET_END =
-  check_block_sub esp_lines esp_BRACKET_END;
+  check_block_lines esp_lines esp_BRACKET_END;
   Block (fst esp_lines.any)
   
 let to_Local esp =
@@ -1301,6 +1304,7 @@ let mcontext_check_none msg expr esp =
     | M_mixed l when List.exists (fun c -> c = M_none) l -> ()
     | M_tuple l ->
 	(match expr with
+	| [Block [List l_expr]]
 	| [List l_expr]
 	| [List l_expr ; Semi_colon] ->
 	    let rec iter = function

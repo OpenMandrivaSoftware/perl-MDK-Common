@@ -142,7 +142,7 @@ for_my:
 
 cont: /* Continue blocks */
 |  {default_esp ()}
-| CONTINUE BRACKET lines BRACKET_END {sp_p($1); sp_n($2); check_block_sub $3 $4; new_esp $3.mcontext () $1 $4}
+| CONTINUE BRACKET lines BRACKET_END {sp_p($1); sp_n($2); check_block_lines $3 $4; new_esp $3.mcontext () $1 $4}
 
 sideff: /* An expression which may have a side-effect */
 | expr  { new_1esp $1.any.expr $1 }
@@ -157,9 +157,9 @@ decl:
 | FORMAT ASSIGN {new_esp M_none Too_complex $1 $2}
 | func_decl semi_colon {if snd $1.any = None then die_rule "there is no need to pre-declare in Perl!" else (warn_rule [Warn_normalized_expressions] "please don't use prototype pre-declaration" ; new_esp M_special Too_complex $1 $2) }
 | func_decl BRACKET BRACKET_END {sp_n($2); sp_0_or_cr($3); let name, proto = $1.any in new_esp M_none (sub_declaration (name, proto) [] Real_sub_declaration) $1 $3}
-| func_decl BRACKET lines BRACKET_END {sp_n($2); check_block_sub $3 $4; new_esp M_none (sub_declaration $1.any (fst $3.any) Real_sub_declaration) $1 $4}
-| func_decl BRACKET BRACKET expr BRACKET_END            BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_esp M_none (sub_declaration $1.any [hash_ref $4] Real_sub_declaration) $1 $6}
-| func_decl BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); new_esp M_none (sub_declaration $1.any [hash_ref $4; Semi_colon] Real_sub_declaration) $1 $7}
+| func_decl BRACKET lines BRACKET_END {sp_n($2); check_block_lines $3 $4; new_esp M_none (sub_declaration $1.any (fst $3.any) Real_sub_declaration) $1 $4}
+| func_decl BRACKET BRACKET expr BRACKET_END            BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); check_block_expr false Undef      $5 $6; new_esp M_none (sub_declaration $1.any [hash_ref $4] Real_sub_declaration) $1 $6}
+| func_decl BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); check_block_expr true  Semi_colon $6 $7; new_esp M_none (sub_declaration $1.any [hash_ref $4; Semi_colon] Real_sub_declaration) $1 $7}
 | PACKAGE word semi_colon {sp_0_or_cr($1); sp_1($2); new_esp M_none (Package $2.any) $1 $3}
 | BEGIN BRACKET lines BRACKET_END {sp_0_or_cr($1); sp_1($2); new_esp M_none (Sub_declaration(Ident(None, "BEGIN", get_pos $1), None, lines_to_Block $3 $4, Glob_assign)) $1 $4}
 | END   BRACKET lines BRACKET_END {sp_0_or_cr($1); sp_1($2); new_esp M_none (Sub_declaration(Ident(None, "END",   get_pos $1), None, lines_to_Block $3 $4, Glob_assign)) $1 $4}
