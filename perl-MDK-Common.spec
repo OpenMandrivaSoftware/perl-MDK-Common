@@ -52,6 +52,11 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Tue Apr 29 2003 Pixel <pixel@mandrakesoft.com> 1.1.2-1mdk
+- perl_checker: more context checks
+  - ensure the values are used (eg: "map { ... } ...", "/xxx/")
+  - ensure the values "... or ...", "... and ..." are not used
+
 * Fri Apr 25 2003 Pixel <pixel@mandrakesoft.com> 1.1.1-1mdk
 - perl_checker: enhanced "number of arguments" checking, including method calls
 
