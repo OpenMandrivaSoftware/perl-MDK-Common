@@ -141,9 +141,15 @@ sub output_with_perm { my ($f, $perm, @l) = @_; mkdir_p(dirname($f)); output($f,
 sub linkf    { unlink $_[1]; link    $_[0], $_[1] }
 sub symlinkf { unlink $_[1]; symlink $_[0], $_[1] }
 sub renamef  { unlink $_[1]; rename  $_[0], $_[1] }
-use Fcntl;
-sub secured_output { my $f = shift; unlink($f); sysopen(my $F, $f, O_CREAT|O_EXCL|O_RDWR) or die "secure output in file $f failed: $! $@\n"; print $F $_ foreach @_; 1 } 
 
+sub secured_output { 
+    my ($f, @l) = @_;
+    require POSIX;
+    unlink($f); 
+    sysopen(my $F, $f, POSIX::O_CREAT() | POSIX::O_EXCL() | POSIX::O_RDWR()) or die "secure output in file $f failed: $! $@\n";
+    print $F $_ foreach @l; 
+    1;
+} 
 
 sub mkdir_p {
     my ($dir) = @_;
