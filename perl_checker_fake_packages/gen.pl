@@ -128,8 +128,8 @@ our \@ISA = qw();
             foreach (@multiples) {
                 my $a = split /,/, $_->[1];
                 $args == -1 and $args = $a;
-                #- skip multiply defined functions that have different numbers of arguments
-                $args != $a and goto skip_it;
+                #- ignore multiply defined functions that have different numbers of arguments
+                $args != $a and $multiples[0][1] = ' {}';
             }
             my $i;
             $multiples[0][1] =~ s/\$_(\w+)/'$_DUMMY'.$i++/ge;
@@ -137,7 +137,6 @@ our \@ISA = qw();
         } else {
             push @ok, @multiples;
         }
-      skip_it:
     }
 
     print "sub Gtk2::$_->[0]$_->[1]\n" foreach @ok;
