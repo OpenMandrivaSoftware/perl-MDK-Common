@@ -171,6 +171,7 @@ sub set_size_request {}
 sub set_sizing {}
 sub set_style {}
 sub set_submenu {}
+sub set_tab_pos {}
 sub set_text {}
 sub set_tip {}
 sub set_title {}
