@@ -42,6 +42,9 @@ sub gtk2 {
       [ 'resizable',                    ' { my ($_window, $o_bool) = @_ }' ],
       [ 'window_position',              ' { my ($_window, $o_pos) = @_ }' ],
       [ 'expand_to_path',               ' { my ($_treeview, $_path) = @_ }' ],
+      [ 'fraction',                     ' { my ($_progress_bar, $o_fraction) = @_ }' ],
+      [ 'orientation',                  ' { my ($_progress_bar, $o_orientation) = @_ }' ],
+      [ 'get_selected_rows',            ' { my ($_tree_selection) = @_ }' ],
                       );
     my @added_subroutines;
     my $add = sub {
