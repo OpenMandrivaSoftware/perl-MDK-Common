@@ -370,13 +370,14 @@ let word_alone esp =
       | "hex" | "length" | "time" | "fork" | "getppid" -> M_int
       | "eof" | "wantarray" -> M_int
       | "stat" | "lstat" -> M_list
-      | "arch" | "quotemeta" | "lc" | "lcfirst" | "uc" | "ucfirst" -> M_string
+      | "arch" | "quotemeta" | "join" | "lc" | "lcfirst" | "uc" | "ucfirst" -> M_string
 	    
       | "split" -> M_array
       | "shift" | "pop" -> M_scalar
       | "die" | "return" | "redo" | "next" | "last" -> M_unknown
       | "caller" -> M_mixed [M_string ; M_list]
-	    
+      | "undef"	-> M_undef
+
       | "ref" -> M_ref M_scalar
       | _ -> M_unknown
       in mcontext, e
@@ -1044,6 +1045,7 @@ let rec mcontext2s = function
   | M_string -> "string"
   | M_ref c -> "ref(" ^ mcontext2s c ^ ")"
   | M_revision -> "revision"
+  | M_undef -> "undef"
   | M_sub -> "sub"
   | M_scalar -> "scalar"
 
@@ -1057,7 +1059,7 @@ let rec mcontext2s = function
   | M_mixed l -> String.concat " | " (List.map mcontext2s l)
 
 let mcontext_is_scalar = function
-  | M_int | M_float | M_string | M_ref _ | M_revision
+  | M_int | M_float | M_string | M_ref _ | M_revision | M_undef
   | M_scalar | M_array -> true
   | _ -> false
 
@@ -1075,6 +1077,7 @@ let rec mcontext_lower c1 c2 =
   | M_ref _, M_scalar | M_ref _, M_list
   | M_string, M_string | M_string, M_scalar | M_string, M_list
   | M_revision, M_revision | M_revision, M_scalar | M_revision, M_list
+  | M_undef, M_undef | M_undef, M_scalar | M_undef, M_list
   | M_scalar, M_scalar | M_scalar, M_list
     -> true
 

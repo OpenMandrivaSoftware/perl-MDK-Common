@@ -13,3 +13,5 @@ length @l                                never use "length @l", it returns the l
 'xxx' > 'yyy'                            you should use a string operator, not the number operator ">"
 
 1 cmp 2                                  you should use a number operator, not the string operator "cmp" (or replace the number with a string)
+
+$xxx == undef                            context undef is not compatible with context float

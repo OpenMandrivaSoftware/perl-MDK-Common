@@ -17,7 +17,7 @@ type maybe_context =
   | M_none
 
   | M_bool
-  | M_int | M_float | M_string | M_ref of maybe_context | M_revision | M_sub
+  | M_int | M_float | M_string | M_ref of maybe_context | M_revision | M_sub | M_undef
   | M_scalar
 
   | M_tuple of maybe_context list
