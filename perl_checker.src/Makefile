@@ -9,8 +9,6 @@ LIBS = unix
 VENDORLIB = $(shell dirname `pwd`)
 DEBUG = 1
 
-NAME = shyant
-
 default: TAGS build_ml build.ml debug-code native-code
 
 build_ml:
