@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 5mdk
+%define release 6mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -50,6 +50,11 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Dec  6 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-6mdk
+- perl_checker now checks usage of $_
+- ignore unknown functions coming from XS bootstrap when we can't use the .c
+  to know the list of functions provided by the XS extension
+
 * Wed Dec  4 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-5mdk
 - add unused variable detection
 - allow $AUTOLOAD usage in AUTOLOAD()
