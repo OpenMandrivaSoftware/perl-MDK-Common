@@ -1,0 +1,8 @@
+.depend
+perl_checker
+perl_checker_debug
+gmon.out
+*.cmi
+*.cmo
+*.cmx
+parser.ml

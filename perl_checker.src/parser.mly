@@ -2,8 +2,8 @@
   open Types
   open Common
 
-  let parse_error _ =
-   failwith (Info.pos2sfull_current (Parsing.symbol_start()) (Parsing.symbol_end()) ^ "parse error")   
+  let parse_error msg =
+   failwith (Info.pos2sfull_current (Parsing.symbol_start()) (Parsing.symbol_end()) ^ msg)
 
   let to_Ident = function
    | BAREWORD(name, pos) -> Ident(I_raw, None, name, pos)
@@ -19,22 +19,23 @@
 
 %token EOF
 %token <Types.pos> SPACE
-%token <string * Types.pos> NUM STRING BAREWORD PROTOTYPE REVISION COMMENT POD LABEL
-%token <string * Types.pos> COMMAND_STRING QUOTEWORDS
+%token <string * Types.pos> NUM STRING BAREWORD REVISION COMMENT POD LABEL
+%token <string * Types.pos> COMMAND_STRING QUOTEWORDS COMPACT_HASH_SUBSCRIPT
 %token <(string * Types.pos) ref> HERE_DOC
 %token <string * string * Types.pos> PATTERN
 %token <string * string * string * Types.pos> PATTERN_SUBST
 
 %token <string option * string * Types.pos> SCALAR_IDENT ARRAY_IDENT HASH_IDENT FUNC_IDENT STAR_IDENT RAW_IDENT ARRAYLEN_IDENT
+%token <string * string * Types.pos> FUNC_DECL_WITH_PROTO
 
 %token IF ELSIF ELSE UNLESS DO WHILE UNTIL MY CONTINUE SUB LOCAL
 %token <string> FOR
-%token USE PACKAGE FORMAT
-%token <Types.pos> PRINT NEW
+%token USE PACKAGE BEGIN END
+%token <Types.pos> PRINT NEW FORMAT
 %token AT DOLLAR PERCENT AMPERSAND STAR ARRAYLEN
 %token SEMI_COLON PKG_SCOPE
 %token PAREN PAREN_END
-%token BRACKET BRACKET_END
+%token BRACKET BRACKET_END BRACKET_HASHREF
 %token ARRAYREF ARRAYREF_END
 
 
@@ -46,6 +47,7 @@
 %token MULT DIVISION MODULO REPLICATE
 %token PLUS MINUS CONCAT
 %token BIT_SHIFT_LEFT BIT_SHIFT_RIGHT
+%token LT GT
 %token <string> COMPARE_OP EQ_OP
 %token BIT_AND
 %token BIT_OR BIT_XOR
@@ -76,7 +78,7 @@
 %left       BIT_OR BIT_XOR
 %left       BIT_AND
 %nonassoc   EQ_OP
-%nonassoc   COMPARE_OP
+%nonassoc   LT GT COMPARE_OP
 %nonassoc   UNIOP
 %left       BIT_SHIFT_LEFT BIT_SHIFT_RIGHT
 %left       PLUS MINUS CONCAT
@@ -104,7 +106,9 @@ block: BRACKET lineseq BRACKET_END { $2 }
 lineseq: /* A collection of "lines" in the program */
 |              {[]}
 | decl lineseq {[]}
-| label line {[]}
+| line {[]}
+| LABEL lineseq {[]}
+| line {[]}
 
 line:
 | if_then_else lineseq { [] }
@@ -133,7 +137,7 @@ loop:
 | FOR MY SCALAR_IDENT PAREN expr PAREN_END block cont {[]}
 | FOR SCALAR_IDENT PAREN expr PAREN_END block cont {[]}
 | FOR PAREN expr PAREN_END block cont {[]}
-| FOR PAREN expr_or_empty ';' expr_or_empty ';' expr_or_empty PAREN_END block {[]}
+| FOR PAREN expr_or_empty SEMI_COLON expr_or_empty SEMI_COLON expr_or_empty PAREN_END block {[]}
 | block cont {[]} /* a block is a loop that happens once */
 
 cont: /* Continue blocks */
@@ -150,9 +154,12 @@ sideff: /* An expression which may have a side-effect */
 | expr  FOR    expr { [ (*Binary($2,        $1, $3)*) ] }
 
 decl:
-| FORMAT formname block {[]}
-| SUB word prototype_or_empty subbody {[]}
+| FORMAT bareword_or_empty ASSIGN {[]}
+| SUB word subbody {[]}
+| FUNC_DECL_WITH_PROTO subbody {[]}
 | PACKAGE word SEMI_COLON {[]}
+| BEGIN block {[]}
+| END block {[]}
 | USE word_or_empty revision_or_empty listexpr SEMI_COLON {[]}
 
 formname: {[]} | BAREWORD {[]}
@@ -184,11 +191,7 @@ term:
 | LOCAL term    %prec UNIOP {[]}
 | PAREN expr_or_empty PAREN_END {[]}
 
-| scalar        %prec PAREN {[]}
-| star          %prec PAREN {[]}
-| hash          %prec PAREN {[]}
-| array         %prec PAREN {[]}
-| arraylen      %prec PAREN {[]} /* $#x, $#{ something } */
+| variable {[]}
 
 | subscripted {[]}
 
@@ -199,15 +202,9 @@ term:
 | function_call {[]}
 
 | word {[]}
-| NUM {[]}
-| STRING {[]}
-| REVISION {[]}
-| COMMAND_STRING {[]}
-| QUOTEWORDS {[]}
-| HERE_DOC {[]}
+| value {[]}
 
 function_call:
-| func {[]} /* &foo; */
 | func PAREN expr_or_empty PAREN_END {[]} /* &foo(@args) */
 | word argexpr {[]} /* foo(@args) */
 | word block listexpr %prec LSTOP {[]} /* map { foo } @bar */
@@ -216,6 +213,7 @@ function_call:
 | term ARROW word_or_scalar {[]} /* $foo->bar */
 
 | NEW word listexpr {[]} /* new Class @args */
+| PRINT argexpr {[]} /* print $fh @args */
 | PRINT word_or_scalar argexpr {[]} /* print $fh @args */
 
 termdo: /* Things called with "do" */
@@ -240,15 +238,25 @@ myterm: /* Things that can be "my"'d */
 | array {[]}
 
 subscripted: /* Some kind of subscripted expression */
-| star PKG_SCOPE BRACKET expr BRACKET_END {[]} /* *main::{something} */
-| scalar ARRAYREF expr ARRAYREF_END         {[]} /* $array[$element] */
-| scalar BRACKET expr BRACKET_END           {[]} /* $foo{bar} */
-| term ARROW ARRAYREF expr ARRAYREF_END     {[]} /* somearef->[$element] */
-| term ARROW BRACKET expr BRACKET_END       {[]} /* somehref->{bar} */
-| term ARROW PAREN expr_or_empty PAREN_END  {[]} /* $subref->(@args) */
-| subscripted ARRAYREF expr ARRAYREF_END    {[]} /* $foo->[$bar][$baz] */
-| subscripted BRACKET expr BRACKET_END      {[]} /* $foo->[bar]{baz;} */
-| subscripted PAREN expr_or_empty PAREN_END {[]} /* $foo->{bar}(@args) */
+| variable PKG_SCOPE bracket_subscript        {[]} /* *main::{something} */
+| scalar bracket_subscript                    {[]} /* $foo{bar} */
+| scalar ARRAYREF expr ARRAYREF_END           {[]} /* $array[$element] */
+| term ARROW bracket_subscript                {[]} /* somehref->{bar} */
+| term ARROW ARRAYREF expr ARRAYREF_END       {[]} /* somearef->[$element] */
+| term ARROW PAREN expr_or_empty PAREN_END    {[]} /* $subref->(@args) */
+| subscripted bracket_subscript               {[]} /* $foo->[bar]{baz;} */
+| subscripted ARRAYREF expr ARRAYREF_END      {[]} /* $foo->[$bar][$baz] */
+| subscripted PAREN expr_or_empty PAREN_END   {[]} /* $foo->{bar}(@args) */
+
+bracket_subscript:
+| BRACKET expr BRACKET_END {[]}
+| COMPACT_HASH_SUBSCRIPT {[]}
+
+anonymous: /* Constructors for anonymous data */
+| ARRAYREF expr_or_empty ARRAYREF_END {[]}
+| BRACKET expr_or_empty BRACKET_END %prec PAREN {[]} /* { foo => "Bar" } */
+| BRACKET_HASHREF expr_or_empty BRACKET_END %prec PAREN {[]} /* { foo => "Bar" } */
+| SUB block %prec PAREN {[]}
 
 binop:
 | ASSIGN {[]}
@@ -256,7 +264,7 @@ binop:
 | MULT {[]} | DIVISION {[]} | MODULO {[]} | REPLICATE {[]}
 | PLUS {[]} | MINUS {[]} | CONCAT {[]}
 | BIT_SHIFT_LEFT {[]} | BIT_SHIFT_RIGHT {[]}
-| COMPARE_OP {[]}
+| LT {[]} | GT {[]} | COMPARE_OP {[]}
 | EQ_OP {[]}
 | BIT_AND {[]}
 | BIT_OR {[]} | BIT_XOR {[]}
@@ -265,14 +273,25 @@ binop:
 | OR_TIGHT {[]} | XOR {[]}
 | PATTERN_MATCH {[]} | PATTERN_MATCH_NOT {[]}
 
-anonymous: /* Constructors for anonymous data */
-| ARRAYREF expr_or_empty ARRAYREF_END {[]}
-| BRACKET expr_or_empty BRACKET_END %prec PAREN {[]} /* { foo => "Bar" } */
-| SUB prototype_or_empty block %prec PAREN {[]}
+value:
+| NUM {[]}
+| STRING {[]}
+| REVISION {[]}
+| COMMAND_STRING {[]}
+| QUOTEWORDS {[]}
+| HERE_DOC {[]}
+| PATTERN {[]}
+| PATTERN_SUBST {[]}
+| LT GT {[]}
+| LT term GT {[]}
 
-label:
-|                 { None }
-| BAREWORD COLON { Some $1 }
+variable:
+| scalar   %prec PAREN {[]}
+| star     %prec PAREN {[]}
+| hash     %prec PAREN {[]}
+| array    %prec PAREN {[]}
+| arraylen %prec PAREN {[]} /* $#x, $#{ something } */
+| func     %prec PAREN {[]} /* &foo; */
 
 word:
 | bareword { fst $1 }
@@ -285,23 +304,26 @@ word:
 comma: COMMA {[]} | RIGHT_ARROW {[]}
 
 word_or_scalar:
-| bareword     { [] }
-| RAW_IDENT    { [] }
-| SCALAR_IDENT { [] }
+| bareword  { [] }
+| RAW_IDENT { [] }
+| scalar    { [] }
+
+block_or_scalar: block {[]} | scalar {[]}
 
 bareword:
 | NEW { "new", $1 }
 | PRINT { "print", $1 }
+| FORMAT { "format", $1 }
 | BAREWORD { $1 }
 
-arraylen: ARRAYLEN_IDENT {[]} | ARRAYLEN block {[]}
-scalar: SCALAR_IDENT {[]} | DOLLAR    block {[]}
-func:   FUNC_IDENT   {[]} | AMPERSAND block {[]}
-array:  ARRAY_IDENT  {[]} | AT        block {[]}
-hash:   HASH_IDENT   {[]} | PERCENT   block {[]}
-star:   STAR_IDENT   {[]} | STAR      block {[]}
+arraylen: ARRAYLEN_IDENT {[]} | ARRAYLEN block_or_scalar {[]}
+scalar: SCALAR_IDENT {[]} | DOLLAR    block_or_scalar {[]}
+func:   FUNC_IDENT   {[]} | AMPERSAND block_or_scalar {[]}
+array:  ARRAY_IDENT  {[]} | AT        block_or_scalar {[]}
+hash:   HASH_IDENT   {[]} | PERCENT   block_or_scalar {[]}
+star:   STAR_IDENT   {[]} | STAR      block_or_scalar {[]}
 
 expr_or_empty: {[]} | expr {[]}
 word_or_empty: {[]} | word {[]}
-prototype_or_empty: {[]} | PROTOTYPE {[]}
+bareword_or_empty: {[]} | bareword {[]}
 revision_or_empty: {[]} | REVISION {[]}

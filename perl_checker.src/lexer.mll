@@ -7,8 +7,17 @@ open Info
 
 let next_rule = ref None
 
+let add_a_new_line raw_pos = 
+   incr current_file_current_line ;
+   lpush current_file_lines_starts raw_pos
+
 let here_docs = Queue.create()
 let current_here_doc_mark = ref ""
+
+let here_doc_next_line mark interpolate =
+  let here_doc_ref = ref("", bpos) in
+  Queue.push (interpolate, mark, here_doc_ref) here_docs ;
+  here_doc_ref
 
 let delimit_char = ref '/'
 let not_ok_for_match = ref (-1)
@@ -16,12 +25,13 @@ let string_nestness = ref 0
 
 let building_current_string = ref ""
 let current_string_start_pos = ref 0
+let current_string_start_line = ref 0
 
-let ins_with_offset offset t lexbuf = 
-  building_current_string := ""; current_string_start_pos := lexeme_start lexbuf + offset;
+let ins t lexbuf = 
+  building_current_string := ""; 
+  current_string_start_pos := lexeme_start lexbuf;
   t lexbuf ;
   !building_current_string, (!current_file, !current_string_start_pos, lexeme_end lexbuf)
-let ins t lexbuf = ins_with_offset 0 t lexbuf
 let ins_to_string t lexbuf =
   let s, pos = ins t lexbuf in
   not_ok_for_match := lexeme_end lexbuf; 
@@ -33,10 +43,10 @@ let next_s s t lexbuf =
 let next t lexbuf = next_s (lexeme lexbuf) t lexbuf
 
 let pos lexbuf = !current_file, lexeme_start lexbuf, lexeme_end lexbuf
-
 let pos2sfull_with start end_ = Info.pos2sfull (!current_file, start, end_)
-
 let pos2sfull lexbuf = pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf)
+
+let putback lexbuf nb = lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_curr_pos - nb
 
 let die lexbuf err = failwith (pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ err)
 
@@ -82,6 +92,14 @@ let arraylen_fqident_from_lexbuf lexbuf =
   let fq, name = split_at_two_colons (skip_n_char 2 s) in
   ARRAYLEN_IDENT(Some fq, name, pos lexbuf)
 
+let check_multi_line_delimited_string opts (_, start, end_) =
+   let check =
+     match opts with
+     | None -> true
+     | Some s -> not (String.contains s 'x') in
+   if check then
+     if !current_file_current_line <> !current_string_start_line then
+     failwith (pos2sfull_with start end_ ^ "multi-line patterns are not allowed (or use /x modifier)")
 }
 
 let space = [' ' '\t']
@@ -99,10 +117,12 @@ rule token = parse
 | '#' [^ '\n']* { (*COMMENT(lexeme lexbuf, pos lexbuf)*) token lexbuf }
 
 | "\n=" { 
-  let s, pos = ins_with_offset 1 pod_command lexbuf in POD(s, pos) }
+    add_a_new_line(lexeme_end lexbuf - 1);
+    let _ = ins pod_command lexbuf in token lexbuf 
+  }
 
 | '\n' { 
-    lpush current_file_lines_starts (lexeme_end lexbuf);
+    add_a_new_line(lexeme_end lexbuf);
     (try
       let (interpolate, mark, r) = Queue.pop here_docs in
       current_here_doc_mark := mark ;
@@ -126,7 +146,9 @@ rule token = parse
 | "." { CONCAT }
 | "<<" { BIT_SHIFT_LEFT }
 | ">>" { BIT_SHIFT_RIGHT }
-| "<" | ">" | "<=" | ">=" | "lt" | "gt" | "le" | "ge" { COMPARE_OP(lexeme lexbuf) }
+| "<" { LT }
+| ">" { GT }
+| "<=" | ">=" | "lt" | "gt" | "le" | "ge" { COMPARE_OP(lexeme lexbuf) }
 | "==" | "!=" | "<=>" | "eq" | "ne" | "cmp" { EQ_OP(lexeme lexbuf) }
 | "&" { BIT_AND }
 | "|" { BIT_OR }
@@ -139,7 +161,7 @@ rule token = parse
 | ":" { COLON }
 | "::" { PKG_SCOPE }
 
-| "=" | "+=" | "-=" | "*=" | "/=" | ".=" | "|=" | "&=" | "^=" | "||=" | "&&=" { ASSIGN(lexeme lexbuf) }
+| "=" | "+=" | "-=" | "*=" | ".=" | "|=" | "&=" | "^=" | "||=" | "&&=" { ASSIGN(lexeme lexbuf) }
 
 | "," { COMMA }
 | "=>" { RIGHT_ARROW }
@@ -149,6 +171,8 @@ rule token = parse
 | "xor" { XOR }
 
 | "if"       { IF }
+| "else"     { ELSE }
+| "elsif"    { ELSIF }
 | "unless"   { UNLESS }
 | "do"       { DO }
 | "while"    { WHILE }
@@ -159,36 +183,63 @@ rule token = parse
 | "local"    { LOCAL }
 | "continue" { CONTINUE }
 | "sub"      { SUB }
-| "format"   { FORMAT }
 | "package"  { PACKAGE }
 | "use"      { USE }
+| "BEGIN"    { BEGIN }
+| "END"      { END }
 | "print"    { PRINT(pos lexbuf) }
 | "new"      { NEW(pos lexbuf) }
+| "format"   { let _ = here_doc_next_line "." false in FORMAT(pos lexbuf) }
+
+| "split"
+| "grep"  { (* ok_for_match! *) BAREWORD(lexeme lexbuf, pos lexbuf) }
+
+| ident space* "=>" { (* needed so that (if => 1) works *)
+    let s = lexeme lexbuf in
+    let end_ = String.length s - 1 in
+    let ident_end = rindex_non_spaces_from (end_ - 2) s in
+    putback lexbuf (end_ - ident_end); 
+    BAREWORD(String.sub s 0 (ident_end+1), pos lexbuf)
+  }
+
+| "{" ident "}" { (* needed so that $h{if} works *)
+    not_ok_for_match := lexeme_end lexbuf;
+    COMPACT_HASH_SUBSCRIPT(lexeme lexbuf, pos lexbuf)
+  }
 
 | '@' { AT }
 | '$' { DOLLAR }
-| '%' { PERCENT }
-| '&' { AMPERSAND }
-| '*' { STAR }
-| "$#" { ARRAYLEN }
+| '$' '#' { ARRAYLEN }
+| '%' ['$' '{'] { putback lexbuf 1; PERCENT }
+| '&' ['$' '{'] { putback lexbuf 1; AMPERSAND }
+| '*' ['$' '{'] { putback lexbuf 1; if lexeme_start lexbuf = !not_ok_for_match then MULT else STAR }
 
 
 | ';' { SEMI_COLON }
 | '(' { PAREN }
 | '{' { BRACKET }
+| "+{"{ BRACKET_HASHREF }
 | '[' { ARRAYREF }
 | ')' { not_ok_for_match := lexeme_end lexbuf; PAREN_END }
 | '}' { not_ok_for_match := lexeme_end lexbuf; BRACKET_END }
 | ']' { not_ok_for_match := lexeme_end lexbuf; ARRAYREF_END }
 
-| '(' [ '$' '@' '\\' '&' ';' ]+ ')' {
-    (* bloody prototypes, must be caught especially otherwise "($)" is badly tokenized *)
-    PROTOTYPE(lexeme lexbuf, pos lexbuf)
-  }
-
 | "/" {
     if lexeme_start lexbuf = !not_ok_for_match then DIVISION 
     else (
+      delimit_char := '/' ;
+      current_string_start_line := !current_file_current_line;
+      let s, pos = ins delimited_string lexbuf in
+      let opts, _ = ins pattern_options lexbuf in
+      check_multi_line_delimited_string (Some opts) pos ;
+      PATTERN(s, opts, pos)
+    ) 
+  }
+
+| "/=" {
+    if lexeme_start lexbuf = !not_ok_for_match then ASSIGN(lexeme lexbuf)
+    else (
+      putback lexbuf 1 ;
       delimit_char := '/' ;
       let s, pos = ins delimited_string lexbuf in
       let opts, _ = ins pattern_options lexbuf in
@@ -198,44 +249,51 @@ rule token = parse
 
 | "m" pattern_separator {
   delimit_char := lexeme_char lexbuf 1 ;
+  current_string_start_line := !current_file_current_line;
   let s, pos = ins delimited_string lexbuf in
   let opts, _ = ins pattern_options lexbuf in
+  check_multi_line_delimited_string (Some opts) pos ;
   PATTERN(s, opts, pos)
 }
 
 | "qr" pattern_separator {
   delimit_char := lexeme_char lexbuf 2 ;
+  current_string_start_line := !current_file_current_line;
   let s, pos = ins delimited_string lexbuf in
   let opts, _ = ins pattern_options lexbuf in
+  check_multi_line_delimited_string (Some opts) pos ;
   PATTERN(s, opts, pos)
 }
 
 | "s" pattern_separator {
   delimit_char := lexeme_char lexbuf 1 ;
+  current_string_start_line := !current_file_current_line;
   let s1, (_, start, _) = ins delimited_string lexbuf in 
   let s2, (_, _, end_)  = ins delimited_string lexbuf in 
   let opts, _ = ins pattern_options lexbuf in
-  PATTERN_SUBST(s1, s2, opts, (!current_file, start, end_))
+  let pos = !current_file, start, end_ in
+  check_multi_line_delimited_string (Some opts) pos ;
+  PATTERN_SUBST(s1, s2, opts, pos)
 }
 
 | "tr" pattern_separator {
   delimit_char := lexeme_char lexbuf 2 ;
+  current_string_start_line := !current_file_current_line;
   let s1, (_, start, _) = ins delimited_string lexbuf in 
   let s2, (_, _, end_)  = ins delimited_string lexbuf in 
   let opts, _ = ins pattern_options lexbuf in
-  PATTERN_SUBST(s1, s2, opts, (!current_file, start, end_))
+  let pos = !current_file, start, end_ in
+  check_multi_line_delimited_string None pos ;
+  PATTERN_SUBST(s1, s2, opts, pos)
 }
     
 | "<<" ident { 
-    let here_doc_ref = ref("", bpos) in
-    Queue.push (true, skip_n_char 2 (lexeme lexbuf), here_doc_ref) here_docs ;
-    HERE_DOC here_doc_ref
+    not_ok_for_match := lexeme_end lexbuf; 
+    HERE_DOC(here_doc_next_line (skip_n_char 2 (lexeme lexbuf)) true)
   }
 | "<<'" ident "'" { 
     not_ok_for_match := lexeme_end lexbuf; 
-    let here_doc_ref = ref("", bpos) in
-    Queue.push (false, skip_n_char_ 3 1 (lexeme lexbuf), here_doc_ref) here_docs ;
-    HERE_DOC here_doc_ref
+    HERE_DOC(here_doc_next_line (skip_n_char_ 3 1 (lexeme lexbuf)) false)
   }
 | "<<" space+ "'"
 | "<<" space+ ident { 
@@ -248,19 +306,40 @@ rule token = parse
 | "\\" stash
 | "\\" ['0'-'9' 'A'-'Z' 'a'-'z']
 | "\\" space* '('
-    { lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_curr_pos - 1; REF }
+    { putback lexbuf 1; REF }
+
+| "sub" space+ ident space* '(' [ '$' '@' '\\' '&' ';' ]* ')' {
+    (* bloody prototypes, must be caught especially otherwise "($)" is badly tokenized *)
+    (* and alas "($@)" is both valid as an expression and a prototype *)
+    let s = lexeme lexbuf in
+    let ident_start = index_non_spaces_from 3 s in
+      
+    let proto_start = String.index_from s ident_start '(' in
+    let ident_end = rindex_non_spaces_from (proto_start-1) s in
+    let ident = String.sub s ident_start (ident_end - ident_start + 1) in
+    let prototype = skip_n_char_ (proto_start + 1) 1 s in
+
+    FUNC_DECL_WITH_PROTO(ident, prototype, pos lexbuf)
+  }
 
 | "$#" ident? ("::" ident)+ { arraylen_fqident_from_lexbuf lexbuf }
 | "$#" ident { arraylen_ident_from_lexbuf lexbuf }
 
 | stash ident? ("::" ident)+ { typed_fqident_from_lexbuf lexbuf }
 | stash ident
-| stash '^'? [^ '{' ' ' '\t' '\n'] { typed_ident_from_lexbuf lexbuf }
+| '$' [^ '{' ' ' '\t' '\n' '$']
+| "$^" [^ '{' ' ' '\t' '\n'] { typed_ident_from_lexbuf lexbuf }
+
+| "$$" [^ 'a'-'z' 'A'-'Z' '_' '{'] { putback lexbuf 1; SCALAR_IDENT(None, "$$", pos lexbuf) }
+
+| stash "::" { putback lexbuf 2; ident_type_from_char None "main" lexbuf (lexeme_char lexbuf 0) }
 
 | ident? ("::" ident)+ { ident_from_lexbuf lexbuf }
-| ident { BAREWORD(lexeme lexbuf, pos lexbuf) }
+| ident { not_ok_for_match := lexeme_end lexbuf; BAREWORD(lexeme lexbuf, pos lexbuf) }
 
 | ident ":" { LABEL(lexeme lexbuf, pos lexbuf) }
+
+| '-' [ 'a'-'z' 'A'-'Z' ] [ ' ' '\t' '(' ] { putback lexbuf 1; BAREWORD(lexeme lexbuf, pos lexbuf) }
 
 | ['0'-'9'] ['0'-'9' '_']* ('.' ['0'-'9'] ['0'-'9' '_']*)+ 
 | 'v' ['0'-'9'] ['0'-'9' '_']* ('.' ['0'-'9'] ['0'-'9' '_']*)* 
@@ -269,14 +348,8 @@ rule token = parse
     REVISION(lexeme lexbuf, pos lexbuf)
   }
 
-| ['0'-'9']* '.' ['0'-'9']+ (['e' 'E']['-' '+']?['0'-'9']+)? { 
-    not_ok_for_match := lexeme_end lexbuf; 
-    NUM(lexeme lexbuf, pos lexbuf) 
-  }
-| ['0'-'9'] ['0'-'9' '_']* { 
-    not_ok_for_match := lexeme_end lexbuf; 
-    NUM(lexeme lexbuf, pos lexbuf)
-  }
+| ['0'-'9']* '.' ['0'-'9']+ (['e' 'E']['-' '+']?['0'-'9']+)? 
+| ['0'-'9'] ['0'-'9' '_']*  (['e' 'E']['-' '+']?['0'-'9']+)?
 | "0x" ['0'-'9' 'a'-'f' 'A'-'F']+ { 
     not_ok_for_match := lexeme_end lexbuf; 
     NUM(lexeme lexbuf, pos lexbuf)
@@ -285,8 +358,11 @@ rule token = parse
 | '"'   { ins_to_string string lexbuf }
 | "'"   { ins_to_string rawstring lexbuf }
 | '`'   { delimit_char := '`'; 
+	  current_string_start_line := !current_file_current_line;
 	  not_ok_for_match := lexeme_end lexbuf; 
-	  let s, pos = ins delimited_string lexbuf in COMMAND_STRING(s, pos) }
+	  let s, pos = ins delimited_string lexbuf in
+	  check_multi_line_delimited_string None pos ;
+	  COMMAND_STRING(s, pos) }
 | "q("  { ins_to_string qstring lexbuf }
 | "qq(" { ins_to_string qqstring lexbuf }
 | "qw(" { let s, pos = ins qstring lexbuf in QUOTEWORDS(s, pos) }
@@ -298,7 +374,7 @@ and string = parse
   '"' { () }
 | '\\' { next_rule := Some string ; string_escape lexbuf }
 | '\n' { 
-    lpush current_file_lines_starts (lexeme_end lexbuf);
+    add_a_new_line(lexeme_end lexbuf);
     next string lexbuf
   }
 | [^ '\n' '\\' '"']+ { next string lexbuf }
@@ -307,7 +383,7 @@ and string = parse
 and delimited_string = parse
 | '\\' { next_rule := Some delimited_string ; string_escape lexbuf }
 | '\n' { 
-    lpush current_file_lines_starts (lexeme_end lexbuf);
+    add_a_new_line(lexeme_end lexbuf);
     next delimited_string lexbuf
   }
 | eof { die lexbuf "Unterminated_delimited_string" }
@@ -316,11 +392,12 @@ and delimited_string = parse
 and rawstring = parse
   ''' { () }
 | '\n' { 
-    lpush current_file_lines_starts (lexeme_end lexbuf);
+    add_a_new_line(lexeme_end lexbuf);
     next rawstring lexbuf
   }
-| "\\'"
-| [^ '\n' ''']+ { next rawstring lexbuf }
+| '\\' { next rawstring lexbuf }
+| "\\'" { next_s "'" rawstring lexbuf }
+| [^ '\n' ''' '\\']+ { next rawstring lexbuf }
 | eof { die lexbuf "Unterminated_rawstring" }
 
 and qqstring = parse
@@ -333,7 +410,7 @@ and qqstring = parse
   }
 | '\\' { next_rule := Some qqstring ; string_escape lexbuf }
 | '\n' { 
-    lpush current_file_lines_starts (lexeme_end lexbuf);
+    add_a_new_line(lexeme_end lexbuf);
     next qqstring lexbuf
   }
 | [^ '\n' '(' ')' '\\']+ { next qqstring lexbuf }
@@ -348,7 +425,7 @@ and qstring = parse
     next qstring lexbuf
   }
 | '\n' { 
-    lpush current_file_lines_starts (lexeme_end lexbuf);
+    add_a_new_line(lexeme_end lexbuf);
     next qstring lexbuf
   }
 | [^ '\n' '(' ')']+ { next qstring lexbuf }
@@ -363,7 +440,7 @@ and here_doc = parse
     else if s <> !current_here_doc_mark then Printf.eprintf "%sTrailing spaces after HERE-document mark\n" (pos2sfull lexbuf)
   }
 | '\n' { 
-    lpush current_file_lines_starts (lexeme_end lexbuf);
+    add_a_new_line(lexeme_end lexbuf);
     next here_doc lexbuf
   }
 | eof { die lexbuf "Unterminated_here_doc" }
@@ -376,7 +453,7 @@ and raw_here_doc = parse
     else if s <> !current_here_doc_mark then Printf.eprintf "%sTrailing spaces after HERE-document mark\n" (pos2sfull lexbuf)
   }
 | '\n' { 
-    lpush current_file_lines_starts (lexeme_end lexbuf);
+    add_a_new_line(lexeme_end lexbuf);
     next raw_here_doc lexbuf
   }
 | eof { die lexbuf "Unterminated_raw_here_doc" }
@@ -397,8 +474,8 @@ and string_escape = parse
 | _ { next_s ("\\" ^ lexeme lexbuf) (some !next_rule) lexbuf }
 
 and pattern_options = parse
-| [ 'g' 'i' 'm' 'o' 's' 'x' 'e' ] { next pattern_options lexbuf }
-| _ { lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_curr_pos - 1; () }
+| [ 'g' 'i' 'm' 'o' 's' 'x' 'e' 'd' ] { next pattern_options lexbuf }
+| _ { putback lexbuf 1; () }
 
 and pod_command = parse
 | [^ '\n' ]+ {
@@ -416,8 +493,14 @@ and pod_command = parse
 | _ { failwith(pos2sfull lexbuf ^ "POD command expected") }
 
 and pod = parse
-| "\n=" { next pod_command lexbuf }
+| "\n=" { 
+    add_a_new_line(lexeme_end lexbuf - 1);
+    next pod_command lexbuf 
+  }
 | "\n" [^ '=' '\n'] [^ '\n']*
-| "\n" { next pod lexbuf }
+| "\n" { 
+    add_a_new_line(lexeme_end lexbuf);
+    next pod lexbuf 
+  }
 | eof
 | _ { failwith(pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ "POD block still open") }

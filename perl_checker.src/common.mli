@@ -175,6 +175,12 @@ val chop : string -> string
 val chomps : string -> string
 val skip_n_char_ : int -> int -> string -> string
 val skip_n_char : int -> string -> string
+val index_spaces_from : int -> string -> int
+val index_spaces : string -> int
+val index_non_spaces_from : int -> string -> int
+val index_non_spaces : string -> int
+val rindex_non_spaces_from : int -> string -> int
+val rindex_non_spaces : string -> int
 val explode_string : string -> char list
 val is_uppercase : char -> bool
 val is_lowercase : char -> bool

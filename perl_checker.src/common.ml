@@ -653,6 +653,18 @@ let skip_n_char_ beg end_ s =
   String.sub s beg (String.length s - beg - end_)
 let skip_n_char n s = skip_n_char_ n 0 s
 
+let rec index_spaces_from beg s =
+  if s.[beg] = ' ' || s.[beg] = '\t' then beg else index_spaces_from (beg+1) s
+let index_spaces s = index_spaces_from 0 s
+
+let rec index_non_spaces_from beg s =
+  if s.[beg] = ' ' || s.[beg] = '\t' then index_non_spaces_from (beg+1) s else beg
+let index_non_spaces s = index_non_spaces_from 0 s
+
+let rec rindex_non_spaces_from beg s =
+  if s.[beg] = ' ' || s.[beg] = '\t' then rindex_non_spaces_from (beg-1) s else beg
+let rindex_non_spaces s = rindex_non_spaces_from (String.length s - 1) s
+
 let rec explode_string = function
   | "" -> []
   | s -> (String.get s 0) :: explode_string (String.sub s 1 (String.length s - 1))

@@ -12,7 +12,7 @@ YACC_FILES = $(wildcard *.mly)
 TMP_MLFILES = $(YACC_FILES:%.mly=%.ml) $(LEX_FILES:%.mll=%.ml)
 TMP_MLIFILES = $(YACC_FILES:%.mly=%.mli)
 
-ALL_PROGS = perl_checker
+ALL_PROGS = perl_checker_debug perl_checker
 
 PROG_OBJS_WITH_CMI = parser.cmo print.cmo perl_checker.cmo
 PROG_OBJS = common.cmo flags.cmo info.cmo $(LEX_FILES:%.mll=%.cmo) $(PROG_OBJS_WITH_CMI)
@@ -29,11 +29,10 @@ default: .compiling TAGS $(ALL_PROGS)
 
 all: perl_checker
 
-perl_checker: .depend $(PROG_OBJS)
+perl_checker_debug: .depend $(PROG_OBJS)
 	$(CSLC) -custom $(CSLFLAGS) $(LIBDIRS) -o $@ $(CMA_FILES) $(PROG_OBJS)
-	cp -f perl_checker perl_checker_debug
 
-perl_checker_opt: .depend $(PROG_OBJX)
+perl_checker: .depend $(PROG_OBJX)
 	$(CSLOPT) $(CSLOPTFLAGS) $(LIBDIRS) -o $@ $(CMXA_FILES) $(PROG_OBJX)
 
 .compiling:

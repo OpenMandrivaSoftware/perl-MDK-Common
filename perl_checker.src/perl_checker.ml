@@ -7,8 +7,8 @@ let _ =
     try
       Info.start_a_new_file file ;
       if false then
-	let tokens = Lexer.lexbuf2list Lexer.token lexbuf in
-	let _,_ = tokens, tokens in ""
+	let t = Lexer.lexbuf2list Lexer.token lexbuf in
+	let _,_ = t, t in ""
       else
 	Parser.prog Lexer.token lexbuf
     with Failure s -> (
