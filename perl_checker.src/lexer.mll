@@ -87,6 +87,14 @@ let rec concat_bareword_paren accu = function
   | e :: l -> 
       concat_bareword_paren (e :: accu) l
 
+let rec bracket_bareword_is_hashref accu = function
+  | (_, Parser.BRACKET _ as bracket) :: (_, Parser.BAREWORD _ as bareword) :: (_, Parser.RIGHT_ARROW _ as right_arrow) :: l ->
+      bracket_bareword_is_hashref (right_arrow :: bareword :: bracket :: accu) l
+  | [] -> List.rev accu
+  | e :: l -> 
+      bracket_bareword_is_hashref (e :: accu) l
+
+
 let rec raw_token_to_pos_and_token spaces = function
   | INT(s, pos) -> pos, Parser.NUM(new_any M_int s spaces pos)
   | FLOAT(s, pos) -> pos, Parser.NUM(new_any M_float s spaces pos)
@@ -225,6 +233,7 @@ let get_token token lexbuf =
   let tokens = lexbuf2list [] token lexbuf in
   let tokens = concat_bareword_paren [] tokens in
   let tokens = concat_spaces Space_0 tokens in
+  let tokens = bracket_bareword_is_hashref [] tokens in
   tokens
 
 let next_rule = Stack.create()
