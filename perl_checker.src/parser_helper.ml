@@ -723,25 +723,25 @@ let cook_call_op op para pos =
       
   | _ -> ());
 
-match op, para with
-| "=", [ Deref(I_star, (Ident _ as f1)); Deref(I_star, (Ident _ as f2)) ] ->
-    let s1, s2 = string_of_Ident f1, string_of_Ident f2 in
-    warn pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
-    sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
-| "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Deref(I_star, (Ident _ as f2)) ] ->
-    let s2 = string_of_Ident f2 in
-    warn pos (sprintf "\"*{'%s'} = *%s\" is better written \"*{'%s'} = \\&%s\"" sf1 s2 sf1 s2) ;
-    sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
+  match op, para with
+  | "=", [ Deref(I_star, (Ident _ as f1)); Deref(I_star, (Ident _ as f2)) ] ->
+      let s1, s2 = string_of_Ident f1, string_of_Ident f2 in
+      warn pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
+      sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
+  | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Deref(I_star, (Ident _ as f2)) ] ->
+      let s2 = string_of_Ident f2 in
+      warn pos (sprintf "\"*{'%s'} = *%s\" is better written \"*{'%s'} = \\&%s\"" sf1 s2 sf1 s2) ;
+      sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
 
-| "=", [ Deref(I_star, (Ident _ as f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
-    sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
-| "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
-    sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
+  | "=", [ Deref(I_star, (Ident _ as f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
+      sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
+  | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
+      sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
 
-| "=", [ Deref(I_star, (Ident _ as f1)); (Anonymous_sub(proto, sub, _)) ] ->
-    sub_declaration (f1, proto) [ sub ] Glob_assign
+  | "=", [ Deref(I_star, (Ident _ as f1)); (Anonymous_sub(proto, sub, _)) ] ->
+      sub_declaration (f1, proto) [ sub ] Glob_assign
 
-| _ -> Call_op(op, para, raw_pos2pos pos)
+  | _ -> Call_op(op, para, raw_pos2pos pos)
 
 let to_Call_op mcontext op para esp_start esp_end = 
   let pos = raw_pos_range esp_start esp_end in
