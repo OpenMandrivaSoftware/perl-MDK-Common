@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -64,6 +64,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Nov 15 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.1.19-2mdk
+- rebuild for new perl
+
 * Wed Nov 10 2004 Pixel <pixel@mandrakesoft.com> 1.1.19-1mdk
 - MDK::System: fix cp_with_option() which called cp_af() recursively, loosing the specific options
 - MDK::System: add distrib() to get company, system (e.g. Mandrakelinux) and product (e.g. 10.1)
