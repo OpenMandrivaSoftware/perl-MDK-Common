@@ -243,12 +243,10 @@ let check_variables vars t =
 	let vars = check_variables_ vars expr in
 	let vars = check_variables_ vars (Block (my :: block)) in
 	Some vars
-    | Call_op(op, cond :: Block first_bl :: other, _) when op = "if" || op = "while" || op = "unless" || op = "until" ->
+    | Call_op(op, l, _) when op = "if" || op = "while" || op = "unless" || op = "until" ->
 	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = [] :: vars.our_vars } in
-	let vars' = check_variables_ vars' cond in
-	let vars' = List.fold_left check_variables_ vars' first_bl in
+	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
-	let vars = List.fold_left check_variables_ vars other in
 	Some vars
 
     | Sub_declaration(Ident(fq, name, pos) as ident, _proto, Block l) ->
