@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 12mdk
+%define release 13mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -51,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Jan  6 2003 Pixel <pixel@mandrakesoft.com> 1.0.4-13mdk
+- MDK::Common::Func: add "find", "any" and "every"
+
 * Sat Dec 28 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-12mdk
 - perl_checker: add some more Gtk2 functions
 - MDK::Common::File: mkdir_p, rm_rf and cp_af returns 1 on success 

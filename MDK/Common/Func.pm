@@ -53,6 +53,30 @@ mapn alike. The difference is what to do when the lists have not the same
 length: mapn takes the minimum common elements, mapn_ takes the maximum list
 length and extend the lists with undef values
 
+=item find { CODE } LIST
+
+returns the first element where CODE returns true (or returns undef)
+
+    find { /foo/ } "fo", "fob", "foobar", "foobir"
+
+gives "fob"
+
+=item any { CODE } LIST
+
+returns 1 if CODE returns true for an element in LIST (otherwise returns 0)
+
+    any { /foo/ } "fo", "fob", "foobar", "foobir"
+
+gives 1
+
+=item every { CODE } LIST
+
+returns 1 if CODE returns true for B<every> element in LIST (otherwise returns 0)
+
+    every { /foo/ } "fo", "fob", "foobar", "foobir"
+
+gives 0
+
 =item map_index { CODE } LIST
 
 just like C<map>, but set C<$::i> to the current index in the list:
@@ -79,7 +103,7 @@ gives (0, 2, 3)
 
 =item find_index { CODE } LIST
 
-returns the index of the first element where CODE returns true
+returns the index of the first element where CODE returns true (or throws an exception)
 
     find_index { /foo/ } "fo", "fob", "foobar", "foobir"
 
@@ -149,7 +173,7 @@ use MDK::Common::Math;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(may_apply if_ if__ fold_left mapn mapn_ map_index each_index grep_index find_index map_each grep_each partition before_leaving catch_cdie cdie);
+@EXPORT_OK = qw(may_apply if_ if__ fold_left mapn mapn_ find any every map_index each_index grep_index find_index map_each grep_each partition before_leaving catch_cdie cdie);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -193,6 +217,21 @@ sub mapn_(&@) {
     smapn($f, MDK::Common::Math::max(map { scalar @$_ } @_), @_);
 }
 
+sub find(&@) {
+    my $f = shift;
+    $f->($_) and return $_ foreach @_;
+    undef
+}
+sub any(&@) {
+    my $f = shift;
+    $f->($_) and return 1 foreach @_;
+    0;
+}
+sub every(&@) {
+    my $f = shift;
+    $f->($_) or return 0 foreach @_;
+    1;
+}
 
 sub map_index(&@) {
     my $f = shift;
