@@ -4,6 +4,7 @@ our @ISA = qw();
 
 sub Gtk2::foreach {}
 sub Gtk2::x {}
+sub XSetInputFocus {}
 sub XWINDOW {}
 sub action_area {}
 sub active {}
@@ -195,6 +196,7 @@ sub type {}
 sub unref {}
 sub values {}
 sub vbox {}
+sub visible {}
 sub white_gc {}
 sub widget {}
 sub width {}
