@@ -428,7 +428,7 @@ let check_simple_pattern = function
 	st.[0] = '^' && st.[String.length st - 1] = '$' then
 	let st = skip_n_char_ 1 1 st in
 	if string_forall_with char_is_alphanumerical_ 0 st then
-	  warn_rule (sprintf "\"... =~ /^%s$/\" is better written \"... eq %s\"" st st)
+	  warn_rule (sprintf "\"... =~ /^%s$/\" is better written \"... eq '%s'\"" st st)
   | _ -> ()
 
 let rec only_one (l, (spaces, pos)) =
