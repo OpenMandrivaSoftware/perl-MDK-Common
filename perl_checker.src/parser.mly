@@ -335,7 +335,7 @@ terminal:
 | STRING {(P_tok, to_String true $1), snd $1}
 | RAW_STRING {(P_tok, to_Raw_string $1), snd $1}
 | REVISION {(P_tok, to_Raw_string $1), snd $1}
-| COMMAND_STRING {to_Call_op_(P_expr, "``", [to_String false $1]) (snd $1)}
+| COMMAND_STRING {to_Call_op_(P_tok, "``", [to_String false $1]) (snd $1)}
 | QUOTEWORDS {to_Call_op_(P_tok, "qw", [to_Raw_string $1]) (snd $1)}
 | HERE_DOC {(P_tok, to_String false (fstfst $1, snd $1)), snd $1}
 | RAW_HERE_DOC {(P_tok, Raw_string(fstfst $1, raw_pos2pos (sndfst $1))), snd $1}
