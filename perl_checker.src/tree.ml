@@ -89,6 +89,7 @@ let from_qw_raw = function
 	| String([s, List []], pos)
 	| Raw_string(s, pos) -> s, pos
 	| Ident(_, _, pos) as ident -> string_of_Ident ident, pos
+	| _ -> internal_error "from_qw_raw"
       ) l
   | _ -> internal_error "from_qw_raw"
 
