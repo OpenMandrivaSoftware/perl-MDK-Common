@@ -29,7 +29,7 @@ let file_to_absolute_file file =
 let absolute_file_to_file = 
   let s1 = Filename.dirname cwd in
   if String.length s1 < 4 then (fun x -> x) else
-  let s2 = Filename.dirname cwd in
+  let s2 = Filename.dirname s1 in
   let short_cwd = if String.length s2 < 4 then s1 else s2 in
   memoize (fun abs_file ->
     if str_begins_with abs_file (short_cwd ^ "/") then
