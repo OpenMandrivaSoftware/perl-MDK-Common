@@ -196,6 +196,7 @@ expr: /* Ordinary expressions; logical combinations */
 argexpr: /* Expressions are a list of terms joined by commas */
 | argexpr comma { new_pesp M_list P_comma $1.any.expr $1 $2}
 | bareword RIGHT_ARROW term {if not_simple ($3.any.expr) then sp_p($3); new_pesp M_list P_comma (followed_by_comma [$1.any] false @ [$3.any.expr]) $1 $3}
+| bareword RIGHT_ARROW BRACKET expr BRACKET_END {sp_p($3); sp_p($5); new_pesp M_list P_comma (followed_by_comma [$1.any] false @ [ Ref(I_hash, $4.any.expr) ]) $1 $5}
 | argexpr comma term {if not_simple ($3.any.expr) then sp_p($3); new_pesp M_list P_comma (followed_by_comma $1.any.expr $2.any @ [$3.any.expr]) $1 $3}
 | argexpr comma BRACKET expr BRACKET_END {sp_p($3); sp_p($5); new_pesp M_list P_comma (followed_by_comma $1.any.expr $2.any @ [ Ref(I_hash, $4.any.expr) ]) $1 $5}
 | term %prec PREC_LOW { new_1pesp $1.any.priority [$1.any.expr] $1 }
