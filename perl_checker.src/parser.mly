@@ -133,8 +133,8 @@ loop:
 | WHILE PAREN expr PAREN_END BRACKET lines BRACKET_END cont {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; check_block_sub $6 $7; to_Call_op M_none "while" [ prio_lo P_loose $3; Block $6.any ] $1 $8}
 | UNTIL PAREN expr PAREN_END BRACKET lines BRACKET_END cont {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; check_block_sub $6 $7; to_Call_op M_none "until" [ prio_lo P_loose $3; Block $6.any ] $1 $8}
 | FOR PAREN expr_or_empty semi_colon expr_or_empty semi_colon expr_or_empty PAREN_END BRACKET lines BRACKET_END {sp_p($1); check_for($1); sp_n($2); sp_0($3); sp_p($5); sp_p($7); sp_0($8); sp_n($9); check_block_sub $10 $11; to_Call_op M_none "for" [ $3.any; $5.any; $7.any; Block $10.any ] $1 $11}
-| FOR SCALAR_IDENT PAREN expr PAREN_END BRACKET lines BRACKET_END cont { die_rule "don't use for without \"my\"ing the iteration variable" }
-| FOR PAREN expr PAREN_END BRACKET lines BRACKET_END cont {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_list $3; check_block_sub $6 $7; check_for_foreach $1 $3; to_Call_op M_none "foreach" [ prio_lo P_loose $3; Block $6.any ] $1 $8}
+| FOR SCALAR_IDENT PAREN expr PAREN_END BRACKET lines BRACKET_END cont { warn_rule [Warn_normalized_expressions] "don't use for without \"my\"ing the iteration variable"; sp_p($1); sp_0($4); sp_0_or_cr($5); sp_p($6); mcontext_check M_list $4; check_block_sub $7 $8; to_Call_op M_none "foreach" [ prio_lo P_loose $4; Block $7.any ] $1 $9}
+| FOR              PAREN expr PAREN_END BRACKET lines BRACKET_END cont {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_list $3; check_block_sub $6 $7; check_for_foreach $1 $3; to_Call_op M_none "foreach" [ prio_lo P_loose $3; Block $6.any ] $1 $8}
 | for_my lines BRACKET_END cont {check_block_sub $2 $3; to_Call_op M_none "foreach my" ($1.any @ [ Block $2.any ]) $1 $4}
 
 for_my:
