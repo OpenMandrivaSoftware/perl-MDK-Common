@@ -1136,7 +1136,8 @@ let to_String parse strict { any = l ; pos = pos } =
       if ident <> "!" && strict then warn [Warn_suggest_simpler] pos (sprintf "%s is better written without the double quotes" (variable2s(I_scalar, ident)))
   | [ "", List [Deref(I_hash, _)]] -> 
       warn [Warn_traps] pos "don't use a hash in string context"
-  | [ "", List [Deref(I_array, _)]] -> 
+  | [ "", List [Deref(I_array, _)]]
+  | [ "", List [Deref_with(I_array, I_array, _, _)]] -> (* for slices like: "@m3[1..$#m3]" *)
       ()
   | [("", _)] -> 
       if strict then warn [Warn_suggest_simpler] pos "double quotes are unneeded"
