@@ -10,6 +10,10 @@ MDK::Common::DataStructure - miscellaneous list/hash manipulation functions
 
 =over
 
+=item sort_numbers(LIST)
+
+numerical sort (small numbers at beginning)
+
 =item ikeys(HASH)
 
 aka I<sorted integer keys>, as simple as C<sort { $a E<lt>=E<gt> $b } keys>
@@ -106,10 +110,11 @@ use MDK::Common::Func;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(ikeys add2hash add2hash_ put_in_hash member invbool listlength deref deref_array is_empty_array_ref is_empty_hash_ref uniq difference2 intersection next_val_in_array group_by2 list2kv);
+@EXPORT_OK = qw(sort_numbers ikeys add2hash add2hash_ put_in_hash member invbool listlength deref deref_array is_empty_array_ref is_empty_hash_ref uniq difference2 intersection next_val_in_array group_by2 list2kv);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
+sub sort_numbers { sort { $a <=> $b } @_ }
 sub ikeys { my %l = @_; sort { $a <=> $b } keys %l }
 sub put_in_hash { my ($a, $b) = @_; while (my ($k, $v) = each %{$b || {}}) { $a->{$k} = $v } $a }
 sub add2hash    { my ($a, $b) = @_; while (my ($k, $v) = each %{$b || {}}) { $a->{$k} ||= $v } $a }

@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 7mdk
+%define release 8mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -49,6 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Sun Jul 28 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-8mdk
+- MDK::Common::DataStructure: add sort_numbers
+
 * Thu Jul 25 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-7mdk
 - add Various::internal_error
 - export Various::noreturn
