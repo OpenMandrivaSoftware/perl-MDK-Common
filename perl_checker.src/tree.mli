@@ -32,7 +32,7 @@ type per_file = {
     file_name : string ;
     require_name : string option ;
     lines_starts : int list ;
-    build_time : int ;
+    build_time : float ;
     packages : per_package list ;
     from_basedir : bool ;
   }
@@ -43,7 +43,7 @@ val use_lib : string list ref
 val uses_external_package : string -> bool
 val findfile : string list -> string -> string
 
-val get_global_info_from_package : bool -> string option -> int -> fromparser list -> per_file
+val get_global_info_from_package : bool -> string option -> float -> fromparser list -> per_file
 
 val has_proto : string option -> fromparser -> ((context * string) list * pos * fromparser list) option
 val get_vars_declaration : (context * string * string, pos * prototype option) Hashtbl.t -> string -> per_package -> unit

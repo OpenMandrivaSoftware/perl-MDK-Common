@@ -215,7 +215,7 @@ val words : string -> string list
 val to_CamelCase : string -> string option
 val concat_symlink : string -> string -> string
 val expand_symlinks : string -> string
-val mtime : string -> int
+val mtime : string -> float
 val updir : string -> int -> string
 val string_of_ref : 'a ref -> string
 val print_endline_flush_quiet : bool ref

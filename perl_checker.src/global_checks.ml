@@ -535,6 +535,10 @@ let default_state per_files = { per_files = per_files; per_packages = Hashtbl.cr
 
 let cache_cache = Hashtbl.create 16
 
+let pkgs2s prefix l =
+  let l = List.sort compare (List.map (fun pkg -> pkg.file_name) l) in
+  String.concat "" (List.map (fun s -> prefix ^ s ^ "\n") l)
+
 let read_packages_from_cache per_files dir =
   if !Flags.no_cache || Hashtbl.mem cache_cache dir then () else
   try
@@ -551,7 +555,7 @@ let read_packages_from_cache per_files dir =
       (try file.build_time > mtime file.file_name with _ -> false)
     ) l in
 
-    if !Flags.verbose then print_endline_flush (sprintf "using cached files\n%sfrom %s" (String.concat "" (List.map (fun s -> "   " ^ s ^ "\n") (List.sort compare (List.map (fun pkg -> pkg.file_name) l)))) file) ;
+    if !Flags.verbose then print_endline_flush (sprintf "using cached files\n%sfrom %s" (pkgs2s "   " l) file) ;
 
     List.iter (fun file -> 
       Info.add_a_file file.file_name file.lines_starts ;
@@ -561,10 +565,11 @@ let read_packages_from_cache per_files dir =
 
 let write_packages_cache per_files dir =
   try
+    let l = List.filter (fun per_file -> per_file.require_name <> None) (hashtbl_values per_files) in
     let file = dir ^ "/.perl_checker.cache" in
     let fh = open_out file in
     output_string fh ("perl_checker cache " ^ string_of_int Build.date ^ "\n") ;
-    Marshal.to_channel fh (List.filter (fun per_file -> per_file.require_name <> None) (hashtbl_values per_files)) [] ;
+    Marshal.to_channel fh l [] ;
     close_out fh ;
-    if !Flags.verbose then print_endline_flush ("saving cached packages in " ^ file)
+    if !Flags.verbose then print_endline_flush (sprintf "saving cached files\n%sin %s" (pkgs2s "   " l) file)
   with Sys_error _ -> ()

@@ -859,7 +859,7 @@ let expand_symlinks file =
         ) (file ^ "/" ^ piece)) "" l
   | _ -> internal_error (Printf.sprintf "expand_symlinks: %s is relative\n" file)
 
-let mtime f = int_of_float ((Unix.stat f).Unix.st_mtime)
+let mtime f = (Unix.stat f).Unix.st_mtime
 
 let rec updir dir nb =
   if nb = 0 then dir else

@@ -23,7 +23,7 @@ let set_basedir per_files file =
 let rec parse_file from_basedir require_name per_files file =
   try
     if !Flags.verbose then print_endline_flush_always ("parsing " ^ file) ;
-    let build_time = int_of_float (Unix.time()) in
+    let build_time = Unix.time() in
     let command = 
       match !Flags.expand_tabs with
       | Some width -> "expand -t " ^ string_of_int width
@@ -102,7 +102,7 @@ let parse_options =
   let usage = "Usage: perl_checker [-v] [-q] <files>\nOptions are:" in
   Arg.parse options (lpush args_r) usage;
 
-  let files = if !args_r = [] && Build.debugging then ["../t.pl"] else !args_r in
+  let files = if !args_r = [] && Build.debugging then ["/home/pixel/cooker/gi/perl-install/wizards.pm"] else !args_r in
   let files = List.map Info.file_to_absolute_file files in
 
   let required_packages, per_files = collect_withenv (parse_file true None) (default_per_files()) files in

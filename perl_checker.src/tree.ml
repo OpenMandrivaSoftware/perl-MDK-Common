@@ -35,7 +35,7 @@ type per_file = {
     file_name : string ;
     require_name : string option ;
     lines_starts : int list ;
-    build_time : int ;
+    build_time : float ;
     packages : per_package list ;
     from_basedir : bool ;
   }
