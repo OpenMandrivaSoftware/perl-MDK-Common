@@ -14,7 +14,7 @@ License: GPL
 Group: Development/Perl
 Conflicts: drakxtools-newt < 9.1-30mdk, drakconf < 9.1-14mdk
 BuildRoot: %{_tmppath}/%{name}-buildroot
-BuildRequires: ocaml
+BuildRequires: ocaml >= 3.06
 Provides: perl(MDK::Common) = %{version}
 Provides: perl(MDK::Common::DataStructure)  
 Provides: perl(MDK::Common::File)  
@@ -64,6 +64,8 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+- build require ocaml >= 3.06 (thanks to Per Øyvind Karlsen)
+
 * Tue May 27 2003 Pixel <pixel@mandrakesoft.com> 1.1.4-1mdk
 - many perl_checker enhancements:
   - disallow return(...), prefering return ...
