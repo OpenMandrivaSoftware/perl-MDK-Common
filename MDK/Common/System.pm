@@ -54,6 +54,11 @@ return the list of home (eg: /home/foo, /home/pixel, ...)
 
 return the directories where we can find dot files: homes, /root and /etc/skel
 
+=item list_users()
+
+return the list of unprivilegied users (aka those whose uid is greater
+than 500 and who are not "nobody").
+
 =item syscall_(NAME, PARA)
 
 calls the syscall NAME
@@ -163,7 +168,7 @@ use MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_int $bitof_int); #);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch typeFromMagic list_passwd list_home list_skels syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile update_gnomekderc fuzzy_pidofs); #);
+@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch typeFromMagic list_passwd list_home list_skels list_users syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile update_gnomekderc fuzzy_pidofs); #);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -238,6 +243,10 @@ sub list_home() {
 sub list_skels { 
     my ($prefix, $suffix) = @_;
     grep { -d $_ && -w $_ } map { "$prefix$_/$suffix" } '/etc/skel', '/root', list_home();
+}
+
+sub list_users {
+    map { 500 < $_->[2] && $_->[0] ne "nobody" ? $_->[0] : () } list_passwd();
 }
 
 
