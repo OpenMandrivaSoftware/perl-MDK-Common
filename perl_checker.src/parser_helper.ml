@@ -864,6 +864,7 @@ let call_raw force_non_builtin_func (e, para) =
 	  | [ List [ Deref(I_array, _) ] ] -> ()
 	  | _ -> warn_rule (f ^ " is expecting an array and nothing else"))
 
+      | _ -> ()
       );
 
       let para' = match f with
