@@ -299,7 +299,9 @@ let check_parenthesized_first_argexpr word ((_, e), (_, (start, _)) as ex) =
       if is_parenthesized e' then
 	if l = [] then 
 	  (if want_space then sp_n else sp_0) ex
-	else die_with_rawpos (start, start) "can't handle this nicely"
+	else 
+	  (* eg: join (" ", @l) . "\n" *)
+	  die_with_rawpos (start, start) "please remove the space before the function call"
       else
 	sp_p(ex)
   | _ -> 
