@@ -642,6 +642,11 @@ let cook_call_op op para pos =
   | "||", e :: _ when is_always_false e -> warn_rule "<constant> || ... is the same as ..."; call
   | "&&", e :: _ when is_always_true  e -> warn_rule "<constant> && ... is the same as ..."; call
 
+  | "or",  e :: _ when is_always_true  (un_parenthesize_full e) -> warn_rule "<constant> or ... is the same as <constant>"; call
+  | "and", e :: _ when is_always_false (un_parenthesize_full e) -> warn_rule "<constant> and ... is the same as <constant>"; call
+  | "or",  e :: _ when is_always_false (un_parenthesize_full e) -> warn_rule "<constant> or ... is the same as ..."; call
+  | "and", e :: _ when is_always_true  (un_parenthesize_full e) -> warn_rule "<constant> and ... is the same as ..."; call
+
   | _ -> 
       call
 
