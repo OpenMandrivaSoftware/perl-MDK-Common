@@ -413,9 +413,13 @@ let set_delimit_char_open lexbuf op =
   let char_close =
     match char_open with
     | '(' -> ')'
-    | '{' -> warn lexbuf ("don't use " ^ op ^ "{...}, use " ^ op ^ "(...) instead") ; '}'
+    | '{' -> '}'
     | _ -> internal_error "set_delimit_char_open"
   in
+  if op = "qx" then 
+    warn lexbuf (Printf.sprintf "don't use qx%c...%c, use `...` instead" char_open char_close)
+  else if char_open = '{' then
+    warn lexbuf ("don't use " ^ op ^ "{...}, use " ^ op ^ "(...) instead");
   delimit_char_open := char_open;
   delimit_char_close := char_close
 }
@@ -764,6 +768,7 @@ rule token = parse
 	  COMMAND_STRING(s, pos) }
 | "q" pattern_open { set_delimit_char_open lexbuf "q"; raw_ins_to_string qstring lexbuf }
 | "qq" pattern_open { set_delimit_char_open lexbuf "qq"; ins_to_string qqstring lexbuf }
+| "qx" pattern_open { set_delimit_char_open lexbuf "qx"; ins_to_string qqstring lexbuf }
 | "qw" pattern_open { set_delimit_char_open lexbuf "qw"; let s, pos = raw_ins qstring lexbuf in QUOTEWORDS(s, pos) }
 
 | "\n__END__" [^ '0'-'9' 'A'-'Z' 'a'-'z' '_'] 
