@@ -64,6 +64,11 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Nov 10 2004 Pixel <pixel@mandrakesoft.com> 1.1.19-1mdk
+- MDK::System: fix cp_with_option() which called cp_af() recursively, loosing the specific options
+- MDK::System: add distrib() to get company, system (e.g. Mandrakelinux) and product (e.g. 10.1)
+- various perl_checker enhancements/fixes
+
 * Mon Sep  6 2004 Pixel <pixel@mandrakesoft.com> 1.1.18-1mdk
 - more flexible typeFromMagic
 
