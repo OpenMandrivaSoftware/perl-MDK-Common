@@ -100,6 +100,7 @@ sub get_path_str {}
 sub get_pixel_size {}
 sub get_position {}
 sub get_property {}
+sub get_start_iter {}
 sub popup {}
 sub process_updates {}
 sub scroll_to_iter {}
@@ -237,6 +238,7 @@ sub exit {}
 sub init {}
 sub main {}
 sub main_quit {}
+sub move_mark_by_name {}
 sub set_locale {}
 sub timeout {}
 sub timeout_add {}
