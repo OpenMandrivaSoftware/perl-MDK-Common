@@ -743,6 +743,13 @@ let cook_call_op op para pos =
       | Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, Ident _) as l; _ ]) ] ; _ ], _) ->
 	  let l = string_of_fromparser l in
 	  warn_rule [Warn_suggest_functional] (sprintf "use \"push %s, map { ... ? ... : () } ...\" instead of \"foreach (...) { push %s, ... if ... }\"\n  or sometimes \"%s = map { ... ? ... : () } ...\"\n  or sometimes \"%s = map { if_(..., ...) } ...\"" l l l l)
+
+      | Call_op ("if", [ _; Block [ List [ Call_op("=", [Deref(I_scalar, _) as ret; Deref(I_scalar, Ident(None, "_", _)) ], _) ];
+				    Semi_colon;
+				    List [ Deref(I_func, Ident(None, "last", _)) ];
+				    Semi_colon ] ], _) ->
+	  warn_rule [Warn_suggest_functional; Warn_MDK_Common] (sprintf "use \"%s = find { ... } ...\"" (string_of_fromparser ret))
+
       | List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, Ident _) as l; _ ]) ] ->
 	  let l = string_of_fromparser l in
 	  warn_rule [Warn_suggest_functional] (sprintf "use \"push %s, map { ... } ...\" instead of \"foreach (...) { push %s, ... }\"\n  or sometimes \"%s = map { ... } ...\"" l l l)

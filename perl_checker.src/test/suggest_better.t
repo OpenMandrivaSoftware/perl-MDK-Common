@@ -92,6 +92,13 @@ foreach (@l) {                           use "push @l2, map { ... ? ... : () } .
   push @l2, yyy($_) if zzz($_);            or sometimes "@l2 = map { ... ? ... : () } ..."
 }                                          or sometimes "@l2 = map { if_(..., ...) } ..."
 
+foreach (@l) {                           use "$xxx = find { ... } ..."
+  if (xxx($_)) {                         
+    $xxx = $_;                           
+    last;                                
+  }                                      
+}                                        
+
 if (grep { xxx() } @l) {}                in boolean context, use "any" instead of "grep"
 
 $xxx = grep { xxx() } @l;                you may use "find" instead of "grep"
