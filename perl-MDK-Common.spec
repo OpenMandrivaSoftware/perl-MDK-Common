@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 22mdk
+%define release 23mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -51,6 +51,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Feb 24 2003 Pixel <pixel@mandrakesoft.com> 1.0.4-23mdk
+- have the POT-Creation-Date set to the current date (when --generate-pot)
+- various fixes
+
 * Thu Feb 20 2003 Guillaume Cottenceau <gc@mandrakesoft.com> 1.0.4-22mdk
 - snapshot (including formatError suitable for die \n() in DrakX)
 
