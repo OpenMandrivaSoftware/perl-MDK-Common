@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 20mdk
+%define release 21mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -51,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Feb 14 2003 Pixel <pixel@mandrakesoft.com> 1.0.4-21mdk
+- don't suggest to replace "@foo ? @foo : @bar" with "@foo || @bar", this is wrong!
+
 * Thu Feb 13 2003 Pixel <pixel@mandrakesoft.com> 1.0.4-20mdk
 - add some more Gtk2 methods
 - check use of variables with name _XXX (reserved for unused variables)

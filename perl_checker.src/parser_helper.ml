@@ -27,6 +27,23 @@ let is_var_number_match = function
   | Deref(I_scalar, Ident(None, s, _)) -> String.length s = 1 && s.[0] <> '0' && char_is_number s.[0]
   | _ -> false
 
+let non_scalar_context context = context = I_hash || context = I_array
+let is_scalar_context context = context = I_scalar
+  
+let is_not_a_scalar = function
+  | Deref_with(_, context, _, _)
+  | Deref(context, _) -> non_scalar_context context
+  | _ -> false
+
+let is_a_scalar = function
+  | Ref _
+  | Num _
+  | Raw_string _
+  | String _ -> true
+  | Deref_with(_, context, _, _)
+  | Deref(context, _) -> is_scalar_context context
+  | _ -> false
+
 let is_parenthesized = function
   | List[]
   | List[List _] -> true
@@ -65,8 +82,6 @@ let context2s = function
   | I_raw -> ""
   | I_star -> "*"
 let variable2s(context, ident) = context2s context ^ ident
-
-let non_scalar_context context = context = I_hash || context = I_array
 
 let rec is_same_fromparser a b =
   match a, b with
@@ -329,7 +344,7 @@ let check_ternary_paras(cond, a, b) =
   in
   if dont_need_short_circuit a || is_same_fromparser cond a then check_ternary_para b;
   if dont_need_short_circuit b || is_same_fromparser cond b then check_ternary_para a;
-  if is_same_fromparser cond a && dont_need_short_circuit b then warn_rule "you can replace \"$foo ? $foo : $bar\" with \"$foo || $bar\"";
+  if is_same_fromparser cond a && dont_need_short_circuit b && is_a_scalar a && is_a_scalar b then warn_rule "you can replace \"$foo ? $foo : $bar\" with \"$foo || $bar\"";
   [ cond; a; b ]
 
 let check_unneeded_var_dollar_    ((_, e), (_, pos)) =
@@ -400,11 +415,6 @@ let only_one_in_List ((_, e), both) =
 let rec is_only_one_in_List = function
   | [List l] -> is_only_one_in_List l
   | [_] -> true
-  | _ -> false
-  
-let is_not_a_scalar = function
-  | Deref_with(_, context, _, _)
-  | Deref(context, _) -> non_scalar_context context
   | _ -> false
 
 let maybe_to_Raw_string = function
