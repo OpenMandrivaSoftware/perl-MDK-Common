@@ -31,6 +31,7 @@ sub run { my ($_loop) = @_ }
 package Glib::Object;
 our @ISA = qw();
 sub DESTROY { my ($_sv) = @_ }
+sub do_stuff_by_func { my ($_instance, $_func, $_o_data) = @_ }
 sub get { my ($_object, @_more_paras) = @_ }
 sub get_data { my ($_object, $_key) = @_ }
 sub get_pointer { my ($_object) = @_ }
@@ -48,6 +49,9 @@ sub signal_emit { my ($_instance, $_name, @_more_paras) = @_ }
 sub signal_handler_block { my ($_object, $_handler_id) = @_ }
 sub signal_handler_disconnect { my ($_object, $_handler_id) = @_ }
 sub signal_handler_unblock { my ($_object, $_handler_id) = @_ }
+sub signal_handlers_block_by_func { my ($_instance, $_func, $_o_data) = @_ }
+sub signal_handlers_disconnect_by_func { my ($_instance, $_func, $_o_data) = @_ }
+sub signal_handlers_unblock_by_func { my ($_instance, $_func, $_o_data) = @_ }
 sub signal_stop_emission_by_name { my ($_instance, $_detailed_signal) = @_ }
 
 package Glib::ParamSpec;
