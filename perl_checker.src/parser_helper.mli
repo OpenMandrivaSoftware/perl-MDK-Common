@@ -9,7 +9,6 @@ val var_dollar_ : Types.fromparser
 val var_STDOUT : Types.fromparser
 val is_var_dollar_ : Types.fromparser -> bool
 val is_var_number_match : Types.fromparser -> bool
-val is_call : Types.fromparser -> bool
 val is_parenthesized : Types.fromparser -> bool
 val un_parenthesize : Types.fromparser -> Types.fromparser
 val un_parenthesize_full : Types.fromparser -> Types.fromparser
@@ -62,10 +61,9 @@ val check_hash_subscript :
   ('a * Types.fromparser) * ('b * (int * int)) -> unit
 val check_arrow_needed :
   ('a * Types.fromparser) * 'b -> 'c * ('d * (int * int)) -> unit
-val check_ternary_para : ('a * Types.fromparser) * ('b * (int * int)) -> unit
 val check_ternary_paras :
-  ('a * Types.fromparser) * ('b * (int * int)) ->
-  ('c * Types.fromparser) * ('d * (int * int)) -> unit
+  Types.fromparser * Types.fromparser * Types.fromparser ->
+  Types.fromparser list
 val check_unneeded_var_dollar_ :
   ('a * Types.fromparser) * ('b * (int * int)) -> unit
 val check_unneeded_var_dollar_not :

@@ -233,10 +233,10 @@ term:
 | term PATTERN_MATCH_NOT STRING {die_with_rawpos (sndsnd $3) "use a regexp, not a string"}
 
 
-| term QUESTION_MARK term COLON term {sp_p($2); sp_p($3); sp_p($4); sp_p($5); check_ternary_paras $3 $5; to_Call_op_(P_ternary, "?:", [ prio_lo P_ternary $1 ; prio_lo_after P_ternary $3; prio_lo_after P_ternary $5]) (sp_pos_range $1 $5)}
-| term QUESTION_MARK term COLON BRACKET expr BRACKET_END {sp_p($2); sp_p($3); check_ternary_para $3; sp_p($4); sp_p($5); sp_p($6); sp_p($7); check_ternary_para $1; to_Call_op_(P_ternary, "?:", [ prio_lo P_ternary $1 ; prio_lo_after P_ternary $3; Ref(I_hash, sndfst $6)]) (sp_pos_range $1 $7)}
-| term QUESTION_MARK BRACKET expr BRACKET_END COLON term {sp_p($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); check_ternary_para $7; to_Call_op_(P_ternary, "?:", [ prio_lo P_ternary $1 ; Ref(I_hash, sndfst $4); prio_lo_after P_ternary $7]) (sp_pos_range $1 $7)}
-| term QUESTION_MARK BRACKET expr BRACKET_END COLON BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); sp_p($8); sp_p($9); to_Call_op_(P_ternary, "?:", [ prio_lo P_ternary $1 ; Ref(I_hash, sndfst $4); Ref(I_hash, sndfst $8)]) (sp_pos_range $1 $9)}
+| term QUESTION_MARK term COLON term {sp_p($2); sp_p($3); sp_p($4); sp_p($5); to_Call_op_(P_ternary, "?:", check_ternary_paras(prio_lo P_ternary $1, prio_lo_after P_ternary $3, prio_lo_after P_ternary $5)) (sp_pos_range $1 $5)}
+| term QUESTION_MARK term COLON BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); to_Call_op_(P_ternary, "?:", check_ternary_paras(prio_lo P_ternary $1, prio_lo_after P_ternary $3, Ref(I_hash, sndfst $6))) (sp_pos_range $1 $7)}
+| term QUESTION_MARK BRACKET expr BRACKET_END COLON term {sp_p($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); to_Call_op_(P_ternary, "?:", check_ternary_paras(prio_lo P_ternary $1, Ref(I_hash, sndfst $4), prio_lo_after P_ternary $7)) (sp_pos_range $1 $7)}
+| term QUESTION_MARK BRACKET expr BRACKET_END COLON BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sp_p($7); sp_p($8); sp_p($9); to_Call_op_(P_ternary, "?:", check_ternary_paras(prio_lo P_ternary $1, Ref(I_hash, sndfst $4), Ref(I_hash, sndfst $8))) (sp_pos_range $1 $9)}
 
 
 /* Unary operators and terms */

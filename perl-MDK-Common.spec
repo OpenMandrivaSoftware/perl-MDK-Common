@@ -52,7 +52,6 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Wed Dec  4 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-4mdk
 - warn use of "cond ? list : ()" (use if_(cond, list) instead)
-- adapt MDK::Common::* to this (using @{[]} instead of () to avoid the warning)
 
 * Mon Dec  2 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-3mdk
 - add output_with_perm(), cat_or_die()

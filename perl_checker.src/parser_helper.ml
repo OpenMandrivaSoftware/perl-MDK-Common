@@ -17,9 +17,6 @@ let is_var_dollar_ = function
 let is_var_number_match = function
   | Deref(I_scalar, Ident(None, s, _)) -> String.length s = 1 && s.[0] <> '0' && char_is_number s.[0]
   | _ -> false
-let is_call = function
-  | Call _ -> true
-  | _ -> false
 
 let is_parenthesized = function
   | List[]
@@ -282,14 +279,33 @@ let check_arrow_needed ((_, e), _) ter =
   | Deref_with _ -> warn (sndsnd ter) "the arrow \"->\" is unneeded"
   | _ -> ()
 
-let check_ternary_para ((_, e), _) =
-  match e with
-  | List [] -> warn_rule "you may use if_() here\n  beware that the short-circuit semantic of ?: is not kept\n  if you want to keep the short-circuit behaviour, replace () with @{[]} and there will be no warning anymore"
-  | _ -> ()
-
-let check_ternary_paras ((_, e1), _ as ter1) ((_, e2), _ as ter2) =
-  if not (is_call e1) then check_ternary_para ter2;
-  if not (is_call e2) then check_ternary_para ter1
+let check_ternary_paras(cond, a, b) =
+  let rec dont_need_short_circuit_rec = function
+    | Num _
+    | Raw_string _
+    | String ([(_, List [])], _) 
+    | Call_op("qw", _, _)
+      -> true
+    | Call(Deref(I_func, Ident(None, "N", _)), [ List(String _ :: l) ])
+    | Call_op(".", l, _)
+    | Ref(I_hash, List l)
+    | List l -> List.for_all dont_need_short_circuit_rec l
+    | _ -> false
+  in
+  let rec dont_need_short_circuit = function
+    | Ref(_, Deref(_, Ident _))
+    | Deref(_, Ident _) -> true
+    | Ref(I_hash, List l)
+    | List l -> List.for_all dont_need_short_circuit l
+    | e -> dont_need_short_circuit_rec e
+  in
+  let check_ternary_para = function
+    | List [] -> warn_rule "you may use if_() here\n  beware that the short-circuit semantic of ?: is not kept\n  if you want to keep the short-circuit behaviour, replace () with @{[]} and there will be no warning anymore"
+    | _ -> ()
+  in
+  if dont_need_short_circuit a || is_same_fromparser cond a then check_ternary_para b;
+  if dont_need_short_circuit b || is_same_fromparser cond b then check_ternary_para a;
+  [ cond; a; b ]
 
 let check_unneeded_var_dollar_    ((_, e), (_, pos)) =
   if is_var_dollar_ e then warn pos "\"$_ =~ /regexp/\" can be written \"/regexp/\"" else
