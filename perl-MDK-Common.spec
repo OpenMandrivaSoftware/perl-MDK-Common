@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 18mdk
+%define release 19mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -51,6 +51,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Feb 12 2003 Pixel <pixel@mandrakesoft.com> 1.0.4-19mdk
+- handle ${foo} (including "${foo}bar")
+- warn when "ref" priority is badly handled by perl_checker
+
 * Thu Feb  6 2003 Pixel <pixel@mandrakesoft.com> 1.0.4-18mdk
 - add various Gtk2 methods
 - handle "...\x{hex}..."
