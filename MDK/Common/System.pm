@@ -2,7 +2,7 @@ package MDK::Common::System;
 
 =head1 NAME
 
-MDK::Common::System - formatting functions
+MDK::Common::System - system-related useful functions
 
 =head1 SYNOPSIS
 
