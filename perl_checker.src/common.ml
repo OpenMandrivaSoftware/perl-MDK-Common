@@ -561,6 +561,8 @@ let rec transpose = function
 let rec range min max =
   if min >= max then [] else min :: range (min + 1) max
 
+let sum l = List.fold_left (+) 0 l
+
 let rec filter_some_with f = function
   | [] -> []
   | e :: l -> 
@@ -744,6 +746,15 @@ let char_is_alpha c =
 let char_is_number c =
   let i = Char.code c in
   Char.code '0' <= i && i <= Char.code '9'
+
+let count_chars_in_string s c =
+  let rec rec_count_chars_in_string from =
+    try
+      let from' = String.index_from s from c in
+      1 + rec_count_chars_in_string (from' + 1)
+    with
+      Not_found -> 0
+  in rec_count_chars_in_string 0
 
 let rec string_forall_with f i s =
   try

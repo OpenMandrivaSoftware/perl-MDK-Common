@@ -562,6 +562,9 @@ rule token = parse
   let s2, (_, end_)  = ins delimited_string lexbuf in 
   let opts, _ = raw_ins pattern_options lexbuf in
   let pos = start, end_ in
+  if String.contains opts 'e' && sum (List.map (fun (s, _) -> count_chars_in_string s '"') s2) > 2 then
+    die lexbuf ("do not write so complicated things in the eval part of s///,\n" ^
+		"i generate wrong warnings for things like s/xxx/die \"yyy \\\"zzz\\\" \"/")
   check_multi_line_delimited_string (Some opts) pos ;
   PATTERN_SUBST(s1, s2, opts, pos)
 }

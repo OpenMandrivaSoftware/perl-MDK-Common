@@ -155,7 +155,7 @@ val hashtbl_keys : ('a, 'b) Hashtbl.t -> 'a list
 val hashtbl_to_list : ('a, 'b) Hashtbl.t -> ('a * 'b) list
 val hashtbl_collect : ('a -> 'b -> 'c list) -> ('a, 'b) Hashtbl.t -> 'c list
 val hashtbl_exists : ('a -> 'b -> bool) -> ('a, 'b) Hashtbl.t -> bool
-val memoize : ('a -> 'a) -> 'a -> 'a
+val memoize : ('a -> 'b) -> 'a -> 'b
 val array_shift : 'a array -> 'a array
 val array_last_n : int -> 'a array -> 'a array
 val array_collect : ('a -> 'b list) -> 'a array -> 'b list
@@ -163,6 +163,7 @@ val lvector_product : 'a list list -> 'a list list
 val vector_product2 : 'a list -> 'a list -> ('a * 'a) list
 val transpose : 'a list list -> 'a list list
 val range : int -> int -> int list
+val sum : int list -> int
 val filter_some_with : ('a -> 'b option) -> 'a list -> 'b list
 val filter_some : 'a option list -> 'a list
 val difference : 'a list -> 'a list -> 'a list
@@ -202,6 +203,7 @@ val char_is_alphanumerical : char -> bool
 val char_is_alphanumerical_ : char -> bool
 val char_is_alpha : char -> bool
 val char_is_number : char -> bool
+val count_chars_in_string : string -> char -> int
 val string_forall_with : (char -> bool) -> int -> string -> bool
 val starts_with_non_lowercase : string -> bool
 val fold_lines : ('a -> string -> 'a) -> 'a -> in_channel -> 'a
