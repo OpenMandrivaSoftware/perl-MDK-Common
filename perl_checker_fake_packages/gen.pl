@@ -36,7 +36,7 @@ sub gtk2 {
                 #-   sub EXPOSURE_MASK { 'exposure-mask' }
                 /$subroutine_decl('[^']+')|("[^"]+")\s*}/ and $add->($fun, '() {}');
                 #-   sub Sym_Hangul_J_Phieuf { 0xeed }
-                /$subroutine_decl\0\S+\s*}/                and $add->($fun, '() {}');
+                /$subroutine_decl\d\S+\s*}/                and $add->($fun, '() {}');
 
                 #- traditional form
                 #-   my ($class, $interval, $func, $data) = @_;
