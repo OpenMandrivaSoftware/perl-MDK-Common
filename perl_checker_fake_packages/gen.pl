@@ -98,7 +98,7 @@ foreach my $pkg (sort keys %l) {
     print "our \@ISA = qw();\n";
     foreach my $name (sort keys %{$l{$pkg}}) {
 	my $para = $l{$pkg}{$name};
-	$name = $pkg . '::' . $name if $name =~ /^(length|x|y|eq|foreach|format)$/;
+	$name = $pkg . '::' . $name if $name =~ /^(eq|foreach|format|ge|length|sub|x|xor|y)$/;
 	if (@$para) {
 	    print "sub $name { my (", join(", ", @$para), ") = \@_ }\n";
 	} else {
