@@ -124,8 +124,8 @@ sub member { my $e = shift; foreach (@_) { $e eq $_ and return 1 } 0 }
 sub invbool { my $a = shift; $$a = !$$a; $$a }
 sub listlength { scalar @_ }
 sub strcpy { substr($_[0], $_[2] || 0, length $_[1]) = $_[1] }
-sub deref { ref $_[0] eq "ARRAY" ? @{$_[0]} : ref $_[0] eq "HASH" ? %{$_[0]} : $_[0] }
-sub deref_array { ref $_[0] eq "ARRAY" ? @{$_[0]} : $_[0] }
+sub deref { ref($_[0]) eq "ARRAY" ? @{$_[0]} : ref($_[0]) eq "HASH" ? %{$_[0]} : $_[0] }
+sub deref_array { ref($_[0]) eq "ARRAY" ? @{$_[0]} : $_[0] }
 
 sub is_empty_array_ref { my $a = shift; !defined $a || @$a == 0 }
 sub is_empty_hash_ref { my $a = shift; !defined $a || keys(%$a) == 0 }
