@@ -6,7 +6,18 @@ sub gtk2 {
     my (@files) = @_;
 
     my @subroutines = (
-      [ 'set_size_request', ' { my ($_self, $_x, $_y) = @_ }' ],
+      [ 'set_size_request',             ' { my ($_self, $_x, $_y) = @_ }' ],
+      [ 'set_popdown_strings',          ' {}' ],
+      [ 'signal_emit',                  ' {}' ],
+      [ 'signal_emit_by_name',          ' {}' ],
+      [ 'signal_connect',               ' { my ($_target, $_name, $_callback, $o_data) = @_ }' ],
+      [ 'signal_connect_swapped',       ' { my ($_target, $_name, $_callback, $o_data) = @_ }' ],
+      [ 'signal_connect_after',         ' { my ($_target, $_name, $_callback, $o_data) = @_ }' ],
+      [ 'signal_handler_block',         ' { my ($_target, $_closure) = @_ }' ],
+      [ 'signal_handler_unblock',       ' { my ($_target, $_closure) = @_ }' ],
+      [ 'signal_disconnect',            ' { my ($_target, $_closure) = @_ }' ],
+      [ 'signal_is_connected',          ' { my ($_target, $_closure) = @_ }' ],
+      [ 'signal_stop_emission_by_name', ' { my ($_target, $_detailed_signal) = @_ }' ],
                       );
     my $add = sub {
         push @subroutines, [ $_[0], $_[1] ];

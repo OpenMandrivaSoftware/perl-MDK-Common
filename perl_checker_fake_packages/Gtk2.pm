@@ -2532,6 +2532,7 @@ sub Gtk2::set_pixels_below_lines { my ($_text_view, $_pixels_below_lines) = @_ }
 sub Gtk2::set_pixels_inside_wrap { my ($_text_view, $_pixels_inside_wrap) = @_ }
 sub Gtk2::set_placement { my ($_scrolled_window, $_window_placement) = @_ }
 sub Gtk2::set_policy { my ($_scrolled_window, $_hscrollbar_policy, $_vscrollbar_policy) = @_ }
+sub Gtk2::set_popdown_strings {}
 sub Gtk2::set_position { my ($_DUMMY0, $_DUMMY1) = @_ }
 sub Gtk2::set_preview_text { my ($_DUMMY0, $_DUMMY1) = @_ }
 sub Gtk2::set_previous_color { my ($_colorsel, $_color) = @_ }
@@ -2628,6 +2629,16 @@ sub Gtk2::show_fileop_buttons { my ($_filesel) = @_ }
 sub Gtk2::show_now { my ($_widget) = @_ }
 sub Gtk2::show_tabs { my ($_self, $_flag) = @_ }
 sub Gtk2::show_unraised { my ($_window) = @_ }
+sub Gtk2::signal_connect { my ($_target, $_name, $_callback, $o_data) = @_ }
+sub Gtk2::signal_connect_after { my ($_target, $_name, $_callback, $o_data) = @_ }
+sub Gtk2::signal_connect_swapped { my ($_target, $_name, $_callback, $o_data) = @_ }
+sub Gtk2::signal_disconnect { my ($_target, $_closure) = @_ }
+sub Gtk2::signal_emit {}
+sub Gtk2::signal_emit_by_name {}
+sub Gtk2::signal_handler_block { my ($_target, $_closure) = @_ }
+sub Gtk2::signal_handler_unblock { my ($_target, $_closure) = @_ }
+sub Gtk2::signal_is_connected { my ($_target, $_closure) = @_ }
+sub Gtk2::signal_stop_emission_by_name { my ($_target, $_detailed_signal) = @_ }
 sub Gtk2::sink { my ($_object) = @_ }
 sub Gtk2::size { my ($_darea, $_width, $_height) = @_ }
 sub Gtk2::size_new { my ($_class, $_size) = @_ }
