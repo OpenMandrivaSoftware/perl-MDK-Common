@@ -827,6 +827,14 @@ msgstr \"\"
   close_out fd
 
 let call_raw force_non_builtin_func (e, para) =
+  let check_anonymous_block f = function
+  | [ Anonymous_sub _ ; Deref (I_hash, _) ] ->
+      warn_rule ("a hash is not a valid parameter to function " ^ f)
+
+  | Anonymous_sub _ :: _ -> ()
+  | _ -> warn_rule (sprintf "always use \"%s\" with a block (eg: %s { ... } @list)" f f)
+  in
+
   match e with
   | Deref(I_func, Ident(None, f, _)) ->
       (match f with
@@ -867,21 +875,20 @@ let call_raw force_non_builtin_func (e, para) =
 	  | [ List(String _ :: _) ] -> die_rule "don't use interpolated translated string, use %s or %d instead"
 	  |  _ -> die_rule (sprintf "%s() must be used with a string" f))
 
-      | "map" | "grep" | "grep_index" | "map_index" | "partition" | "uniq_"
-      | "find"
-      | "any" | "every"
-      | "find_index"
-      | "each_index" ->
+      | "map" ->
 	  (match para with
 
 	  | Anonymous_sub(None, Block [ List [ Call(Deref(I_func, Ident(None, "if_", _)),
-						    [ List [ _ ; Deref(I_scalar, Ident(None, "_", _)) ] ]) ] ], _) :: _ when f = "map" ->
+						    [ List [ _ ; Deref(I_scalar, Ident(None, "_", _)) ] ]) ] ], _) :: _ ->
 						      warn_rule "you can replace \"map { if_(..., $_) }\" with \"grep { ... }\""
-	  | [ Anonymous_sub _ ; Deref (I_hash, _) ] ->
-	      warn_rule ("a hash is not a valid parameter to function " ^ f)
+	  | _ -> check_anonymous_block f para)
 
-	  | Anonymous_sub _ :: _ -> ()
-	  | _ -> warn_rule (sprintf "always use \"%s\" with a block (eg: %s { ... } @list)" f f))
+      | "grep"
+      | "grep_index" | "map_index" | "partition" | "uniq_"
+      | "find"
+      | "any" | "every"
+      | "find_index"
+      | "each_index" -> check_anonymous_block f para
 
       | "member" ->
 	  (match para with
