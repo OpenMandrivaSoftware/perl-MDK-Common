@@ -113,7 +113,7 @@ sub bool2text { $_[0] ? "true" : "false" }
 sub bool2yesno { $_[0] ? "yes" : "no" }
 sub text2bool { my $t = lc($_[0]); $t eq "true" || $t eq "yes" ? 1 : 0 }
 
-sub chomp_ { my @l = map { my $l = $_; chomp $l; $l } @_; wantarray() ? @l : $l[0] }
+sub chomp_ { my @l = @_; chomp @l; wantarray() ? @l : $l[0] }
 
 sub backtrace() {
     my $s;
