@@ -24,11 +24,22 @@ sub gtk2 {
 
                 #- explore first line of subroutine definition
                 local $_ = $contents[$::i+1];
+                /^\s*{\s*$/ and $_ = $contents[$::i+2];
+
+                #- traditional form
+                #-   my ($class, $interval, $func, $data) = @_;
+                if (/^\s*my\s*\(([^\)]+)\)\s*=\s*\@_\s*;\s*$/) {
+                    my @args = map { /^\s*\$(.*)/ or goto skip_trad; '$_'.$1 } split /,/, $1;
+                    $add->($fun, ' { my ('.join(', ', @args).') = @_ }');
+                  skip_trad:
+                }
+
                 #- methods with no argument
                 #-   my $values = shift->_get_size_request;
                 if (/shift->\w+\s*;/) {
                     $add->($fun, ' { my ($_self) = @_ }');
                 }
+
                 #- methods with variable list of arguments (which branch to different XS functions)
                 #-   Gtk2::_Helpers::check_usage(\@_, [ 'Gtk2::GSList group' ], [ 'Gtk2::GSList group', 'string label' ]);
                 if (/Gtk2::_Helpers::check_usage\(\\\@_, (.*)\);/) {
@@ -101,7 +112,6 @@ sub gtk2 {
         /\.pm$/ and $pm_file->($_);
         /\.c$/ and $c_file->($_);
     }
-
 
     print
 "package Gtk2;
