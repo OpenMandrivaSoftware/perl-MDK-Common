@@ -67,6 +67,10 @@ if (/\bsub\b\s*\{[^{}]*\$_(?!\[)/) {
     warn_(q(using $_ in a sub is generally bad news), info()) if !/local\s+\$_/;
 }
 
+if ((my ($op) = /([<>]{2})/) && (/[+-]\s*[\w\$]+\s*[<>]{2}/ || /[<>]{2}\s*[\w\$]+\s*[+-]/) && !/\<\<[A-Z]/) { # don't warn for here-document alike
+    err(qq(parentheses needed around operator $op), info());
+}
+
 if (/^\s*package ([\w:]+)/) {
     $package = $1;
     $path{$package} ||= ($ARGV =~ m|(.*/)|)[0];
