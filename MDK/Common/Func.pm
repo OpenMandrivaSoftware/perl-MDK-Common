@@ -59,6 +59,14 @@ just like C<map>, but set C<$::i> to the current index in the list:
 
 gives "0 a", "1 b"
 
+=item each_index { CODE } LIST
+
+just like C<map_index>, but doesn't return anything
+
+    each_index { print "$::i $_\n" } "a", "b"
+
+prints "0 a", "1 b"
+
 =item grep_index { CODE } LIST
 
 just like C<grep>, but set C<$::i> to the current index in the list:
@@ -133,7 +141,7 @@ use MDK::Common::Math;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(may_apply if_ if__ fold_left mapn mapn_ map_index grep_index find_index map_each grep_each before_leaving catch_cdie cdie);
+@EXPORT_OK = qw(may_apply if_ if__ fold_left mapn mapn_ map_index each_index grep_index find_index map_each grep_each before_leaving catch_cdie cdie);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -182,6 +190,14 @@ sub map_index(&@) {
     my $f = shift;
     my @v; local $::i = 0;
     map { @v = &$f($::i); $::i++; @v } @_;
+}
+sub each_index(&@) {
+    my $f = shift;
+    my @v; local $::i = 0;
+    foreach (@_) {
+	&$f($::i);
+	$::i++;
+    }
 }
 sub grep_index(&@) {
     my $f = shift;
