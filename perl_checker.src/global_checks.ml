@@ -164,7 +164,7 @@ let is_global_var context ident =
       | _ -> false)
   | I_star ->
       (match ident with
-      | "STDIN" | "STDOUT" | "STDERR"
+      | "STDIN" | "STDOUT" | "STDERR" | "DATA"
       | "__FILE__" | "__LINE__" | "undef" -> true
       | _ -> false)
   | I_func ->
