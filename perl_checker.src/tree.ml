@@ -43,6 +43,7 @@ let anonymous_package_count = ref 0
 let default_state = { per_package = []; files_parsed = []; global_vars_declared = Hashtbl.create 256; global_vars_used = ref [] }
 let empty_exports = { export_ok = []; export_auto = []; export_tags = []; special_export = None }
 let ignored_packages = ref []
+let use_lib = ref []
 
 let die_with_pos pos msg = failwith (Info.pos2sfull pos ^ msg)
 let warn_with_pos pos msg = prerr_endline (Info.pos2sfull pos ^ msg)
@@ -146,13 +147,16 @@ let get_exported t =
   ) empty_exports t
 
 let uses_external_package = function
-  | "vars" | "MDK::Common::Globals" | "Exporter" | "diagnostics" | "strict" | "lib" | "POSIX" 
+  | "vars" | "MDK::Common::Globals" | "Exporter" | "diagnostics" | "strict" | "lib" | "POSIX" | "Gtk" | "Gtk2"
   | "Config" | "Socket" | "Net::FTP" | "IO::Socket" | "DynaLoader" | "Data::Dumper" -> true
   | _ -> false
 
 let get_uses t =
   List.fold_left (fun uses e ->
     match e with
+    | Use(Ident(None, "lib", _), [libs]) ->
+	use_lib := List.map snd (from_qw libs) @ !use_lib ;
+	uses
     | Use(Ident _ as pkg, _) when uses_external_package (string_of_Ident pkg) -> uses
     | Use(Ident(_, _, pos) as ident, l) ->
 	let package = string_of_Ident ident in

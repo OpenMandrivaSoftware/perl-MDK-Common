@@ -51,7 +51,7 @@ and parse_package_if_needed state (package_name, pos) =
   if List.mem_assoc package_name state.per_package then [], state else
   try
     let package = snd (List.hd state.per_package) in
-    let inc = inc package.file_name package.package_name package.has_package_name in
+    let inc = !Tree.use_lib @ inc package.file_name package.package_name package.has_package_name in
     if List.mem package_name !ignored_packages then [], state
     else
       let rel_file = String.concat "/" (split_at2 ':'':' package_name) ^ ".pm" in

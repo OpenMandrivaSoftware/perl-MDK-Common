@@ -29,6 +29,7 @@ type state = {
   } 
 
 val ignored_packages : string list ref
+val use_lib : string list ref
 
 val default_state : state
 val get_global_info_from_package : fromparser list -> per_package list * (string * pos) list

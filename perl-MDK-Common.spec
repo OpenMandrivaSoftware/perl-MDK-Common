@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 4mdk
+%define release 5mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -50,6 +50,11 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Dec  4 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-5mdk
+- add unused variable detection
+- allow $AUTOLOAD usage in AUTOLOAD()
+- handle "use lib qw(...)"
+
 * Wed Dec  4 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-4mdk
 - warn use of "cond ? list : ()" (use if_(cond, list) instead)
 
