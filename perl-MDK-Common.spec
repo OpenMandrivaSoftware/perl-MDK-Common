@@ -1,6 +1,6 @@
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 
-# do not change the version here, change in MDK/Common.pm
+# do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
 %define release 1mdk
 %define perl_sitelib %(eval "`perl -V:installsitelib`"; echo $installsitelib)
