@@ -72,7 +72,8 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
-* Mon Nov 17 2003 Guillaume Cottenceau <gc@mandrakesoft.com> 1.1.8-3mdk
+* Tue Nov 18 2003 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.8-3mdk
+- perl_checker --generate-pot: unescape "$" & "@" caracters
 - substInFile: if file is a symlink, make sure it stays a symlink
 
 * Mon Nov 10 2003 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.8-2mdk
