@@ -37,7 +37,6 @@ val is_var_number_match : Types.fromparser -> bool
 val non_scalar_context : Types.context -> bool
 val is_scalar_context : Types.context -> bool
 val is_not_a_scalar : Types.fromparser -> bool
-val is_not_a_scalar_or_array : Types.fromparser -> bool
 val is_a_scalar : Types.fromparser -> bool
 val is_a_string : Types.fromparser -> bool
 val is_parenthesized : Types.fromparser -> bool
@@ -90,6 +89,7 @@ val sp_n : 'a Types.any_spaces_pos -> unit
 val sp_p : 'a Types.any_spaces_pos -> unit
 val sp_cr : 'a Types.any_spaces_pos -> unit
 val sp_same : 'a Types.any_spaces_pos -> 'b Types.any_spaces_pos -> unit
+val function_to_context : bool -> string -> Types.maybe_context
 val word_alone :
   Types.fromparser Types.any_spaces_pos ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
@@ -276,7 +276,7 @@ val mcontext_check_none :
   string -> Types.fromparser list -> 'a Types.any_spaces_pos -> unit
 val mcontext_float_or_int : Types.maybe_context list -> Types.maybe_context
 val mcontext_op_assign :
-  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
+  'a Types.any_spaces_pos ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
   Types.maybe_context
 val mtuple_context_concat :
