@@ -97,6 +97,7 @@ let is_always_false = function
   | Raw_string(s, _) -> s = ""
   | String(l, _) -> l = []
   | List [] -> true
+  | Ident(None, "undef", _) -> true
   | _ -> false
 
 let not_complex e =
@@ -605,6 +606,11 @@ let cook_call_op op para pos =
       | [ _; Block [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)); _ ]) ] ; Semi_colon ] ] ->
 	  let l = string_of_Ident l in
 	  warn_rule (sprintf "use \"push @%s, map { ... } ...\" instead of \"foreach (...) { push @%s, ... }\"\n  or sometimes \"@%s = map { ... } ...\"" l l l)
+      | _ -> ())
+  | "if" ->
+      (match para with
+      |	List [Call_op ("=", [ _; e ], _)] :: _ when is_always_true e || is_always_false e -> 
+	  warn_rule "are you sure you did not mean \"==\" instead of \"=\"?"
       | _ -> ())
   | _ -> ());
   let call = Call_op(op, para, raw_pos2pos pos) in
