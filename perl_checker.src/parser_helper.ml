@@ -11,6 +11,15 @@ let get_pos (_, (_, pos)) = raw_pos2pos pos
 let var_dollar_ pos = Deref(I_scalar, Ident(None, "_", pos))
 let var_STDOUT = Deref(I_star, Ident(None, "STDOUT", raw_pos2pos bpos))
 
+let split_name_or_fq_name full_ident =
+  match split_at2 ':'':' full_ident with
+  | [] -> internal_error "split_ident"
+  | [ident] -> None, ident
+  | l ->
+      let fql, name = split_last l in
+      let fq = String.concat "::" fql in
+      Some fq, name
+
 let is_var_dollar_ = function
   | Deref(I_scalar, Ident(None, "_", _)) -> true
   | _ -> false
@@ -408,6 +417,14 @@ let to_List = function
   | l -> List l
 
 let deref_arraylen e = Call_op("last_array_index", [Deref(I_array, e)], raw_pos2pos bpos)
+let deref_raw context e = 
+  let e = match e with
+  | Raw_string(s, pos) -> 
+      let fq, ident = split_name_or_fq_name s in
+      Ident(fq, ident, pos)
+  | _ -> e
+  in Deref(context, e)
+
 let to_Ident ((fq, name), (_, pos)) = Ident(fq, name, raw_pos2pos pos)
 let to_Raw_string (s, (_, pos)) = Raw_string(s, raw_pos2pos pos)
 let to_Method_call (object_, method_, para) = 
@@ -477,6 +494,9 @@ let cook_call_op(op, para, pos) =
       sub_declaration (f1, "") [ Deref(I_func, f2) ]
   | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
       sub_declaration (Ident(None, sf1, pos_f1), "") [ Deref(I_func, f2) ]
+
+  | "=", [ Deref(I_star, (Ident _ as f1)); (Anonymous_sub _ as sub) ] ->
+      sub_declaration (f1, "") [ sub ]
 
   | _ -> 
       call

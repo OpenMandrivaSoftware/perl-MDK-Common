@@ -200,13 +200,11 @@ let read_xs_extension_from_c global_vars_declared package pos =
 	  let offset = strstr s prefix + String.length prefix in
 	  let end_ = String.index_from s offset '"' in
 	  let ident = String.sub s offset (end_ - offset) in
-	  match split_at2 ':'':' ident with
-	  | [_] -> Hashtbl.replace package.vars_declared (I_func, ident) (pos, ref false)
-	  | l -> 
-	      if l <> [] then
-		let fql, name = split_last l in
-		let fq = String.concat "::" (package.package_name :: fql) in
-		Hashtbl.replace global_vars_declared (I_func, fq, name) pos	
+	  match split_name_or_fq_name ident with
+	  | None, ident -> Hashtbl.replace package.vars_declared (I_func, ident) (pos, ref false)
+	  | Some fq, ident -> 
+	      let fq = package.package_name ^ "::" ^ fq in
+	      Hashtbl.replace global_vars_declared (I_func, fq, ident) pos
 	 with Not_found -> ());
       in_bootstrap || str_contains s "XS_VERSION_BOOTCHECK"
     ) false (open_in cfile));
@@ -272,7 +270,7 @@ let get_vars_declaration global_vars_declared package =
   ) package.body
 
 let rec fold_tree f env e = 
-  match f env e with
+ match f env e with
   | Some env -> env
   | None ->
   match e with

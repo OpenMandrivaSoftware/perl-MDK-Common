@@ -7,6 +7,7 @@ val sp_pos_range :
 val get_pos : 'a * ('b * ('c * 'd)) -> string * 'c * 'd
 val var_dollar_ : Types.pos -> Types.fromparser
 val var_STDOUT : Types.fromparser
+val split_name_or_fq_name : string -> string option * string
 val is_var_dollar_ : Types.fromparser -> bool
 val is_var_number_match : Types.fromparser -> bool
 val is_parenthesized : Types.fromparser -> bool
@@ -97,6 +98,7 @@ val is_not_a_scalar : Types.fromparser -> bool
 val maybe_to_Raw_string : Types.fromparser -> Types.fromparser
 val to_List : Types.fromparser list -> Types.fromparser
 val deref_arraylen : Types.fromparser -> Types.fromparser
+val deref_raw : Types.context -> Types.fromparser -> Types.fromparser
 val to_Ident :
   (string option * string) * ('a * (int * int)) -> Types.fromparser
 val to_Raw_string : string * ('a * (int * int)) -> Types.fromparser
