@@ -48,6 +48,7 @@ sub destroy {}
 sub dir_list {}
 sub direction {}
 sub disable_activate {}
+sub down {}
 sub draw {}
 sub draw_arc {}
 sub draw_drawable {}
@@ -95,9 +96,14 @@ sub get_path_str {}
 sub get_pixel_size {}
 sub get_position {}
 sub get_property {}
+sub popup {}
+sub select_path {}
+sub time {}
+
 sub get_selected {}
 sub get_selection {}
 sub get_size {}
+sub get_start_iter {}
 sub get_text {}
 sub get_vadjustment {}
 sub get_value {}
