@@ -36,6 +36,8 @@ wantarray                                please use wantarray() instead of wanta
 
 eval                                     please use "eval $_" instead of "eval"
 
+local *F; open F, "foo";                 use a scalar instead of a bareword (eg: occurrences of F with $F)
+
 $xxx !~ s/xxx/yyy/                       use =~ instead of !~ and negate the return value
 
 pkg::nop $xxx;                           use parentheses around argument (otherwise it might cause syntax errors if the package is "require"d and not "use"d
