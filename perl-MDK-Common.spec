@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 2mdk
+%define release 3mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Nov 17 2003 Guillaume Cottenceau <gc@mandrakesoft.com> 1.1.8-3mdk
+- substInFile: if file is a symlink, make sure it stays a symlink
+
 * Mon Nov 10 2003 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.8-2mdk
 - fix path in po generated from sources
 

@@ -219,6 +219,14 @@ sub glob_ {
 
 sub substInFile(&@) {
     my ($f, $file) = @_;
+    my $linkdest;
+    #- try hard to keep symlinks as they were set
+    if (-l $file) {
+        my $targetfile = readlink $file;
+        unlink $file;
+        $linkdest = $file;
+        $file = $targetfile;
+    }
     if (-s $file) {
 	local @ARGV = $file;
 	local $^I = '';
@@ -235,6 +243,7 @@ sub substInFile(&@) {
 	select $old;
 	eval { output($file, $_) };
     }
+    $linkdest and symlink $file, $linkdest;
 }
 
 
