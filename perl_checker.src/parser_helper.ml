@@ -648,34 +648,26 @@ let cook_call_op op para pos =
   | "." ->
       if List.exists (function Call(Deref(I_func, Ident(None, "N_", _)), _) -> true | _ -> false) para then
 	warn_rule "N_(\"xxx\") . \"yyy\" is dumb since the string \"xxx\" will never get translated"
-  | "||=" | "&&=" ->
-      (match List.hd para with
-      | List [ List _ ] -> warn_rule "remove the parentheses"
-      | e -> if is_not_a_scalar e then warn_rule (sprintf "\"%s\" is only useful with a scalar" op))
-  | "foreach" ->
-      (match para with
-      |	[ _; Block [ expr ; Semi_colon ] ]
-      | [ _; Block [ expr ] ] -> 
-	  (match expr with
-	  | Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)) ; Deref(I_scalar, Ident(None, "_", _)) ]) ] ; _ ], _) ->
-	      let l = string_of_Ident l in
-	      warn_rule (sprintf "use \"push @%s, grep { ... } ...\" instead of \"foreach (...) { push @%s, $_ if ... }\"\n  or sometimes \"@%s = grep { ... } ...\"" l l l) 
-	  | Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)); _ ]) ] ; _ ], _) ->
-	      let l = string_of_Ident l in
-	      warn_rule (sprintf "use \"push @%s, map { ... ? ... : () } ...\" instead of \"foreach (...) { push @%s, ... if ... }\"\n  or sometimes \"@%s = map { ... ? ... : () } ...\"\n  or sometimes \"@%s = map { if_(..., ...) } ...\"" l l l l)
-	  | List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)); _ ]) ] ->
-	      let l = string_of_Ident l in
-	      warn_rule (sprintf "use \"push @%s, map { ... } ...\" instead of \"foreach (...) { push @%s, ... }\"\n  or sometimes \"@%s = map { ... } ...\"" l l l)
-	  | _ -> ())
-      | _ -> ())
-  | "if" ->
-      (match para with
-      |	List [Call_op ("=", [ _; e ], _)] :: _ when is_always_true e || is_always_false e -> 
-	  warn_rule "are you sure you did not mean \"==\" instead of \"=\"?"
-      | _ -> ())
   | _ -> ());
 
   (match op, para with
+  | "if", List [Call_op ("=", [ _; e ], _)] :: _ when is_always_true e || is_always_false e -> 
+      warn_rule "are you sure you did not mean \"==\" instead of \"=\"?"
+
+  | "foreach", [ _; Block [ expr ; Semi_colon ] ]
+  | "foreach", [ _; Block [ expr ] ] -> 
+      (match expr with
+      | Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)) ; Deref(I_scalar, Ident(None, "_", _)) ]) ] ; _ ], _) ->
+	  let l = string_of_Ident l in
+	  warn_rule (sprintf "use \"push @%s, grep { ... } ...\" instead of \"foreach (...) { push @%s, $_ if ... }\"\n  or sometimes \"@%s = grep { ... } ...\"" l l l) 
+      | Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)); _ ]) ] ; _ ], _) ->
+	  let l = string_of_Ident l in
+	  warn_rule (sprintf "use \"push @%s, map { ... ? ... : () } ...\" instead of \"foreach (...) { push @%s, ... if ... }\"\n  or sometimes \"@%s = map { ... ? ... : () } ...\"\n  or sometimes \"@%s = map { if_(..., ...) } ...\"" l l l l)
+      | List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)); _ ]) ] ->
+	  let l = string_of_Ident l in
+	  warn_rule (sprintf "use \"push @%s, map { ... } ...\" instead of \"foreach (...) { push @%s, ... }\"\n  or sometimes \"@%s = map { ... } ...\"" l l l)
+      | _ -> ())
+
   | "=", [My_our _; Ident(None, "undef", _)] -> 
       warn pos "no need to initialize variable, it's done by default"
   | "=", [My_our _; List[]] -> 
@@ -686,6 +678,11 @@ let cook_call_op op para pos =
 
   | "=", [ Deref(I_star, String ([(sf1, List [])], _)); _ ] ->
       warn_rule (sprintf "write *{'%s'} instead of *{\"%s\"}" sf1 sf1)
+
+  | "||=", List [ List _ ] :: _
+  | "&&=", List [ List _ ] :: _ -> warn_rule "remove the parentheses"
+  | "||=", e :: _
+  | "&&=", e :: _ -> if is_not_a_scalar e then warn_rule (sprintf "\"%s\" is only useful with a scalar" op)
 
   | "==", [Call_op("last_array_index", _, _); Num("0", _)] ->
       warn_rule "$#x == 0 is better written @x == 1"
@@ -702,25 +699,25 @@ let cook_call_op op para pos =
 
   | _ -> ());
 
-  match op, para with
-  | "=", [ Deref(I_star, (Ident _ as f1)); Deref(I_star, (Ident _ as f2)) ] ->
-      let s1, s2 = string_of_Ident f1, string_of_Ident f2 in
-      warn pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
-      sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
-  | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Deref(I_star, (Ident _ as f2)) ] ->
-      let s2 = string_of_Ident f2 in
-      warn pos (sprintf "\"*{'%s'} = *%s\" is better written \"*{'%s'} = \\&%s\"" sf1 s2 sf1 s2) ;
-      sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
+match op, para with
+| "=", [ Deref(I_star, (Ident _ as f1)); Deref(I_star, (Ident _ as f2)) ] ->
+    let s1, s2 = string_of_Ident f1, string_of_Ident f2 in
+    warn pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
+    sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
+| "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Deref(I_star, (Ident _ as f2)) ] ->
+    let s2 = string_of_Ident f2 in
+    warn pos (sprintf "\"*{'%s'} = *%s\" is better written \"*{'%s'} = \\&%s\"" sf1 s2 sf1 s2) ;
+    sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
 
-  | "=", [ Deref(I_star, (Ident _ as f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
-      sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
-  | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
-      sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
+| "=", [ Deref(I_star, (Ident _ as f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
+    sub_declaration (f1, None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
+| "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
+    sub_declaration (Ident(None, sf1, pos_f1), None) [ call_with_same_para_special(Deref(I_func, f2)) ] Glob_assign
 
-  | "=", [ Deref(I_star, (Ident _ as f1)); (Anonymous_sub(proto, sub, _)) ] ->
-      sub_declaration (f1, proto) [ sub ] Glob_assign
+| "=", [ Deref(I_star, (Ident _ as f1)); (Anonymous_sub(proto, sub, _)) ] ->
+    sub_declaration (f1, proto) [ sub ] Glob_assign
 
-  | _ -> Call_op(op, para, raw_pos2pos pos)
+| _ -> Call_op(op, para, raw_pos2pos pos)
 
 let to_Call_op mcontext op para esp_start esp_end = 
   let pos = raw_pos_range esp_start esp_end in
