@@ -133,7 +133,7 @@ let is_global_var context ident =
   | I_func ->
       (match ident with
       | "-b" | "-d" | "-e" | "-f" | "-l" | "-r" | "-s" | "-w" | "-x"
-      | "abs" | "alarm" | "basename" | "bless" 
+      | "abs" | "alarm" | "bless" 
       | "caller" | "chdir" | "chmod" | "chomp" | "chop" | "chown" | "chr" | "chroot" | "close" | "closedir" | "crypt"
       | "defined" | "delete" | "die"
       | "each" | "endpwent" | "eof" | "eval" | "exec" | "exists" | "exit"
