@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 4mdk
+%define release 5mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -49,6 +49,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Tue Jul 23 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-5mdk
+- perl_checker: catch misuse of =~ when = was meant
+- MDK/Common/DataStructure.pm: add deref_array
+
 * Wed Jul 17 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-4mdk
 - perl_checker: add new checks
 - perl_checker: exclude Date::Manip

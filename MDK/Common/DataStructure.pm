@@ -47,6 +47,13 @@ whereas C<scalar f()> would return "b"
 
 de-reference
 
+=item deref_array(REF)
+
+de-reference arrays:
+
+    deref_array [ "a", "b" ]	#=> ("a", "b")
+    deref_array "a" 		#=> "a" 
+
 =item is_empty_array_ref(SCALAR)
 
 is the scalar undefined or is the array empty
@@ -99,7 +106,7 @@ use MDK::Common::Func;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(ikeys add2hash add2hash_ put_in_hash member invbool listlength deref is_empty_array_ref is_empty_hash_ref uniq difference2 intersection next_val_in_array group_by2 list2kv);
+@EXPORT_OK = qw(ikeys add2hash add2hash_ put_in_hash member invbool listlength deref deref_array is_empty_array_ref is_empty_hash_ref uniq difference2 intersection next_val_in_array group_by2 list2kv);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -112,6 +119,7 @@ sub invbool { my $a = shift; $$a = !$$a; $$a }
 sub listlength { scalar @_ }
 sub strcpy { substr($_[0], $_[2] || 0, length $_[1]) = $_[1] }
 sub deref { ref $_[0] eq "ARRAY" ? @{$_[0]} : ref $_[0] eq "HASH" ? %{$_[0]} : $_[0] }
+sub deref_array { ref $_[0] eq "ARRAY" ? @{$_[0]} : $_[0] }
 
 sub is_empty_array_ref { my $a = shift; !defined $a || @$a == 0 }
 sub is_empty_hash_ref { my $a = shift; !defined $a || keys(%$a) == 0 }
