@@ -22,11 +22,11 @@ sub all { my ($_a, $_b, $_swap) = @_ }
 sub as_arrayref { my ($_a, $_b, $_swap) = @_ }
 sub bool { my ($_a, $_b, $_swap) = @_ }
 sub Glib::Flags::eq { my ($_a, $_b, $_swap) = @_ }
-sub ge { my ($_a, $_b, $_swap) = @_ }
+sub Glib::Flags::ge { my ($_a, $_b, $_swap) = @_ }
 sub intersect { my ($_a, $_b, $_swap) = @_ }
-sub sub { my ($_a, $_b, $_swap) = @_ }
+sub Glib::Flags::sub { my ($_a, $_b, $_swap) = @_ }
 sub union { my ($_a, $_b, $_swap) = @_ }
-sub xor { my ($_a, $_b, $_swap) = @_ }
+sub Glib::Flags::xor { my ($_a, $_b, $_swap) = @_ }
 
 package Glib::IO;
 our @ISA = qw();

@@ -937,7 +937,7 @@ sub spans_intersect_foreach { my ($_region, $_spans_ref, $_sorted, $_func, $_o_d
 sub subtract { my ($_source1, $_source2) = @_ }
 sub union { my ($_source1, $_source2) = @_ }
 sub union_with_rect { my ($_region, $_rect) = @_ }
-sub xor { my ($_source1, $_source2) = @_ }
+sub Gtk2::Gdk::Region::xor { my ($_source1, $_source2) = @_ }
 
 package Gtk2::Gdk::Rgb;
 our @ISA = qw();
