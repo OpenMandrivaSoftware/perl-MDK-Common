@@ -77,11 +77,19 @@ let get_current_package t =
 let from_qw_raw = function
   | Call_op("qw", [ Raw_string(s, pos)], _) -> 
       List.map (fun symbol -> symbol, pos) (words s)
+  | String([s, List []], pos) -> [ s, pos ]
   | String(_, pos) ->
       warn_with_pos pos "not recognised yet" ;
       []
   | Raw_string(s, pos) ->
       [ s, pos ]
+  | List [] -> []
+  | List [ List l ] ->
+      List.map (function
+	| String([s, List []], pos)
+	| Raw_string(s, pos) -> s, pos
+	| Ident(_, _, pos) as ident -> string_of_Ident ident, pos
+      ) l
   | _ -> internal_error "from_qw_raw"
 
 let from_qw e =
@@ -177,7 +185,7 @@ let get_uses t =
     | Use(Ident _ as pkg, _) when uses_external_package (string_of_Ident pkg) -> uses
     | Use(Ident(_, _, pos) as ident, l) ->
 	let package = string_of_Ident ident in
-	let para = if l = [] then None else Some(from_qw (List.hd l)) in
+	let para = if l = [] then None else Some(collect from_qw l) in
 	(package, (para, pos)) :: uses
     | _ -> uses
   ) [] t

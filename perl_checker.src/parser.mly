@@ -168,7 +168,7 @@ decl:
 
 use:
 | use_word listexpr semi_colon {sp_n($2); new_esp M_none (Use($1.any, $2.any.expr)) $1 $3}
-| use_revision RAW_IDENT_PAREN PAREN PAREN_END {new_esp M_none (Use(to_Ident $2, [])) $1 $2}
+| use_revision word_paren PAREN listexpr PAREN_END {sp_0($4); sp_0_or_cr($5); new_esp M_none (Use($2.any, $4.any.expr)) $1 $5}
 
 use_word:
 | use_revision word comma {new_esp M_none $2.any $1 $3}
