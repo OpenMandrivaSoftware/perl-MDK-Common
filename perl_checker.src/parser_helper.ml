@@ -63,6 +63,7 @@ let is_a_scalar = function
   | Num _
   | Raw_string _
   | String _ -> true
+  | My_our(_, [ context, _ ], _)
   | Deref_with(_, context, _, _)
   | Deref(context, _) -> is_scalar_context context
   | _ -> false
@@ -439,8 +440,13 @@ let check_unneeded_var_dollar_not esp =
   if is_var_dollar_ esp.any.expr then warn esp.pos "\"$_ !~ /regexp/\" can be written \"!/regexp/\"" else
   if is_var_number_match esp.any.expr then warn esp.pos "do not use the result of a match (eg: $1) to match another pattern"
 let check_unneeded_var_dollar_s esp = 
-  if is_var_dollar_ esp.any.expr then warn esp.pos "\"$_ =~ s/regexp/.../\" can be written \"s/regexp/.../\"" else
-  if is_var_number_match esp.any.expr then die_with_rawpos esp.pos "do not modify the result of a match (eg: $1)"
+  let expr = esp.any.expr in
+  if is_var_dollar_ expr then warn esp.pos "\"$_ =~ s/regexp/.../\" can be written \"s/regexp/.../\"" else
+  if is_var_number_match expr then die_with_rawpos esp.pos "do not modify the result of a match (eg: $1)" else
+  let expr = match expr with
+  | List [List [Call_op("=", [ expr; _], _)]] -> expr (* check $xx in ($xx = ...) =~ ... *)
+  | _ -> expr in
+  if is_a_string expr || not (is_a_scalar expr) then warn esp.pos "you can only use s/// on a variable"
 
 let check_my esp = if esp.any <> "my" then die_rule "syntax error"
 let check_foreach esp = if esp.any = "for"     then warn esp.pos "write \"foreach\" instead of \"for\""
