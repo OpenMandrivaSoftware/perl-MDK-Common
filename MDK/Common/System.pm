@@ -379,7 +379,9 @@ sub update_gnomekderc {
 
 sub fuzzy_pidofs {
     my ($regexp) = @_;
-    grep { /^(\d+)$/ && MDK::Common::File::cat_("/proc/$_/cmdline") =~ /$regexp/ } MDK::Common::File::all('/proc');
+    grep { 
+	/^(\d+)$/ && (MDK::Common::File::cat_("/proc/$_/cmdline") || readlink("/proc/$_/exe") || '') =~ /$regexp/;	
+    } MDK::Common::File::all('/proc');
 }
 
 1;
