@@ -144,6 +144,7 @@ sub intersection { my (%l, @m); @l{@{shift @_}} = (); foreach (@_) { @m = grep {
 
 sub uniq_(&@) {
     my $f = shift;
+    my %l;
     $l{$f->($_)} = 1 foreach @_;
     grep { delete $l{$f->($_)} } @_;
 }
