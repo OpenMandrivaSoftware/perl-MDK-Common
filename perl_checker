@@ -41,6 +41,7 @@ sub begin {
 begin();
 
 while (@ARGV) {
+    $prev_ARGV = $ARGV;
     $ARGV = shift @ARGV;
 
     $package = 'main';
@@ -57,7 +58,10 @@ while (@ARGV) {
 	    push @re_exported, $package;
 	}
 
-	/^=head/ .. /^=cut/ and next;
+	if (/^=(head|begin)/ .. /^=cut/) {
+          die "missing =cut in $prev_ARGV\n" if $. == 1;
+          next;
+        }
 	/^\s*#/ and next;
 
 	$explicit_no_warning = /#-#/;

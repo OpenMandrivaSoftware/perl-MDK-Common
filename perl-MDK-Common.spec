@@ -52,6 +52,7 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Thu Oct 17 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-17mdk
 - add a check for function call PKG::f instead of PKG::f()
+- ensure a missing "=cut" doesn't make perl_checker go crazy (eg: when titi adds some doc)
 
 * Fri Sep  6 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-16mdk
 - MDK::Common::System::update_gnomekderc: fix adding lines to the last section when it doesn't end with a cr
