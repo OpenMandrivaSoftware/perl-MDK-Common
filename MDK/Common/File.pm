@@ -58,6 +58,10 @@ creates the directory (make parent directories as needed)
 
 remove the files (including sub-directories)
 
+=item cp_f(FILES, DEST)
+
+just like "cp -f"
+
 =item cp_af(FILES, DEST)
 
 just like "cp -af"
@@ -113,7 +117,7 @@ L<MDK::Common>
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(dirname basename cat_ cat_or_die cat__ output output_p output_with_perm append_to_file linkf symlinkf renamef mkdir_p rm_rf cp_af touch all glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
+@EXPORT_OK = qw(dirname basename cat_ cat_or_die cat__ output output_p output_with_perm append_to_file linkf symlinkf renamef mkdir_p rm_rf cp_f cp_af touch all glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
@@ -155,7 +159,10 @@ sub rm_rf {
     1;
 }
 
-sub cp_af {
+sub cp_with_option {
+    my $option = shift @_;
+    my $keep_symlinks = $option =~ /a/;
+
     my $dest = pop @_;
 
     @_ or return;
@@ -170,7 +177,7 @@ sub cp_af {
 	if (-d $src) {
 	    -d $dest or mkdir $dest, (stat($src))[2] or die "mkdir: can't create directory $dest: $!\n";
 	    cp_af(glob_($src), $dest);
-	} elsif (-l $src) {
+	} elsif (-l $src && $keep_symlinks) {
 	    unless (symlink((readlink($src) || die "readlink failed: $!"), $dest)) {
 		warn "symlink: can't create symlink $dest: $!\n";
 	    }
@@ -183,6 +190,9 @@ sub cp_af {
     }
     1;
 }
+
+sub cp_f  { cp_with_option('f', @_) }
+sub cp_af { cp_with_option('af', @_) }
 
 sub touch {
     my ($f) = @_;
