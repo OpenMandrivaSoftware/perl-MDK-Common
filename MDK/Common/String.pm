@@ -92,7 +92,6 @@ sub formatList {
 }
 sub formatError {
     my ($err) = @_;
-    ref($err) eq 'SCALAR' and $err = $$err;
     if (!$::testing) {
 	$err =~ s/Uncaught exception from user code:\n\t//s; #- happens with "use diagnostics"
 	$err =~ s/ at .*?$/./s;
