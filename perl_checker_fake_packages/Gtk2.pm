@@ -103,6 +103,7 @@ sub grab_default {}
 sub grab_focus {}
 sub height {}
 sub hide {}
+sub idle_add {}
 sub insert {}
 sub insert_text {}
 sub iter_children {}
