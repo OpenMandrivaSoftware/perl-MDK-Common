@@ -763,6 +763,10 @@ let call_func is_a_func (e, para) =
 
       | "map" | "grep" -> 
 	  (match para with
+
+	  | Anonymous_sub(None, Block [ List [ Call(Deref(I_func, Ident(None, "if_", _)),
+						    [ List [ _ ; Deref(I_scalar, Ident(None, "_", _)) ] ]) ] ], _) :: _ ->
+						      warn_rule "you can replace \"map { if_(..., $_) }\" with \"grep { ... }\""
 	  | Anonymous_sub _ :: _ -> ()
 	  | _ -> warn_rule (sprintf "always use \"%s\" with a block (eg: %s { ... } @list)" f f));
 	  None
