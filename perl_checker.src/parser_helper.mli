@@ -124,7 +124,7 @@ val check_for_foreach :
   string Types.any_spaces_pos ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos -> unit
 val check_block_sub :
-  Types.fromparser list Types.any_spaces_pos ->
+  (Types.fromparser list * bool) Types.any_spaces_pos ->
   'a Types.any_spaces_pos -> unit
 val check_block_ref :
   Types.fromparser list Types.any_spaces_pos ->
@@ -155,6 +155,9 @@ val to_Method_call :
 val to_Deref_with :
   Types.context * Types.context * Types.fromparser * Types.fromparser ->
   Types.fromparser
+val lines_to_Block :
+  (Types.fromparser list * bool) Types.any_spaces_pos ->
+  'a Types.any_spaces_pos -> Types.fromparser
 val to_Local :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
   Types.fromparser
@@ -163,7 +166,8 @@ val sub_declaration :
   Types.fromparser list -> Types.sub_declaration_kind -> Types.fromparser
 val anonymous_sub :
   string option ->
-  Types.fromparser list Types.any_spaces_pos -> Types.fromparser
+  (Types.fromparser list * bool) Types.any_spaces_pos ->
+  'a Types.any_spaces_pos -> Types.fromparser
 val call_with_same_para_special : Types.fromparser -> Types.fromparser
 val remove_call_with_same_para_special : Types.fromparser -> Types.fromparser
 val check_My_under_condition : string -> Types.fromparser -> unit

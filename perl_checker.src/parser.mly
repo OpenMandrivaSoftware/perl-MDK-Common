@@ -99,12 +99,12 @@
 
 
 %%
-prog: lines EOF {$1.any}
+prog: lines EOF {fst $1.any}
 
 lines: /* A collection of "lines" in the program */
-| { default_esp [] }
-| sideff { new_1esp [$1.any] $1 }
-| line lines { if $2.any <> [] then mcontext_check_none "value is dropped" $1.any $1; new_esp $2.mcontext ($1.any @ $2.any) $1 $2 }
+| { default_esp ([], true) }
+| sideff { new_1esp ([$1.any], false) $1 }
+| line lines { if fst $2.any <> [] then mcontext_check_none "value is dropped" $1.any $1; new_esp $2.mcontext ($1.any @ fst $2.any, snd $2.any) $1 $2 }
 
 line:
 | decl { new_1esp [$1.any] $1 }
@@ -114,28 +114,28 @@ line:
 | PERL_CHECKER_COMMENT {sp_p($1); new_1esp [Perl_checker_comment($1.any, get_pos $1)] $1 }
 | semi_colon {new_1esp [Semi_colon] $1 }
 | sideff semi_colon {new_1esp [$1.any ; Semi_colon] $1 }
-| BRACKET lines BRACKET_END            {check_block_sub $2 $3; new_esp $2.mcontext [Block $2.any] $1 $3}
-| BRACKET lines BRACKET_END semi_colon {check_block_sub $2 $3; new_esp $2.mcontext [Block $2.any] $1 $4}
+| BRACKET lines BRACKET_END            {new_esp $2.mcontext [lines_to_Block $2 $3] $1 $3}
+| BRACKET lines BRACKET_END semi_colon {new_esp $2.mcontext [lines_to_Block $2 $3] $1 $4}
 
 if_then_else: /* Real conditional expressions */
-| IF     PAREN expr PAREN_END BRACKET lines BRACKET_END elsif else_ {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; check_block_sub $6 $7; to_Call_op (if $9.any = [] then M_none else mcontext_lmerge ($6.mcontext :: mcontext_lmaybe $8 @ [$9.mcontext])) "if"     (prio_lo P_loose $3 :: Block $6.any :: $8.any @ $9.any) $1 $9}
-| UNLESS PAREN expr PAREN_END BRACKET lines BRACKET_END elsif else_ {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; check_block_sub $6 $7; check_unless_else $8 $9; to_Call_op M_none "unless" (prio_lo P_loose $3 :: Block $6.any :: $8.any @ $9.any) $1 $9}
+| IF     PAREN expr PAREN_END BRACKET lines BRACKET_END elsif else_ {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; to_Call_op (if $9.any = [] then M_none else mcontext_lmerge ($6.mcontext :: mcontext_lmaybe $8 @ [$9.mcontext])) "if"     (prio_lo P_loose $3 :: lines_to_Block $6 $7 :: $8.any @ $9.any) $1 $9}
+| UNLESS PAREN expr PAREN_END BRACKET lines BRACKET_END elsif else_ {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; check_unless_else $8 $9; to_Call_op M_none "unless" (prio_lo P_loose $3 :: lines_to_Block $6 $7 :: $8.any @ $9.any) $1 $9}
 
 elsif:
 |  {default_esp []}
-| ELSIF PAREN expr PAREN_END BRACKET lines BRACKET_END elsif {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; check_block_sub $6 $7; new_esp (mcontext_lmerge ($6.mcontext :: mcontext_lmaybe $8)) (prio_lo P_loose $3 :: Block $6.any :: $8.any) $1 $8}
+| ELSIF PAREN expr PAREN_END BRACKET lines BRACKET_END elsif {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; new_esp (mcontext_lmerge ($6.mcontext :: mcontext_lmaybe $8)) (prio_lo P_loose $3 :: lines_to_Block $6 $7 :: $8.any) $1 $8}
 
 else_: 
 |            { default_esp [] }
-| ELSE BRACKET lines BRACKET_END {sp_p($1); sp_n($2); check_block_sub $3 $4; new_esp $3.mcontext [Block $3.any] $1 $4}
+| ELSE BRACKET lines BRACKET_END {sp_p($1); sp_n($2); new_esp $3.mcontext [lines_to_Block $3 $4] $1 $4}
 
 loop:
-| WHILE PAREN expr PAREN_END BRACKET lines BRACKET_END cont {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; check_block_sub $6 $7; to_Call_op M_none "while" [ prio_lo P_loose $3; Block $6.any ] $1 $8}
-| UNTIL PAREN expr PAREN_END BRACKET lines BRACKET_END cont {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; check_block_sub $6 $7; to_Call_op M_none "until" [ prio_lo P_loose $3; Block $6.any ] $1 $8}
-| FOR PAREN expr_or_empty semi_colon expr_or_empty semi_colon expr_or_empty PAREN_END BRACKET lines BRACKET_END {sp_p($1); check_for($1); sp_n($2); sp_0($3); sp_p($5); sp_p($7); sp_0($8); sp_n($9); check_block_sub $10 $11; to_Call_op M_none "for" [ $3.any; $5.any; $7.any; Block $10.any ] $1 $11}
-| FOR SCALAR_IDENT PAREN expr PAREN_END BRACKET lines BRACKET_END cont { warn_rule [Warn_normalized_expressions] "don't use for without \"my\"ing the iteration variable"; sp_p($1); sp_0($4); sp_0_or_cr($5); sp_p($6); mcontext_check M_list $4; check_block_sub $7 $8; to_Call_op M_none "foreach" [ prio_lo P_loose $4; Block $7.any ] $1 $9}
-| FOR              PAREN expr PAREN_END BRACKET lines BRACKET_END cont {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_list $3; check_block_sub $6 $7; check_for_foreach $1 $3; to_Call_op M_none "foreach" [ prio_lo P_loose $3; Block $6.any ] $1 $8}
-| for_my lines BRACKET_END cont {check_block_sub $2 $3; to_Call_op M_none "foreach my" ($1.any @ [ Block $2.any ]) $1 $4}
+| WHILE PAREN expr PAREN_END BRACKET lines BRACKET_END cont {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; to_Call_op M_none "while" [ prio_lo P_loose $3; lines_to_Block $6 $7 ] $1 $8}
+| UNTIL PAREN expr PAREN_END BRACKET lines BRACKET_END cont {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_bool $3; to_Call_op M_none "until" [ prio_lo P_loose $3; lines_to_Block $6 $7 ] $1 $8}
+| FOR PAREN expr_or_empty semi_colon expr_or_empty semi_colon expr_or_empty PAREN_END BRACKET lines BRACKET_END {sp_p($1); check_for($1); sp_n($2); sp_0($3); sp_p($5); sp_p($7); sp_0($8); sp_n($9); to_Call_op M_none "for" [ $3.any; $5.any; $7.any; lines_to_Block $10 $11 ] $1 $11}
+| FOR SCALAR_IDENT PAREN expr PAREN_END BRACKET lines BRACKET_END cont { warn_rule [Warn_normalized_expressions] "don't use for without \"my\"ing the iteration variable"; sp_p($1); sp_0($4); sp_0_or_cr($5); sp_p($6); mcontext_check M_list $4; to_Call_op M_none "foreach" [ prio_lo P_loose $4; lines_to_Block $7 $8 ] $1 $9}
+| FOR              PAREN expr PAREN_END BRACKET lines BRACKET_END cont {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_list $3; check_for_foreach $1 $3; to_Call_op M_none "foreach" [ prio_lo P_loose $3; lines_to_Block $6 $7 ] $1 $8}
+| for_my lines BRACKET_END cont { to_Call_op M_none "foreach my" ($1.any @ [ lines_to_Block $2 $3 ]) $1 $4}
 
 for_my:
 | FOR MY_OUR SCALAR_IDENT PAREN expr PAREN_END BRACKET {sp_p($1); check_my($2); check_foreach($1); sp_n($4); sp_0($5); sp_0_or_cr($6); sp_p($7); new_esp M_none [ My_our($2.any, [I_scalar, snd $3.any], get_pos $3); prio_lo P_loose $5 ] $1 $7}
@@ -158,12 +158,12 @@ decl:
 | FORMAT ASSIGN {new_esp M_none Too_complex $1 $2}
 | func_decl semi_colon {if snd $1.any = None then die_rule "there is no need to pre-declare in Perl!" else (warn_rule [Warn_normalized_expressions] "please don't use prototype pre-declaration" ; new_esp M_special Too_complex $1 $2) }
 | func_decl BRACKET BRACKET_END {sp_n($2); sp_0_or_cr($3); let name, proto = $1.any in new_esp M_none (sub_declaration (name, proto) [] Real_sub_declaration) $1 $3}
-| func_decl BRACKET lines BRACKET_END {sp_n($2); check_block_sub $3 $4; new_esp M_none (sub_declaration $1.any $3.any Real_sub_declaration) $1 $4}
+| func_decl BRACKET lines BRACKET_END {sp_n($2); check_block_sub $3 $4; new_esp M_none (sub_declaration $1.any (fst $3.any) Real_sub_declaration) $1 $4}
 | func_decl BRACKET BRACKET expr BRACKET_END            BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_esp M_none (sub_declaration $1.any [hash_ref $4] Real_sub_declaration) $1 $6}
 | func_decl BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); new_esp M_none (sub_declaration $1.any [hash_ref $4; Semi_colon] Real_sub_declaration) $1 $7}
 | PACKAGE word semi_colon {sp_0_or_cr($1); sp_1($2); new_esp M_none (Package $2.any) $1 $3}
-| BEGIN BRACKET lines BRACKET_END {sp_0_or_cr($1); sp_1($2); check_block_sub $3 $4; new_esp M_none (Sub_declaration(Ident(None, "BEGIN", get_pos $1), None, Block $3.any, Glob_assign)) $1 $4}
-| END   BRACKET lines BRACKET_END {sp_0_or_cr($1); sp_1($2); check_block_sub $3 $4; new_esp M_none (Sub_declaration(Ident(None, "END",   get_pos $1), None, Block $3.any, Glob_assign)) $1 $4}
+| BEGIN BRACKET lines BRACKET_END {sp_0_or_cr($1); sp_1($2); new_esp M_none (Sub_declaration(Ident(None, "BEGIN", get_pos $1), None, lines_to_Block $3 $4, Glob_assign)) $1 $4}
+| END   BRACKET lines BRACKET_END {sp_0_or_cr($1); sp_1($2); new_esp M_none (Sub_declaration(Ident(None, "END",   get_pos $1), None, lines_to_Block $3 $4, Glob_assign)) $1 $4}
 | use {$1}
 
 use:
@@ -291,10 +291,10 @@ term:
 
 | BRACKET BRACKET_END {new_pesp (M_ref M_hash) P_expr (Ref(I_hash, List [])) $1 $2} /* empty hash */
 | BRACKET_HASHREF expr BRACKET_END %prec PREC_HIGH {sp_p($3); new_pesp (M_ref M_hash) P_expr (hash_ref $2) $1 $3} /* { foo => "Bar" } */
-| SUB            BRACKET BRACKET_END %prec PREC_HIGH {sp_n($2); sp_0($3); new_pesp (M_ref M_sub) P_expr (anonymous_sub None          (new_esp (M_ref M_array) [] $2 $2)) $1 $3}
-| SUB_WITH_PROTO BRACKET BRACKET_END %prec PREC_HIGH {sp_n($2); sp_0($3); new_pesp (M_ref M_sub) P_expr (anonymous_sub (Some $1.any) (new_esp (M_ref M_array) [] $2 $2)) $1 $3}
-| SUB            BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); check_block_sub $3 $4; new_pesp (M_ref M_sub) P_expr (anonymous_sub None          $3) $1 $4}
-| SUB_WITH_PROTO BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); check_block_sub $3 $4; new_pesp (M_ref M_sub) P_expr (anonymous_sub (Some $1.any) $3) $1 $4}
+| SUB            BRACKET BRACKET_END %prec PREC_HIGH {sp_n($2); sp_0($3); new_pesp (M_ref M_sub) P_expr (Anonymous_sub(None, Block [], pos_range $2 $3)) $1 $3}
+| SUB_WITH_PROTO BRACKET BRACKET_END %prec PREC_HIGH {sp_n($2); sp_0($3); new_pesp (M_ref M_sub) P_expr (Anonymous_sub(Some $1.any, Block [], pos_range $2 $3)) $1 $3}
+| SUB            BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); new_pesp (M_ref M_sub) P_expr (anonymous_sub None          $3 $4) $1 $4}
+| SUB_WITH_PROTO BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); new_pesp (M_ref M_sub) P_expr (anonymous_sub (Some $1.any) $3 $4) $1 $4}
 
 | termdo {new_1pesp P_tok $1.any $1}
 | REF term {new_pesp (M_ref $2.mcontext) P_expr (Ref(I_scalar, remove_call_with_same_para_special $2.any.expr)) $1 $2} /* \$x, \@y, \%z */
@@ -324,7 +324,7 @@ term:
 | ONE_SCALAR_PARA variable                 {call_one_scalar_para $1 [$2.any] $1 $2}
 | ONE_SCALAR_PARA restricted_subscripted   {call_one_scalar_para $1 [$2.any] $1 $2}
 | ONE_SCALAR_PARA parenthesized            {call_one_scalar_para $1 $2.any.expr $1 $2}
-| ONE_SCALAR_PARA BRACKET lines BRACKET_END {sp_n($2); check_block_sub $3 $4; new_pesp M_unknown P_tok (call(Deref(I_func, Ident(None, $1.any, raw_pos2pos $1.pos)), [anonymous_sub None $3])) $1 $4} /* eval { foo } */
+| ONE_SCALAR_PARA BRACKET lines BRACKET_END {sp_n($2); new_pesp M_unknown P_tok (call(Deref(I_func, Ident(None, $1.any, raw_pos2pos $1.pos)), [anonymous_sub None $3 $4])) $1 $4} /* eval { foo } */
 | ONE_SCALAR_PARA diamond {call_one_scalar_para $1 [$2.any] $1 $2}
 | ONE_SCALAR_PARA {call_one_scalar_para $1 [] $1 $1}
 | ONE_SCALAR_PARA word argexpr {check_parenthesized_first_argexpr_with_Ident  $2.any $3; call_one_scalar_para $1 [call(Deref(I_func, $2.any), $3.any.expr)] $1 $3} /* ref foo $a, $b */
@@ -334,11 +334,11 @@ term:
 | func parenthesized {sp_0($2); call_func $1 $2} /* &foo(@args) */
 | word argexpr {check_parenthesized_first_argexpr_with_Ident $1.any $2; call_no_paren $1 $2} /* foo $a, $b */
 | word BRACKET lines BRACKET_END MULT { die_with_rawpos $5.pos "I can't handle this correctly, please add parentheses" }
-| word BRACKET lines BRACKET_END COMMA argexpr %prec LSTOP {sp_n($2); new_pesp M_unknown P_call_no_paren (call(Deref(I_func, $1.any), Ref(I_hash, List $3.any) :: $6.any.expr)) $1 $6} /* bless { foo }, $bar */
+| word BRACKET lines BRACKET_END COMMA argexpr %prec LSTOP {sp_n($2); new_pesp M_unknown P_call_no_paren (call(Deref(I_func, $1.any), Ref(I_hash, List (fst $3.any)) :: $6.any.expr)) $1 $6} /* bless { foo }, $bar */
 | word_paren parenthesized {sp_0($2); call_with_paren $1 $2} /* foo(@args) */
-| word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); check_block_sub $3 $4; call_and_context(Deref(I_func, $1.any), anonymous_sub None $3 :: $5.any.expr) false (if $5.any.expr = [] then P_tok else P_call_no_paren) $1 $5} /* map { foo } @bar */
-| word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_pesp M_unknown (if $7.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ hash_ref $4 ] $4 $4) :: $7.any.expr)) $1 $7} /* map { { foo } } @bar */
-| word BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); new_pesp M_unknown (if $8.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ hash_ref $4; Semi_colon ] $4 $4) :: $8.any.expr)) $1 $8} /* map { { foo }; } @bar */
+| word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); call_and_context(Deref(I_func, $1.any), anonymous_sub None $3 $4 :: $5.any.expr) false (if $5.any.expr = [] then P_tok else P_call_no_paren) $1 $5} /* map { foo } @bar */
+| word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_pesp M_unknown (if $7.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) ([ hash_ref $4 ], false) $3 $5) $6 :: $7.any.expr)) $1 $7} /* map { { foo } } @bar */
+| word BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); new_pesp M_unknown (if $8.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) ([ hash_ref $4; Semi_colon ], true) $3 $6) $7 :: $8.any.expr)) $1 $8} /* map { { foo }; } @bar */
 
 | term ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); if $4.any.expr = [] then warn [Warn_suggest_simpler] $4.pos "remove these unneeded parentheses"; new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, $4.any.expr)) $1 $4} /* $foo->bar(list) */
 | term ARROW word_or_scalar {sp_0($2); sp_0($3); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, [])) $1 $3} /* $foo->bar */
@@ -443,7 +443,7 @@ my_our_paren:
 
 termdo: /* Things called with "do" */
 | DO term %prec UNIOP { die_rule "\"do EXPR\" not allowed" } /* do $filename */
-| DO BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); check_block_sub $3 $4; new_esp $3.mcontext (Block $3.any) $1 $4} /* do { code */
+| DO BRACKET lines BRACKET_END %prec PREC_HIGH {sp_n($2); new_esp $3.mcontext (lines_to_Block $3 $4) $1 $4} /* do { code */
 
 bracket_subscript:
 | BRACKET expr BRACKET_END {sp_0($1); sp_same $2 $3; check_hash_subscript $2; new_esp M_special (only_one_in_List $2) $1 $3}

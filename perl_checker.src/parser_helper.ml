@@ -532,14 +532,16 @@ let check_for_foreach esp arg =
       if esp.any = "for" then warn [Warn_normalized_expressions] esp.pos "write \"foreach\" instead of \"for\""
 
 let check_block_sub esp_lines esp_BRACKET_END =
-  match esp_lines.any with
+  match fst esp_lines.any with
   | [] -> 
       sp_0_or_cr esp_BRACKET_END
   | l ->
       (if List.hd l = Semi_colon then sp_0 else sp_p) esp_lines ;
       sp_p esp_BRACKET_END ;
 
-      if esp_BRACKET_END.spaces <> Space_cr then
+      if esp_BRACKET_END.spaces = Space_cr then
+	(if not (snd esp_lines.any) then warn_verb [Warn_white_space] (get_pos_end esp_lines) "missing \";\"")
+      else
 	(if last l = Semi_colon then warn_verb [Warn_white_space] (get_pos_end esp_lines) "spurious \";\" before closing block")
 
 let check_block_ref esp_lines esp_BRACKET_END =
@@ -625,6 +627,9 @@ let to_Deref_with(from_context, to_context, ref_, para) =
   if is_not_a_scalar ref_ then warn_rule [] "bad deref";
   Deref_with(from_context, to_context, ref_, para)
 
+let lines_to_Block esp_lines esp_BRACKET_END =
+  check_block_sub esp_lines esp_BRACKET_END;
+  Block (fst esp_lines.any)
   
 let to_Local esp =
   let l = 
@@ -651,7 +656,7 @@ let to_Local esp =
   else die_with_rawpos esp.pos "bad argument to \"local\""
 
 let sub_declaration (name, proto) body sub_kind = Sub_declaration(name, proto, Block body, sub_kind)
-let anonymous_sub proto body = Anonymous_sub (proto, Block body.any, raw_pos2pos body.pos)
+let anonymous_sub proto lines bracket_end = Anonymous_sub (proto, lines_to_Block lines bracket_end, raw_pos2pos lines.pos)
 let call_with_same_para_special f = Call(f, [Deref(I_star, (Ident(None, "_", raw_pos2pos bpos)))])
 let remove_call_with_same_para_special = function
   | Call(f, [Deref(I_star, (Ident(None, "_", _)))]) -> f
