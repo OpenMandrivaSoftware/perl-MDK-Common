@@ -277,7 +277,8 @@ let ins_to_string t lexbuf =
   string_escape_useful := Left false ;
   let s, pos = ins t lexbuf in
 
-  (match !string_escape_useful, s with
+  if not !string_is_i18n then
+    (match !string_escape_useful, s with
     | Right c, [ _, [] ] ->
 	let msg = 
 	  if c = "\"" then
