@@ -405,9 +405,9 @@ parenthesized_start:
 
 my_our: /* Things that can be "my"'d */
 | my_our_paren     PAREN_END {sp_0($2); if snd $1.any <> [] && fstfst $1.any then die_rule "syntax error";  new_esp M_none (My_our(sndfst $1.any, snd $1.any, get_pos $1)) $1 $2}
-| my_our_paren SCALAR_IDENT PAREN_END {(if snd $1.any = [] then sp_0 else sp_1)($2); check_my_our_paren $1; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_scalar, snd $2.any], pos_range $1 $3)) $1 $3}
-| my_our_paren HASH_IDENT   PAREN_END {(if snd $1.any = [] then sp_0 else sp_1)($2); check_my_our_paren $1; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_hash,   snd $2.any], pos_range $1 $3)) $1 $3}
-| my_our_paren ARRAY_IDENT  PAREN_END {(if snd $1.any = [] then sp_0 else sp_1)($2); check_my_our_paren $1; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_array,  snd $2.any], pos_range $1 $3)) $1 $3}
+| my_our_paren SCALAR_IDENT PAREN_END {check_my_our_paren $1 $2; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_scalar, snd $2.any], pos_range $1 $3)) $1 $3}
+| my_our_paren HASH_IDENT   PAREN_END {check_my_our_paren $1 $2; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_hash,   snd $2.any], pos_range $1 $3)) $1 $3}
+| my_our_paren ARRAY_IDENT  PAREN_END {check_my_our_paren $1 $2; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_array,  snd $2.any], pos_range $1 $3)) $1 $3}
 | MY_OUR SCALAR_IDENT {new_esp (M_mixed [M_scalar; M_none]) (My_our($1.any, [I_scalar, snd $2.any], get_pos $2)) $1 $2}
 | MY_OUR HASH_IDENT   {new_esp (M_mixed [M_hash  ; M_none]) (My_our($1.any, [I_hash,   snd $2.any], get_pos $2)) $1 $2}
 | MY_OUR ARRAY_IDENT  {new_esp (M_mixed [M_array ; M_none]) (My_our($1.any, [I_array,  snd $2.any], get_pos $2)) $1 $2}
@@ -415,10 +415,10 @@ my_our: /* Things that can be "my"'d */
 my_our_paren:
 | MY_OUR PAREN {sp_1($2); new_esp M_special ((true, $1.any), []) $1 $2}
 | my_our_paren comma {if fstfst $1.any then die_rule "syntax error"; new_esp M_none ((true, sndfst $1.any), snd $1.any) $1 $2}
-| my_our_paren BAREWORD {check_my_our_paren $1; if $2.any <> "undef" then die_rule "scalar expected"; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_raw, $2.any]) $1 $2}
-| my_our_paren SCALAR_IDENT {check_my_our_paren $1; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_scalar, snd $2.any]) $1 $2}
-| my_our_paren HASH_IDENT   {check_my_our_paren $1; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_hash,   snd $2.any]) $1 $2}
-| my_our_paren ARRAY_IDENT  {check_my_our_paren $1; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_array,  snd $2.any]) $1 $2}
+| my_our_paren BAREWORD {check_my_our_paren $1 $2; if $2.any <> "undef" then die_rule "scalar expected"; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_raw, $2.any]) $1 $2}
+| my_our_paren SCALAR_IDENT {check_my_our_paren $1 $2; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_scalar, snd $2.any]) $1 $2}
+| my_our_paren HASH_IDENT   {check_my_our_paren $1 $2; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_hash,   snd $2.any]) $1 $2}
+| my_our_paren ARRAY_IDENT  {check_my_our_paren $1 $2; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_array,  snd $2.any]) $1 $2}
 
 termdo: /* Things called with "do" */
 | DO term %prec UNIOP { die_rule "\"do EXPR\" not allowed" } /* do $filename */

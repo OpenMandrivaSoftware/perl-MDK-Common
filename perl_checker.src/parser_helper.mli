@@ -123,7 +123,9 @@ val check_block_ref :
   'a Types.any_spaces_pos -> unit
 val check_unless_else :
   'a list Types.any_spaces_pos -> 'b list Types.any_spaces_pos -> unit
-val check_my_our_paren : ((bool * 'a) * 'b) Types.any_spaces_pos -> unit
+val check_my_our_paren :
+  ((bool * 'a) * 'b list) Types.any_spaces_pos ->
+  'c Types.any_spaces_pos -> unit
 val check_simple_pattern : Types.fromparser list -> unit
 val only_one : Types.fromparser list Types.any_spaces_pos -> Types.fromparser
 val only_one_array_ref :
