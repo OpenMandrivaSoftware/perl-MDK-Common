@@ -120,7 +120,7 @@ let parse_options =
   (* removing non needed files from per_files (those files come from the cache) *)
   List.iter (fun k ->
     let per_file = Hashtbl.find per_files k in
-    if not (per_file.require_name = None || List.mem (some per_file.require_name) l_required_packages) then
+    if per_file.require_name <> None && not (List.mem (some per_file.require_name) l_required_packages) && not (List.mem per_file.file_name files) then
       Hashtbl.remove per_files k
   ) (hashtbl_keys per_files);
 
