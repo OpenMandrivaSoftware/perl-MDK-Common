@@ -326,7 +326,7 @@ term:
 | word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_pesp M_unknown (if $7.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ Ref(I_hash, $4.any.expr) ] $4 $4) :: $7.any.expr)) $1 $7} /* map { { foo } } @bar */
 | word BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); new_pesp M_unknown (if $8.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ Ref(I_hash, $4.any.expr); Semi_colon ] $4 $4) :: $8.any.expr)) $1 $8} /* map { { foo }; } @bar */
 
-| term ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, $4.any.expr)) $1 $4} /* $foo->bar(list) */
+| term ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); if $4.any.expr = [] then warn $4.pos "remove these unneeded parentheses"; new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, $4.any.expr)) $1 $4} /* $foo->bar(list) */
 | term ARROW word_or_scalar {sp_0($2); sp_0($3); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, $3.any, [])) $1 $3} /* $foo->bar */
 | term ARROW MULT_L_STR parenthesized {sp_0($2); sp_0($3); sp_0($4); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, Ident(None, "x", get_pos $3), $4.any.expr)) $1 $4} /* $foo->bar(list) */
 | term ARROW MULT_L_STR {sp_0($2); sp_0($3); new_pesp M_unknown P_tok (to_Method_call($1.any.expr, Ident(None, "x", get_pos $3), [])) $1 $3} /* $foo->bar */
