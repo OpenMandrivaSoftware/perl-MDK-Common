@@ -307,17 +307,10 @@ sub getVarsFromSh {
     local $_;
     while (<$F>) {
 	s/#.*//; # remove comments
-	my ($v, $val, $val2) =
-	  /^\s*			# leading space
-	   (\w+) =		# variable
-	   (
-   	       "([^"]*)"	# double-quoted text
-   	     | '([^']*)'	# single-quoted text
-   	     | [^'"\s]+		# normal text
-           )
-           \s*$			# end of line
-          /x or next;
-	$l{$v} = defined $val2 ? $val2 : $val;
+	s/^\s*//; # leading space
+	my ($v, $val) = /^(\w+)=(.*)/ or next;
+	$val = $1 if $val =~ /^"(.*)"$/ || $val =~ /^'(.*)'$/;
+	$l{$v} = $val;
     }
     %l;
 }
@@ -332,7 +325,19 @@ sub setVarsInShMode {
     @fields = keys %$l unless @fields;
 
     MDK::Common::File::output($file, 
-	map { $l->{$_} ? "$_=$l->{$_}\n" : () } @fields
+	map { 
+	    my $val = $l->{$_};
+	    if ($val =~ /\W/) {
+		if ($val =~ /["\$]/) {
+		    $val =~ s/(')/\\$1/;
+		    $val = qq('$val');
+		} else {
+		    $val =~ s/(")/\\$1/;
+		    $val = qq("$val");
+		}
+	    }
+	    "$_=$val\n";
+	} grep { $l->{$_} } @fields
     );
     chmod $mod, $file;
 }
