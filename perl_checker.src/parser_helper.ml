@@ -832,6 +832,15 @@ let call_raw force_non_builtin_func (e, para) =
 	  | [ Ident(None, s, pos) ] -> Some [ Raw_string(s, pos) ]
 	  | _ -> None)
 
+
+      | "join" ->
+	  (match un_parenthesize_full_l para with
+	  | e :: _ when not (is_a_scalar e) -> warn_rule "first argument of join() must be a scalar";
+	  | [_] -> warn_rule "not enough parameters"
+	  | [_; e] when is_a_scalar e -> warn_rule "join('...', $foo) is the same as $foo"
+	  | _ -> ());
+	  None
+
       | "last" | "next" | "redo" when not force_non_builtin_func ->
 	  (match para with
 	  | [ Ident(None, s, pos) ] -> Some [ Raw_string(s, pos) ]

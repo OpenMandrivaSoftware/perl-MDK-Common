@@ -95,7 +95,7 @@ let from_qw_raw = function
 	| Ident(_, _, pos) as ident -> Some(string_of_Ident ident, pos)
 	| e -> warn_with_pos (get_pos_from_expr e) "not recognised yet"; None
       ) l)) []
-  | e -> warn_with_pos (get_pos_in_tree e) "not recognised yet"; []
+  | e -> warn_with_pos (get_pos_from_expr e) "not recognised yet"; []
 
 let from_qw e =
   List.map (fun (s, pos) -> 

@@ -18,6 +18,10 @@ $xxx ? $yyy = 1 : $zzz = 2;              missing parentheses (needed for clarity
 
 N_("xxx") . 'yyy'                        N_("xxx") . "yyy" is dumb since the string "xxx" will never get translated
 
+join(@l)                                 first argument of join() must be a scalar
+
+join(',', 'foo')                         join('...', $foo) is the same as $foo
+
 my (@l2, $xxx) = @l;                     @l2 takes all the arguments, $xxx is undef in any case
 
 $bad                                     undeclared variable $bad
