@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -23,16 +23,6 @@ Group: Development/Perl
 Conflicts: drakxtools-newt < 9.1-30mdk, drakconf < 9.1-14mdk
 BuildRoot: %{_tmppath}/%{name}-buildroot
 BuildRequires: ocaml >= 3.06
-Provides: perl(MDK::Common) = %{version}
-Provides: perl(MDK::Common::DataStructure)  
-Provides: perl(MDK::Common::File)  
-Provides: perl(MDK::Common::Func)  
-Provides: perl(MDK::Common::Globals)  
-Provides: perl(MDK::Common::Math)  
-Provides: perl(MDK::Common::String)  
-Provides: perl(MDK::Common::System)  
-Provides: perl(MDK::Common::Various)  
-
 
 %package devel
 Summary: Various verifying scripts
@@ -72,6 +62,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Aug 11 2004 Pixel <pixel@mandrakesoft.com> 1.1.17-2mdk
+- various perl_checker enhancements/fixes
+
 * Wed Aug  4 2004 Pixel <pixel@mandrakesoft.com> 1.1.17-1mdk
 - setVarsInSh() now tries to use quoting only when really needed,
   otherwise it breaks program parsing the generated file (eg: /usr/sbin/autologin)
