@@ -50,5 +50,9 @@ $_xxx = 1                                variable $_xxx must not be used
                                            (variable with name _XXX are reserved for unused variables)
 
 sub f2 { my ($x, $_y) = @_; $x }         not enough parameters
-f2(@l);    # ok
-f2(xxx()); # bad
+f2(@l);    # ok                          
+f2(xxx()); # bad                         
+
+<<"EOF"                                  Don't use <<"MARK", use <<MARK instead
+foo                                      
+EOF                                      
