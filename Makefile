@@ -25,6 +25,7 @@ perl_checker.src/perl_checker:
 
 test: perl_checker.src/perl_checker
 	perl_checker.src/perl_checker MDK/Common/*.pm
+	$(MAKE) -C perl_checker.src/test
 
 clean:
 	rm -f $(GENERATED)

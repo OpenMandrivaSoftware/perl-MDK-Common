@@ -1,0 +1,95 @@
+#!/usr/bin/perl
+
+use lib '../..';
+use MDK::Common;
+use read_t;
+
+my ($file) = @ARGV;
+my @tests = read_t::read_t($file);
+
+output('pkg3.pm', <<'EOF');
+package pkg3;
+our @ISA = qw(Exporter);
+our %EXPORT_TAGS = (
+    missing_fs => [ qw(f f0) ],
+);
+our @EXPORT_OK = qw(f);
+EOF
+
+my $header = <<'EOF';
+package pkg;
+sub new {}
+sub m0 { my ($_o) = @_; 0 }
+sub m1 { my ($_o, $a) = @_; $a }
+sub m2 { my ($_o, $_a, $b) = @_; $b }
+sub m0_or_2 { my ($_o, $_a, $b) = @_; $b }
+package pkg2;
+sub new {}
+sub m0_or_2 { my ($_o) = @_; 0 }
+
+package my_pkg;
+sub nop {}
+sub xxx { @_ }
+sub yyy { @_ }
+sub zzz { @_ }
+sub pkg::nop {}
+sub N { $_[0] }
+sub N_ { $_[0] }
+my ($xxx, $yyy, $zzz, $o, @l, @l2, %h);
+xxx($xxx, $yyy, $zzz, $o, @l, @l2, %h);
+use MDK::Common;
+
+EOF
+
+my $oo_header = <<'EOF';
+EOF
+
+my $local = <<'EOF';
+{ 
+  local $_;
+EOF
+
+my $local_trailer = <<'EOF';
+
+  xxx($xxx, $yyy, $zzz, $o, @l, @l2, %h);  
+}
+EOF
+
+my $new;
+foreach my $test (@tests) {
+    my @l = @{$test->{lines}};
+
+    pop @l while $l[-1] =~ /^\s*$/;
+    if (@l == 1) {
+        if ($l[-1] !~ /(;|[\s{]\})\s+$/) {
+            $l[-1] =~ s/^(.*?)(\s+$)/xxx($1);$2/;
+        } else {
+	    $l[-1] =~ s/(\s+$)/; nop();$1/;
+        }
+    }
+    if (! any { /^(sub|use) / } @l) {
+	@l = ($local, @l, $local_trailer);
+    }
+    if (any { /->\w/ } @l) {
+        @l = ($oo_header, $header, @l);
+    } else {
+        @l = ($header, @l);
+    }
+    output('.pl', @l);
+    my @log = grep { !/^File .*, line / } `perl_checker .pl`;
+    die "@log in .pl ($file):\n" . join('', @{$test->{lines}}) if any { /^syntax error$/ } @log;
+    foreach my $i (0 .. max(int @{$test->{lines}}, int @log) - 1) {
+        my $s = $test->{lines}[$i];
+        $s =~ s/\s+$//;
+        $new .= sprintf "%-40s %s", $s, $log[$i] || "\n";
+    }
+    $new .= "\n";
+}
+output("$file.new", $new);
+if (system('diff', '-buB', $file, "$file.new") == 0) {
+    unlink "$file.new", '.pl', 'pkg3.pm';
+    exit 0;
+} else {
+    warn "*" x 80, "\nnot same\n";
+    exit 1;
+}
