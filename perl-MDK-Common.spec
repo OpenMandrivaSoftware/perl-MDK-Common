@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 13mdk
+%define release 14mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -50,6 +50,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Aug 28 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-14mdk
+- no function "xxx undefined" when using "#-#"
+
 * Tue Aug 27 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-13mdk
 - give a meaning to the return value of cdie
 - fix typo in mkdir_p error message

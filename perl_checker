@@ -229,6 +229,7 @@ sub syntax_warnings_after_removing_strings_and_regexps {
 }
 
 sub add_call {
+    $explicit_no_warning and return;
     $_[0] =~ /^\d/ and return;
     exists $exclude_calls{$_[0]} and return;
     $call{$package}->{$_[0]} = 1;
