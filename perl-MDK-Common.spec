@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 9mdk
+%define release 10mdk
 %define perl_sitelib %(eval "`perl -V:installsitelib`"; echo $installsitelib)
 
 Summary: Various simple functions
@@ -50,6 +50,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Thu Feb 14 2002 Pixel <pixel@mandrakesoft.com> 1.0.2-10mdk
+- warp_text returns a join'ed string in scalar context
+
 * Sun Jan 27 2002 Pixel <pixel@mandrakesoft.com> 1.0.2-9mdk
 - add MDK::Common::DataStructure::group_by2
 

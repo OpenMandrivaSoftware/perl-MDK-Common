@@ -43,6 +43,7 @@ an empty line
 =item warp_text(STRING, INT)
 
 return a list of lines which do not exceed INT characters
+(or a string in scalar context)
 
 =item warp_text(STRING)
 
@@ -147,7 +148,7 @@ sub warp_text {
 	}
 	push @l, "$beg$t";
     }
-    @l;
+    wantarray ? @l : join("\n", @l);
 }
 
 1;
