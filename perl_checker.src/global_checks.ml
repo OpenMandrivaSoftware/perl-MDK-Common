@@ -20,6 +20,7 @@ type vars = {
     required_vars : (context * string * string) list ;
     current_package : per_package ;
     is_toplevel : bool ;
+    write_only : bool ;
     state : state ;
   }
 
@@ -105,36 +106,39 @@ let is_anonymous_variable_name s = String.length s > 1 && s.[0] = '_'
 
 let is_my_declared vars t = 
   List.exists (fun l ->
-    List.mem_assoc t l && (snd3 (List.assoc t l) := true ; true)
+    List.mem_assoc t l && (if not vars.write_only then snd3 (List.assoc t l) := true ; true)
   ) vars.my_vars
 let is_our_declared vars t = 
   List.exists (fun l ->
-    List.mem_assoc t l && (snd3 (List.assoc t l) := true ; true)
+    List.mem_assoc t l && (if not vars.write_only then snd3 (List.assoc t l) := true ; true)
   ) vars.our_vars
 
-let is_var_declared_and_set state package var para =
-  try
-    let (_, used, proto) = Hashtbl.find package.vars_declared var in
-    check_para_comply_with_prototype para proto ;
-    used := true ; 
-    true
-  with Not_found -> 
+let is_var_declared_raw write_only state package var para =
+  match 
     try
-      let (_, used, proto) = List.assoc var (get_imports state package) in
-      check_para_comply_with_prototype para proto ;
-      used := true ; 
-      true
+      let _, used, proto = Hashtbl.find package.vars_declared var in
+      Some(used, proto)
+    with Not_found -> try
+      let _, used, proto = List.assoc var (get_imports state package) in
+      Some(used, proto)
     with Not_found ->
+      None
+  with 
+  | Some (used, proto) ->
+      check_para_comply_with_prototype para proto ;
+      if not write_only then used := true ; 
+      true
+  | None ->
       false
 
 let is_var_declared vars var para = 
   List.mem_assoc var vars.locally_imported ||
-  is_var_declared_and_set vars.state vars.current_package var para
+  is_var_declared_raw vars.write_only vars.state vars.current_package var para
 
 let is_global_var_declared vars (context, fq, name) para =
   try
     let package = Hashtbl.find vars.state.per_packages fq in
-    is_var_declared_and_set vars.state package (context, name) para
+    is_var_declared_raw vars.write_only vars.state package (context, name) para
   with Not_found -> false
  
 
@@ -290,6 +294,8 @@ let check_variables vars t =
 	let vars = List.fold_left check_variables_ vars para in
 	Some vars
 
+(*    | Call_op("=", -> List.fold_left (fold_tree f) env l*)
+
     | Call_op("while infix", [ expr ; (List [ Call_op("<>", _, _) ] as l) ], pos)
     | Call_op("for infix", [ expr ; l ], pos) ->
 	let vars = check_variables_ vars l in
@@ -377,6 +383,20 @@ let check_variables vars t =
 	if op <> "=" then warn_with_pos pos (sprintf "applying %s on a new initialized variable is wrong" op);
 	None
 
+    | Call_op("=", [ Deref(context, (Ident _ as var)) ; para], _) ->
+	check_variable (context, var) { vars with write_only = true } None ;
+	Some (check_variables_ vars para)
+
+    | Call_op("=", [ List [ List l ] ; para], _) ->
+	let vars = List.fold_left (fun vars -> function
+	  | Deref(context, (Ident _ as var)) ->
+	      check_variable (context, var) { vars with write_only = true } None ;
+	      vars
+	  | e -> check_variables_ vars e
+	) vars l in
+	let vars = check_variables_ vars para in
+	Some vars
+
     | Method_call(Raw_string(package_name, pos), Raw_string ("import", _), para) ->
 	let args =
 	  match para with
@@ -434,7 +454,7 @@ let check_variables vars t =
   vars
 
 let check_tree state package =
-  let vars = { my_vars = [[]]; our_vars = []; locally_imported = []; required_vars = []; current_package = package; state = state; is_toplevel = true } in
+  let vars = { my_vars = [[]]; our_vars = []; locally_imported = []; required_vars = []; current_package = package; state = state; is_toplevel = true; write_only = false } in
   if !Flags.verbose then print_endline_flush_always ("checking package " ^ package.package_name) ;
   let vars = check_variables vars package.body in
   check_unused_local_variables vars ;

@@ -31,6 +31,7 @@ type raw_token =
   | COMPACT_HASH_SUBSCRIPT of (string * raw_pos)
   | RAW_HERE_DOC of ((string * raw_pos) ref * raw_pos)
   | HERE_DOC of (raw_interpolated_string * raw_pos) ref * raw_pos
+  | FORMAT of (raw_interpolated_string * raw_pos) ref * raw_pos
   | SCALAR_IDENT of (string option * string * raw_pos)
   | ARRAY_IDENT of (string option * string * raw_pos)
   | HASH_IDENT of (string option * string * raw_pos)
@@ -44,7 +45,7 @@ type raw_token =
 
   | IF of raw_pos | ELSIF of raw_pos | ELSE of raw_pos | UNLESS of raw_pos | DO of raw_pos | WHILE of raw_pos | UNTIL of raw_pos | MY_OUR of (string * raw_pos) | CONTINUE of raw_pos | SUB of raw_pos
   | LOCAL of raw_pos | FOR of (string * raw_pos) | USE of raw_pos | PACKAGE of raw_pos | BEGIN of raw_pos | END of raw_pos | PRINT of (string * raw_pos) 
-  | NEW of (raw_pos) | FORMAT of (raw_pos) | AT of raw_pos | DOLLAR of raw_pos | PERCENT of raw_pos | AMPERSAND of raw_pos
+  | NEW of (raw_pos) | AT of raw_pos | DOLLAR of raw_pos | PERCENT of raw_pos | AMPERSAND of raw_pos
   | STAR of raw_pos | ARRAYLEN of raw_pos | SEMI_COLON of raw_pos | PKG_SCOPE of raw_pos | PAREN of raw_pos | PAREN_END of raw_pos | BRACKET of raw_pos
   | BRACKET_END of raw_pos | BRACKET_HASHREF of raw_pos | ARRAYREF of raw_pos | ARRAYREF_END of raw_pos | ARROW of raw_pos | INCR of raw_pos | DECR of raw_pos
   | CONCAT of raw_pos | POWER of raw_pos | TIGHT_NOT of raw_pos | BIT_NEG of raw_pos | REF of raw_pos | ONE_SCALAR_PARA of (string * raw_pos) | PATTERN_MATCH of raw_pos | PATTERN_MATCH_NOT of raw_pos | MULT of (string * raw_pos) | MULT_L_STR of raw_pos
@@ -77,6 +78,7 @@ let rec raw_token_to_pos_and_token spaces = function
   | PATTERN(s, opts, pos) -> pos, Parser.PATTERN(new_any M_special (raw_interpolated_string_to_tokens s, opts) spaces pos)
   | PATTERN_SUBST(from, to_, opts, pos) -> pos, Parser.PATTERN_SUBST(new_any M_special (raw_interpolated_string_to_tokens from, raw_interpolated_string_to_tokens to_, opts) spaces pos)
   | HERE_DOC(l, pos) -> pos, Parser.HERE_DOC(new_any M_string (raw_interpolated_string_to_tokens (fst !l), snd !l) spaces pos)
+  | FORMAT(l, pos) -> pos, Parser.FORMAT(new_any M_string (raw_interpolated_string_to_tokens (fst !l), snd !l) spaces pos)
   | BAREWORD(s, pos) -> pos, Parser.BAREWORD(new_any M_special s spaces pos)
   | BAREWORD_PAREN(s, pos) -> pos, Parser.BAREWORD_PAREN(new_any M_special s spaces pos)
   | REVISION(s, pos) -> pos, Parser.REVISION(new_any M_revision s spaces pos)
@@ -101,7 +103,6 @@ let rec raw_token_to_pos_and_token spaces = function
   | FUNC_DECL_WITH_PROTO(fq, name, proto, pos) -> pos, Parser.FUNC_DECL_WITH_PROTO(new_any M_special (fq, name, proto) spaces pos)
 
   | NEW(pos) -> pos, Parser.NEW(new_any M_special () spaces pos)
-  | FORMAT(pos) -> pos, Parser.FORMAT(new_any M_special () spaces pos)
   | COMPARE_OP(s, pos) -> pos, Parser.COMPARE_OP(new_any M_special s spaces pos)
   | COMPARE_OP_STR(s, pos) -> pos, Parser.COMPARE_OP_STR(new_any M_special s spaces pos)
   | EQ_OP(s, pos) -> pos, Parser.EQ_OP(new_any M_special s spaces pos)
@@ -491,7 +492,7 @@ rule token = parse
 | "print"    { PRINT(lexeme lexbuf, pos lexbuf) }
 | "printf"   { PRINT(lexeme lexbuf, pos lexbuf) }
 | "new"      { NEW(pos lexbuf) }
-| "format"   { let _ = raw_here_doc_next_line "." in FORMAT(pos lexbuf) }
+| "format"   { let pos = pos lexbuf in FORMAT(here_doc_next_line ".", pos) }
 | "defined"
 | "length" 
 | "keys" 

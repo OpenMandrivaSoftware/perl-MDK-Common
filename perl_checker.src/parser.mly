@@ -17,7 +17,7 @@
 %token <string Types.any_spaces_pos> QUOTEWORDS COMPACT_HASH_SUBSCRIPT
 %token <(string * Types.raw_pos) Types.any_spaces_pos> RAW_HERE_DOC
 %token <(string * ((int * int) * token) list) list Types.any_spaces_pos> STRING COMMAND_STRING
-%token <((string * ((int * int) * token) list) list * Types.raw_pos) Types.any_spaces_pos> HERE_DOC
+%token <((string * ((int * int) * token) list) list * Types.raw_pos) Types.any_spaces_pos> HERE_DOC FORMAT
 
 %token <((string * ((int * int) * token) list) list * string) Types.any_spaces_pos> PATTERN QR_PATTERN
 %token <((string * ((int * int) * token) list) list * (string * ((int * int) * token) list) list * string) Types.any_spaces_pos> PATTERN_SUBST
@@ -27,7 +27,7 @@
 %token <(string option * string * string) Types.any_spaces_pos> FUNC_DECL_WITH_PROTO
 
 %token <string Types.any_spaces_pos> FOR PRINT
-%token <unit   Types.any_spaces_pos> NEW FORMAT
+%token <unit   Types.any_spaces_pos> NEW
 %token <string Types.any_spaces_pos> COMPARE_OP COMPARE_OP_STR EQ_OP EQ_OP_STR
 %token <string Types.any_spaces_pos> ASSIGN MY_OUR
 
@@ -154,7 +154,7 @@ sideff: /* An expression which may have a side-effect */
 | expr  FOR    expr {sp_p($2); sp_p($3); mcontext_check M_list $3; check_foreach($2); to_Call_op M_none "for infix"   [ prio_lo P_loose $1 ; prio_lo P_loose $3 ] $1 $3}
 
 decl:
-| FORMAT BAREWORD ASSIGN {new_esp M_none Too_complex $1 $3}
+| FORMAT BAREWORD ASSIGN {to_Call_op M_none "format" [Raw_string($2.any, get_pos $2) ; to_String false (new_1esp (fst $1.any) $1)] $1 $3}
 | FORMAT ASSIGN {new_esp M_none Too_complex $1 $2}
 | func_decl semi_colon {if snd $1.any = None then die_rule "there is no need to pre-declare in Perl!" else (warn_rule "please don't use prototype pre-declaration" ; new_esp M_special Too_complex $1 $2) }
 | func_decl BRACKET BRACKET_END {sp_n($2); sp_0_or_cr($3); let name, proto = $1.any in new_esp M_none (sub_declaration (name, proto) [] Real_sub_declaration) $1 $3}
@@ -458,7 +458,6 @@ word_or_scalar:
 
 bareword:
 | NEW { new_1esp (Ident(None, "new", get_pos $1)) $1 }
-| FORMAT { new_1esp (Ident(None, "format", get_pos $1)) $1 }
 | BAREWORD { new_1esp (Ident(None, $1.any, get_pos $1)) $1 }
 
 word_paren:
