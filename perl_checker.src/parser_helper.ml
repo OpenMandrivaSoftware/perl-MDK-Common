@@ -265,12 +265,15 @@ let check_parenthesized_first_argexpr word ((_, e), (_, (start, _)) as ex) =
       if word = "time" then die_rule "please use time() instead of time";
       sp_p(ex)
 
-let check_parenthesized_first_argexpr_with_Ident ident ((_, e), _ as ex) =
+let check_parenthesized_first_argexpr_with_Ident ident ((prio, e), _ as ex) =
+  if prio = P_tok then ();
   (match ident with
   | Ident(Some _, _, _) ->
       (match e with
       | [e] when is_parenthesized e -> ()
       | _ -> warn_rule "use parentheses around argument (otherwise it might cause syntax errors if the package is \"require\"d and not \"use\"d")
+  | Ident(None, word, _) when List.mem word ["ref"] ->
+      if prio <> P_tok then warn_rule "use parentheses around argument"
   | _ -> ());
   check_parenthesized_first_argexpr (string_of_Ident ident) ex
 

@@ -59,7 +59,8 @@ val check_parenthesized_first_argexpr :
   ('a * Types.fromparser list) * (Types.spaces * (int * 'b)) -> unit
 val check_parenthesized_first_argexpr_with_Ident :
   Types.fromparser ->
-  ('a * Types.fromparser list) * (Types.spaces * (int * 'b)) -> unit
+  (Types.priority * Types.fromparser list) * (Types.spaces * (int * 'a)) ->
+  unit
 val check_hash_subscript :
   ('a * Types.fromparser) * ('b * (int * int)) -> unit
 val check_arrow_needed :
