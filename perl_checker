@@ -49,9 +49,10 @@ if (/^\s*require\s+([\w:]+);/) {
 
 s/"[^"]*"//g;  #"
 s/'[^']*'//g;  #'
-s/\bm\b(.)(.*?)\1//g; # m// operator
-s|\(/.*?/|(|g; # m// operator
-s{([!=]~|\bif\b)\s*/.*?/}{}g;
+s/\bm\b(.)(.*?)\1//g; # m// operator: "m/re/", "m|re|", ...
+s/\bs\b(.)(.*?)\1(.*?)\1//g; # s/// operator: "s/re/.../", "s|re|...|", ...
+s|\(/.*?/|(|g; # m// operator: "(/re/"
+s{([!=]~|\bif\b)\s*/.*?/}{}g; # m// operator: "if /re/", "=~ /re/", "!~ /re/"
 
 s/#.*//;
 
