@@ -66,15 +66,19 @@ sub fg_gc {}
 sub file_list {}
 sub fill {}
 sub free {}
+sub freeze_updates {}
 sub get {}
 sub get_active {}
+sub get_bounds {}
 sub get_buffer {}
 sub get_char_count {}
+sub get_chars {}
 sub get_children {}
 sub get_colormap {}
 sub get_context_id {}
 sub get_cursor {}
 sub get_data {}
+sub get_date {}
 sub get_depth {}
 sub get_end_iter {}
 sub get_filename {}
@@ -97,7 +101,11 @@ sub get_pixel_size {}
 sub get_position {}
 sub get_property {}
 sub popup {}
+sub process_updates {}
+sub scroll_to_iter {}
+sub select_day {}
 sub select_path {}
+sub thaw_updates {}
 sub time {}
 
 sub get_selected {}
