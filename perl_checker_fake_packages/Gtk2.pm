@@ -1655,6 +1655,7 @@ sub Gtk2::_END() {}
 sub Gtk2::_debug_print { my ($_expr, $_expect, $_check, $_eval_error) = @_ }
 sub Gtk2::_do_checks { my ($_eval, $_expect, $_check) = @_ }
 sub Gtk2::_flag_setget_wrap { my ($_self, $_flag_name, $_set) = @_ }
+sub Gtk2::_get { my ($iter, $nb) = @_ }
 sub Gtk2::accel_group { my ($_socket) = @_ }
 sub Gtk2::action_area { my ($_DUMMY0) = @_ }
 sub Gtk2::activate { my ($_DUMMY0) = @_ }
