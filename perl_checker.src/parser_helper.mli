@@ -9,16 +9,25 @@ val get_pos_start : 'a Types.any_spaces_pos -> int
 val get_pos_end : 'a Types.any_spaces_pos -> int
 val var_dollar_ : Types.pos -> Types.fromparser
 val var_STDOUT : Types.fromparser
-val new_any : 'a -> Types.spaces -> int * int -> 'a Types.any_spaces_pos
+val new_any :
+  Types.maybe_context ->
+  'a -> Types.spaces -> int * int -> 'a Types.any_spaces_pos
+val new_any_ : 'a -> Types.spaces -> int * int -> 'a Types.any_spaces_pos
 val new_esp :
+  Types.maybe_context ->
   'a ->
   'b Types.any_spaces_pos ->
   'c Types.any_spaces_pos -> 'a Types.any_spaces_pos
+val new_1esp : 'a -> 'b Types.any_spaces_pos -> 'a Types.any_spaces_pos
 val new_pesp :
+  Types.maybe_context ->
   Types.priority ->
   'a ->
   'b Types.any_spaces_pos ->
   'c Types.any_spaces_pos -> 'a Types.prio_anyexpr Types.any_spaces_pos
+val new_1pesp :
+  Types.priority ->
+  'a -> 'b Types.any_spaces_pos -> 'a Types.prio_anyexpr Types.any_spaces_pos
 val default_esp : 'a -> 'a Types.any_spaces_pos
 val default_pesp :
   Types.priority -> 'a -> 'a Types.prio_anyexpr Types.any_spaces_pos
@@ -74,7 +83,9 @@ val sp_n : 'a Types.any_spaces_pos -> unit
 val sp_p : 'a Types.any_spaces_pos -> unit
 val sp_cr : 'a Types.any_spaces_pos -> unit
 val sp_same : 'a Types.any_spaces_pos -> 'b Types.any_spaces_pos -> unit
-val check_word_alone : Types.fromparser -> Types.fromparser
+val word_alone :
+  Types.fromparser Types.any_spaces_pos ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
 val check_parenthesized_first_argexpr :
   string ->
   Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos -> unit
@@ -98,7 +109,6 @@ val check_unneeded_var_dollar_not :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos -> unit
 val check_unneeded_var_dollar_s :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos -> unit
-val check_MULT_is_x : string Types.any_spaces_pos -> unit
 val check_my : string Types.any_spaces_pos -> unit
 val check_foreach : string Types.any_spaces_pos -> unit
 val check_for : string Types.any_spaces_pos -> unit
@@ -143,11 +153,13 @@ val anonymous_sub :
 val cook_call_op :
   string -> Types.fromparser list -> int * int -> Types.fromparser
 val to_Call_op :
+  Types.maybe_context ->
   string ->
   Types.fromparser list ->
   'a Types.any_spaces_pos ->
   'b Types.any_spaces_pos -> Types.fromparser Types.any_spaces_pos
 val to_Call_op_ :
+  Types.maybe_context ->
   Types.priority ->
   string ->
   Types.fromparser list ->
@@ -204,3 +216,22 @@ val from_PATTERN_SUBST :
   ((string * ((int * int) * 'a) list) list *
    (string * ((int * int) * 'a) list) list * string)
   Types.any_spaces_pos -> Types.fromparser list
+val mcontext2s : Types.maybe_context -> string
+val mcontext_is_scalar : Types.maybe_context -> bool
+val mcontext_lower : Types.maybe_context -> Types.maybe_context -> bool
+val mcontext_merge :
+  Types.maybe_context -> Types.maybe_context -> Types.maybe_context
+val mcontext_lmerge : Types.maybe_context list -> Types.maybe_context
+val mcontext_lmaybe :
+  'a list Types.any_spaces_pos -> Types.maybe_context list
+val mcontext_check_raw :
+  Types.maybe_context ->
+  'a Types.any_spaces_pos ->
+  (unit -> 'b) -> (unit -> 'b) -> (unit -> 'b) -> 'b
+val mcontext_symops :
+  Types.maybe_context ->
+  'a Types.any_spaces_pos -> 'b Types.any_spaces_pos -> Types.maybe_context
+val mcontext_check : Types.maybe_context -> 'a Types.any_spaces_pos -> unit
+val mcontext_unop :
+  Types.maybe_context -> 'a Types.any_spaces_pos -> Types.maybe_context
+val mcontext_check_non_none : 'a Types.any_spaces_pos -> unit

@@ -13,6 +13,20 @@ type spaces =
 
 type context = I_scalar | I_hash | I_array | I_func | I_raw | I_star
 
+type maybe_context =
+  | M_none
+
+  | M_int | M_float | M_string | M_ref of maybe_context | M_revision | M_sub
+  | M_scalar
+
+  | M_list
+  | M_array
+  | M_hash
+
+  | M_special
+  | M_unknown
+  | M_mixed of maybe_context * maybe_context
+
 type fromparser = 
    | Undef
    | Ident of string option * string * pos
@@ -72,6 +86,7 @@ type 'a any_spaces_pos = {
     any : 'a ;
     spaces : spaces ;
     pos : int * int ;
+    mcontext : maybe_context ;
   }
 
 type 'a prio_anyexpr = {

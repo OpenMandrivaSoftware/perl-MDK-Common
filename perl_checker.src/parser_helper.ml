@@ -13,11 +13,14 @@ let get_pos_end { pos = (_, end_) } = end_
 let var_dollar_ pos = Deref(I_scalar, Ident(None, "_", pos))
 let var_STDOUT = Deref(I_star, Ident(None, "STDOUT", raw_pos2pos bpos))
 
-let new_any any spaces pos = { any = any ; spaces = spaces ; pos = pos }
-let new_esp e esp_start esp_end = new_any e esp_start.spaces (raw_pos_range esp_start esp_end)
-let new_pesp prio e esp_start esp_end = new_any { priority = prio ; expr = e } esp_start.spaces (raw_pos_range esp_start esp_end)
-let default_esp e = new_any e Space_none bpos
-let default_pesp prio e = new_any { priority = prio ; expr = e } Space_none bpos
+let new_any mcontext any spaces pos = { mcontext = mcontext ; any = any ; spaces = spaces ; pos = pos }
+let new_any_ any spaces pos = new_any M_unknown any spaces pos
+let new_esp mcontext e esp_start esp_end = new_any mcontext e esp_start.spaces (raw_pos_range esp_start esp_end)
+let new_1esp e esp = new_any esp.mcontext e esp.spaces esp.pos
+let new_pesp mcontext prio e esp_start esp_end = new_any mcontext { priority = prio ; expr = e } esp_start.spaces (raw_pos_range esp_start esp_end)
+let new_1pesp prio e esp = new_any esp.mcontext { priority = prio ; expr = e } esp.spaces esp.pos
+let default_esp e = new_any M_unknown e Space_none bpos
+let default_pesp prio e = new_any M_unknown { priority = prio ; expr = e } Space_none bpos
 
 let split_name_or_fq_name full_ident =
   match split_at2 ':'':' full_ident with
@@ -290,28 +293,47 @@ let sp_same esp1 esp2 =
   if esp1.spaces <> Space_0 then sp_p esp2
   else if esp2.spaces <> Space_0 then sp_p esp1
 
-let check_word_alone word =
-  match word with
+let word_alone esp =
+  let word = esp.any in
+  let mcontext, e = match word with
   | Ident(None, f, pos) ->
-      (match f with
+      let e = match f with
       | "length" | "stat" | "lstat" | "chop" | "chomp" | "quotemeta" | "lc" | "lcfirst" | "uc" | "ucfirst" ->
 	  Call(Deref(I_func, word), [var_dollar_ pos])
-
+	    
       | "split" -> Call(Deref(I_func, word), [ Raw_string(" ", pos) ; var_dollar_ pos ])
       | "shift" -> Call(Deref(I_func, word), [ Deref(I_array,  Ident(None, "_", raw_pos2pos bpos)) ])
       | "die"   -> Call(Deref(I_func, word), [ Deref(I_scalar, Ident(None, "@", raw_pos2pos bpos)) ])
       | "return" | "eof" | "caller" 
       | "redo" | "next" | "last" -> 
 	  Deref(I_func, word)
-
+	    
       | "hex" | "ref" -> 
 	  warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" f f) ;
 	  Call(Deref(I_func, word), [ Raw_string(" ", pos) ; var_dollar_ pos ])
       | "time" | "wantarray" | "fork" | "getppid" | "arch" -> 
 	  warn_rule (sprintf "please use %s() instead of %s" f f) ;
 	  Deref(I_func, word)
-      | _ -> word)
-  | _ -> word
+      | _ -> word
+      in
+      let mcontext = match f with
+      | "chop" | "chomp" -> M_none
+      | "hex" | "length" | "time" | "fork" | "getppid" -> M_int
+      | "eof" | "wantarray" -> M_int
+      | "stat" | "lstat" -> M_list
+      | "arch" | "quotemeta" | "lc" | "lcfirst" | "uc" | "ucfirst" -> M_string
+	    
+      | "split" -> M_array
+      | "shift" -> M_scalar
+      | "die" | "return" | "redo" | "next" | "last" -> M_unknown
+      | "caller" -> M_mixed(M_string, M_list)
+	    
+      | "ref" -> M_ref M_scalar
+      | _ -> M_unknown
+      in mcontext, e
+  | _ -> M_unknown, word
+  in
+  new_pesp mcontext P_tok e esp esp
 
 let check_parenthesized_first_argexpr word esp =
   let want_space = word.[0] = '-' in
@@ -412,7 +434,6 @@ let check_unneeded_var_dollar_s esp =
   if is_var_dollar_ esp.any.expr then warn esp.pos "\"$_ =~ s/regexp/.../\" can be written \"s/regexp/.../\"" else
   if is_var_number_match esp.any.expr then die_with_rawpos esp.pos "do not modify the result of a match (eg: $1)"
 
-let check_MULT_is_x esp = if esp.any <> "x" then die_rule "syntax error"
 let check_my esp = if esp.any <> "my" then die_rule "syntax error"
 let check_foreach esp = if esp.any = "for"     then warn esp.pos "write \"foreach\" instead of \"for\""
 let check_for     esp = if esp.any = "foreach" then warn esp.pos "write \"for\" instead of \"foreach\""
@@ -600,12 +621,12 @@ let cook_call_op op para pos =
   | _ -> 
       call
 
-let to_Call_op op para esp_start esp_end = 
+let to_Call_op mcontext op para esp_start esp_end = 
   let pos = raw_pos_range esp_start esp_end in
-  new_any (cook_call_op op para pos) esp_start.spaces pos
-let to_Call_op_ prio op para esp_start esp_end = 
+  new_any mcontext (cook_call_op op para pos) esp_start.spaces pos
+let to_Call_op_ mcontext prio op para esp_start esp_end = 
   let pos = raw_pos_range esp_start esp_end in
-  new_any { priority = prio ; expr = cook_call_op op para pos } esp_start.spaces pos
+  new_any mcontext { priority = prio ; expr = cook_call_op op para pos } esp_start.spaces pos
 
 let followed_by_comma pesp true_comma =
   if true_comma.any then pesp.any.expr else
@@ -749,7 +770,7 @@ let call_one_scalar_para { any = e ; pos = pos } para esp_start esp_end =
 	  [var_dollar_ (raw_pos2pos pos)]
     | _ -> para
   in
-  new_pesp P_mul (call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)) esp_start esp_end
+  new_pesp M_unknown P_mul (call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)) esp_start esp_end
 
 
 let call_op_if_infix left right esp_start esp_end =
@@ -760,7 +781,7 @@ let call_op_if_infix left right esp_start esp_end =
       warn_rule "\"$foo = ... if !$foo\" can be written \"$foo ||= ...\""
   | _ -> ());
   let pos = raw_pos_range esp_start esp_end in
-  new_any (Call_op("if infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
+  new_any M_none (Call_op("if infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
 
 let call_op_unless_infix left right esp_start esp_end =
   (match left, right with
@@ -775,7 +796,7 @@ let call_op_unless_infix left right esp_start esp_end =
       | _ -> ());
   | _ -> ());
   let pos = raw_pos_range esp_start esp_end in
-  new_any (Call_op("unless infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
+  new_any M_none (Call_op("unless infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
 
 
 let (current_lexbuf : Lexing.lexbuf option ref) = ref None
@@ -831,3 +852,106 @@ let from_PATTERN_SUBST parse { any = (s1, s2, opts) ; pos = pos } =
   [ String(parse_interpolated parse s1, raw_pos2pos pos) ; 
     String(parse_interpolated parse s2, raw_pos2pos pos) ; 
     Raw_string(opts, raw_pos2pos pos) ]
+
+
+let rec mcontext2s = function
+  | M_none -> "()"
+
+  | M_int -> "int"
+  | M_float -> "float"
+  | M_string -> "string"
+  | M_ref c -> "ref(" ^ mcontext2s c ^ ")"
+  | M_revision -> "revision"
+  | M_sub -> "sub"
+  | M_scalar -> "scalar"
+
+  | M_list -> "list"
+  | M_array -> "array"
+  | M_hash -> "hash"
+
+  | M_special -> "special"
+  | M_unknown -> "unknown"
+  | M_mixed(a, b) -> mcontext2s a ^ " | " ^ mcontext2s b
+
+let mcontext_is_scalar = function
+  | M_int | M_float | M_string | M_ref _ | M_revision
+  | M_scalar | M_array -> true
+  | _ -> false
+
+let rec mcontext_lower c1 c2 =
+  match c1, c2 with
+  | M_special, _ | _, M_special -> internal_error "M_special in mcontext_compare"
+
+  | M_array, M_array | M_array, M_int | M_array, M_float | M_array, M_scalar | M_array, M_list
+  | M_hash, M_hash | M_hash, M_scalar | M_hash, M_list
+
+  | M_int, M_int | M_int, M_float | M_int, M_string | M_int, M_scalar | M_int, M_list
+  | M_float, M_float | M_float, M_string | M_float, M_scalar | M_float, M_list
+  | M_ref _, M_scalar | M_ref _, M_list
+  | M_string, M_string | M_string, M_scalar | M_string, M_list
+  | M_revision, M_revision | M_revision, M_scalar | M_revision, M_list
+  | M_scalar, M_scalar | M_scalar, M_list
+
+  | M_list, M_list
+  | M_none, M_none
+  | M_sub, M_sub
+
+  | _, M_unknown
+
+    -> true
+
+  | M_ref a, M_ref b -> mcontext_lower a b
+  | M_mixed(c1, c2), M_mixed(a, b) -> mcontext_lower c1 a && mcontext_lower c2 b || mcontext_lower c2 a && mcontext_lower c1 b
+  | c, M_mixed(a, b) -> mcontext_lower c a || mcontext_lower c b
+
+  | _ -> false
+
+let mcontext_merge c1 c2 =
+  if mcontext_lower c1 c2 then c2 else
+  if mcontext_lower c2 c1 then c1 else
+  match c1, c2 with
+  | M_unknown, _ | _, M_unknown -> internal_error "mcontext_merge1"
+  | M_mixed _, _ | _, M_mixed _ -> internal_error "TODO: complex mcontext_merge"
+  | _ -> 
+      if mcontext_is_scalar c1 && mcontext_is_scalar c2 
+      then M_scalar 
+      else M_mixed(c1, c2)
+let mcontext_lmerge = function
+  | [] -> internal_error "mcontext_lmerge"
+  | e :: l -> List.fold_left mcontext_merge e l
+
+let mcontext_lmaybe esp = if esp.any = [] then [] else [esp.mcontext]
+
+let mcontext_check_raw wanted_mcontext esp f_lower f_greater f_err =
+  if mcontext_lower esp.mcontext wanted_mcontext then
+    f_lower()
+  else if mcontext_lower wanted_mcontext esp.mcontext then
+    f_greater()
+  else 
+    (warn_rule (sprintf "context %s is not compatible with context %s" (mcontext2s esp.mcontext) (mcontext2s wanted_mcontext)); 
+     f_err())
+
+let mcontext_symops wanted_mcontext esp1 esp2 =
+  mcontext_check_raw wanted_mcontext esp1 
+    (fun () ->
+      mcontext_check_raw wanted_mcontext esp2
+	(fun () ->
+	  match mcontext_merge esp1.mcontext esp2.mcontext with
+	  | M_array when mcontext_is_scalar wanted_mcontext -> M_int (* don't allow @a + @b to return M_array *)
+	  | r -> r)
+	(fun () -> mcontext_merge esp1.mcontext wanted_mcontext)
+	(fun () -> wanted_mcontext))
+    (fun () ->
+      mcontext_check_raw wanted_mcontext esp2
+	(fun () -> mcontext_merge wanted_mcontext esp2.mcontext)
+	(fun () -> wanted_mcontext)
+	(fun () -> wanted_mcontext))
+    (fun () -> wanted_mcontext)
+
+let mcontext_check wanted_mcontext esp =
+  mcontext_check_raw wanted_mcontext esp (fun () -> ()) (fun () -> ()) (fun () -> ())
+
+let mcontext_unop wanted_mcontext esp = mcontext_check wanted_mcontext esp ; wanted_mcontext
+
+let mcontext_check_non_none esp =
+  if esp.mcontext = M_none then warn_rule "() context not accepted here"

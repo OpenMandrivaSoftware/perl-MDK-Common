@@ -10,7 +10,8 @@ type raw_token =
   | EOF of raw_pos
   | SPACE of int
   | CR
-  | NUM of (string * raw_pos)
+  | INT of (string * raw_pos)
+  | FLOAT of (string * raw_pos)
   | RAW_STRING of (string * raw_pos)
   | STRING of (raw_interpolated_string * raw_pos)
   | PATTERN of (raw_interpolated_string * string * raw_pos)
@@ -45,15 +46,15 @@ type raw_token =
   | NEW of (raw_pos) | FORMAT of (raw_pos) | AT of raw_pos | DOLLAR of raw_pos | PERCENT of raw_pos | AMPERSAND of raw_pos
   | STAR of raw_pos | ARRAYLEN of raw_pos | SEMI_COLON of raw_pos | PKG_SCOPE of raw_pos | PAREN of raw_pos | PAREN_END of raw_pos | BRACKET of raw_pos
   | BRACKET_END of raw_pos | BRACKET_HASHREF of raw_pos | ARRAYREF of raw_pos | ARRAYREF_END of raw_pos | ARROW of raw_pos | INCR of raw_pos | DECR of raw_pos
-  | POWER of raw_pos | TIGHT_NOT of raw_pos | BIT_NEG of raw_pos | REF of raw_pos | ONE_SCALAR_PARA of (string * raw_pos) | PATTERN_MATCH of raw_pos | PATTERN_MATCH_NOT of raw_pos | MULT of (string * raw_pos)
+  | CONCAT of raw_pos | POWER of raw_pos | TIGHT_NOT of raw_pos | BIT_NEG of raw_pos | REF of raw_pos | ONE_SCALAR_PARA of (string * raw_pos) | PATTERN_MATCH of raw_pos | PATTERN_MATCH_NOT of raw_pos | MULT of (string * raw_pos) | MULT_L_STR of raw_pos
   | PLUS of (string * raw_pos) | BIT_SHIFT of (string * raw_pos)
-  | LT of raw_pos | GT of raw_pos | COMPARE_OP of (string * raw_pos) | EQ_OP of (string * raw_pos)
+  | LT of raw_pos | GT of raw_pos | COMPARE_OP of (string * raw_pos) | COMPARE_OP_STR of (string * raw_pos) | EQ_OP of (string * raw_pos) | EQ_OP_STR of (string * raw_pos)
   | BIT_AND of raw_pos | BIT_OR of raw_pos | BIT_XOR of raw_pos | AND_TIGHT of raw_pos | OR_TIGHT of raw_pos | DOTDOT of (string * raw_pos)
   | QUESTION_MARK of raw_pos | COLON of raw_pos | ASSIGN of (string * raw_pos) | COMMA of raw_pos | RIGHT_ARROW of raw_pos | NOT of raw_pos | AND of raw_pos | OR of raw_pos | XOR of raw_pos
 
 and raw_interpolated_string = (string * raw_token list) list
 
-let new_any any spaces pos = { any = any ; spaces = spaces ; pos = pos }
+let new_any mcontext any spaces pos = { mcontext = mcontext ; any = any ; spaces = spaces ; pos = pos }
 
 let rec concat_bareword_paren accu = function
   | PRINT(s, pos1) :: PAREN(pos2) :: l
@@ -65,105 +66,110 @@ let rec concat_bareword_paren accu = function
   | e :: l -> concat_bareword_paren (e :: accu) l
 
 let rec raw_token_to_pos_and_token spaces = function
-  | NUM(s, pos) -> pos, Parser.NUM(new_any s spaces pos)
-  | RAW_STRING(s, pos) -> pos, Parser.RAW_STRING(new_any s spaces pos)
-  | RAW_HERE_DOC(r, pos) -> pos, Parser.RAW_HERE_DOC(new_any !r spaces pos)
-  | STRING(l, pos) -> pos, Parser.STRING(new_any (raw_interpolated_string_to_tokens l) spaces pos)
-  | COMMAND_STRING(l, pos) -> pos, Parser.COMMAND_STRING(new_any (raw_interpolated_string_to_tokens l) spaces pos)
-  | QR_PATTERN(s, opts, pos) -> pos, Parser.QR_PATTERN(new_any (raw_interpolated_string_to_tokens s, opts) spaces pos)
-  | PATTERN(s, opts, pos) -> pos, Parser.PATTERN(new_any (raw_interpolated_string_to_tokens s, opts) spaces pos)
-  | PATTERN_SUBST(from, to_, opts, pos) -> pos, Parser.PATTERN_SUBST(new_any (raw_interpolated_string_to_tokens from, raw_interpolated_string_to_tokens to_, opts) spaces pos)
-  | HERE_DOC(l, pos) -> pos, Parser.HERE_DOC(new_any (raw_interpolated_string_to_tokens (fst !l), snd !l) spaces pos)
-  | BAREWORD(s, pos) -> pos, Parser.BAREWORD(new_any s spaces pos)
-  | BAREWORD_PAREN(s, pos) -> pos, Parser.BAREWORD_PAREN(new_any s spaces pos)
-  | REVISION(s, pos) -> pos, Parser.REVISION(new_any s spaces pos)
-  | PERL_CHECKER_COMMENT(s, pos) -> pos, Parser.PERL_CHECKER_COMMENT(new_any s spaces pos)
-  | PO_COMMENT(s, pos) -> pos, Parser.PO_COMMENT(new_any s spaces pos)
-  | POD(s, pos) -> pos, Parser.POD(new_any s spaces pos)
-  | LABEL(s, pos) -> pos, Parser.LABEL(new_any s spaces pos)
-  | PRINT(s, pos) -> pos, Parser.PRINT(new_any s spaces pos)
-  | PRINT_TO_STAR(s, pos) -> pos, Parser.PRINT_TO_STAR(new_any s spaces pos)
-  | PRINT_TO_SCALAR(s, pos) -> pos, Parser.PRINT_TO_SCALAR(new_any s spaces pos)
-  | QUOTEWORDS(s, pos) -> pos, Parser.QUOTEWORDS(new_any s spaces pos)
-  | COMPACT_HASH_SUBSCRIPT(s, pos) -> pos, Parser.COMPACT_HASH_SUBSCRIPT(new_any s spaces pos)
-  | SCALAR_IDENT(kind, name, pos) -> pos, Parser.SCALAR_IDENT(new_any (kind, name) spaces pos)
-  | ARRAY_IDENT(kind, name, pos) -> pos, Parser.ARRAY_IDENT(new_any (kind, name) spaces pos)
-  | HASH_IDENT(kind, name, pos) -> pos, Parser.HASH_IDENT(new_any (kind, name) spaces pos)
-  | FUNC_IDENT(kind, name, pos) -> pos, Parser.FUNC_IDENT(new_any (kind, name) spaces pos)
-  | STAR_IDENT(kind, name, pos) -> pos, Parser.STAR_IDENT(new_any (kind, name) spaces pos)
-  | RAW_IDENT(kind, name, pos) -> pos, Parser.RAW_IDENT(new_any (kind, name) spaces pos)
-  | RAW_IDENT_PAREN(kind, name, pos) -> pos, Parser.RAW_IDENT_PAREN(new_any (kind, name) spaces pos)
-  | ARRAYLEN_IDENT(kind, name, pos) -> pos, Parser.ARRAYLEN_IDENT(new_any (kind, name) spaces pos)
-  | FUNC_DECL_WITH_PROTO(name, proto, pos) -> pos, Parser.FUNC_DECL_WITH_PROTO(new_any (name, proto) spaces pos)
+  | INT(s, pos) -> pos, Parser.NUM(new_any M_int s spaces pos)
+  | FLOAT(s, pos) -> pos, Parser.NUM(new_any M_float s spaces pos)
+  | RAW_STRING(s, pos) -> pos, Parser.RAW_STRING(new_any M_string s spaces pos)
+  | RAW_HERE_DOC(r, pos) -> pos, Parser.RAW_HERE_DOC(new_any M_string !r spaces pos)
+  | STRING(l, pos) -> pos, Parser.STRING(new_any M_string (raw_interpolated_string_to_tokens l) spaces pos)
+  | COMMAND_STRING(l, pos) -> pos, Parser.COMMAND_STRING(new_any (M_mixed (M_string, M_array)) (raw_interpolated_string_to_tokens l) spaces pos)
+  | QR_PATTERN(s, opts, pos) -> pos, Parser.QR_PATTERN(new_any M_special (raw_interpolated_string_to_tokens s, opts) spaces pos)
+  | PATTERN(s, opts, pos) -> pos, Parser.PATTERN(new_any M_special (raw_interpolated_string_to_tokens s, opts) spaces pos)
+  | PATTERN_SUBST(from, to_, opts, pos) -> pos, Parser.PATTERN_SUBST(new_any M_special (raw_interpolated_string_to_tokens from, raw_interpolated_string_to_tokens to_, opts) spaces pos)
+  | HERE_DOC(l, pos) -> pos, Parser.HERE_DOC(new_any M_string (raw_interpolated_string_to_tokens (fst !l), snd !l) spaces pos)
+  | BAREWORD(s, pos) -> pos, Parser.BAREWORD(new_any M_special s spaces pos)
+  | BAREWORD_PAREN(s, pos) -> pos, Parser.BAREWORD_PAREN(new_any M_special s spaces pos)
+  | REVISION(s, pos) -> pos, Parser.REVISION(new_any M_revision s spaces pos)
+  | PERL_CHECKER_COMMENT(s, pos) -> pos, Parser.PERL_CHECKER_COMMENT(new_any M_special s spaces pos)
+  | PO_COMMENT(s, pos) -> pos, Parser.PO_COMMENT(new_any M_special s spaces pos)
+  | POD(s, pos) -> pos, Parser.POD(new_any M_special s spaces pos)
+  | LABEL(s, pos) -> pos, Parser.LABEL(new_any M_special s spaces pos)
+  | PRINT(s, pos) -> pos, Parser.PRINT(new_any M_special s spaces pos)
+  | PRINT_TO_STAR(s, pos) -> pos, Parser.PRINT_TO_STAR(new_any M_special s spaces pos)
+  | PRINT_TO_SCALAR(s, pos) -> pos, Parser.PRINT_TO_SCALAR(new_any M_special s spaces pos)
+  | QUOTEWORDS(s, pos) -> pos, Parser.QUOTEWORDS(new_any M_array s spaces pos)
+  | COMPACT_HASH_SUBSCRIPT(s, pos) -> pos, Parser.COMPACT_HASH_SUBSCRIPT(new_any M_special s spaces pos)
+  | SCALAR_IDENT(kind, name, pos) -> pos, Parser.SCALAR_IDENT(new_any M_special (kind, name) spaces pos)
+  | ARRAY_IDENT(kind, name, pos) -> pos, Parser.ARRAY_IDENT(new_any M_special (kind, name) spaces pos)
+  | HASH_IDENT(kind, name, pos) -> pos, Parser.HASH_IDENT(new_any M_special (kind, name) spaces pos)
+  | FUNC_IDENT(kind, name, pos) -> pos, Parser.FUNC_IDENT(new_any M_special (kind, name) spaces pos)
+  | STAR_IDENT(kind, name, pos) -> pos, Parser.STAR_IDENT(new_any M_special (kind, name) spaces pos)
+  | RAW_IDENT(kind, name, pos) -> pos, Parser.RAW_IDENT(new_any M_special (kind, name) spaces pos)
+  | RAW_IDENT_PAREN(kind, name, pos) -> pos, Parser.RAW_IDENT_PAREN(new_any M_special (kind, name) spaces pos)
+  | ARRAYLEN_IDENT(kind, name, pos) -> pos, Parser.ARRAYLEN_IDENT(new_any M_special (kind, name) spaces pos)
+  | FUNC_DECL_WITH_PROTO(name, proto, pos) -> pos, Parser.FUNC_DECL_WITH_PROTO(new_any M_special (name, proto) spaces pos)
 
-  | NEW(pos) -> pos, Parser.NEW(new_any () spaces pos)
-  | FORMAT(pos) -> pos, Parser.FORMAT(new_any () spaces pos)
-  | COMPARE_OP(s, pos) -> pos, Parser.COMPARE_OP(new_any s spaces pos)
-  | EQ_OP(s, pos) -> pos, Parser.EQ_OP(new_any s spaces pos)
-  | ASSIGN(s, pos) -> pos, Parser.ASSIGN(new_any s spaces pos)
-  | FOR(s, pos) -> pos, Parser.FOR(new_any s spaces pos)
+  | NEW(pos) -> pos, Parser.NEW(new_any M_special () spaces pos)
+  | FORMAT(pos) -> pos, Parser.FORMAT(new_any M_special () spaces pos)
+  | COMPARE_OP(s, pos) -> pos, Parser.COMPARE_OP(new_any M_special s spaces pos)
+  | COMPARE_OP_STR(s, pos) -> pos, Parser.COMPARE_OP_STR(new_any M_special s spaces pos)
+  | EQ_OP(s, pos) -> pos, Parser.EQ_OP(new_any M_special s spaces pos)
+  | EQ_OP_STR(s, pos) -> pos, Parser.EQ_OP_STR(new_any M_special s spaces pos)
+  | ASSIGN(s, pos) -> pos, Parser.ASSIGN(new_any M_special s spaces pos)
+  | FOR(s, pos) -> pos, Parser.FOR(new_any M_special s spaces pos)
 
-  | DOTDOT(s, pos) -> pos, Parser.DOTDOT(new_any s spaces pos)
-  | MULT(s, pos) -> pos, Parser.MULT(new_any s spaces pos)
-  | BIT_SHIFT(s, pos) -> pos, Parser.BIT_SHIFT(new_any s spaces pos)
-  | PLUS(s, pos) -> pos, Parser.PLUS(new_any s spaces pos)
-  | ONE_SCALAR_PARA(s, pos) -> pos, Parser.ONE_SCALAR_PARA(new_any s spaces pos)
-  | MY_OUR(s, pos) -> pos, Parser.MY_OUR(new_any s spaces pos)
+  | DOTDOT(s, pos) -> pos, Parser.DOTDOT(new_any M_special s spaces pos)
+  | MULT(s, pos) -> pos, Parser.MULT(new_any M_special s spaces pos)
+  | BIT_SHIFT(s, pos) -> pos, Parser.BIT_SHIFT(new_any M_special s spaces pos)
+  | PLUS(s, pos) -> pos, Parser.PLUS(new_any M_special s spaces pos)
+  | ONE_SCALAR_PARA(s, pos) -> pos, Parser.ONE_SCALAR_PARA(new_any M_special s spaces pos)
+  | MY_OUR(s, pos) -> pos, Parser.MY_OUR(new_any M_special s spaces pos)
 
-  | EOF              (pos) -> pos, Parser.EOF              (new_any () spaces pos)
-  | IF               (pos) -> pos, Parser.IF               (new_any () spaces pos)
-  | ELSIF            (pos) -> pos, Parser.ELSIF            (new_any () spaces pos)
-  | ELSE             (pos) -> pos, Parser.ELSE             (new_any () spaces pos)
-  | UNLESS           (pos) -> pos, Parser.UNLESS           (new_any () spaces pos)
-  | DO               (pos) -> pos, Parser.DO               (new_any () spaces pos)
-  | WHILE            (pos) -> pos, Parser.WHILE            (new_any () spaces pos)
-  | UNTIL            (pos) -> pos, Parser.UNTIL            (new_any () spaces pos)
-  | CONTINUE         (pos) -> pos, Parser.CONTINUE         (new_any () spaces pos)
-  | SUB              (pos) -> pos, Parser.SUB              (new_any () spaces pos)
-  | LOCAL            (pos) -> pos, Parser.LOCAL            (new_any () spaces pos)
-  | USE              (pos) -> pos, Parser.USE              (new_any () spaces pos)
-  | PACKAGE          (pos) -> pos, Parser.PACKAGE          (new_any () spaces pos)
-  | BEGIN            (pos) -> pos, Parser.BEGIN            (new_any () spaces pos)
-  | END              (pos) -> pos, Parser.END              (new_any () spaces pos)
-  | AT               (pos) -> pos, Parser.AT               (new_any () spaces pos)
-  | DOLLAR           (pos) -> pos, Parser.DOLLAR           (new_any () spaces pos)
-  | PERCENT          (pos) -> pos, Parser.PERCENT          (new_any () spaces pos)
-  | AMPERSAND        (pos) -> pos, Parser.AMPERSAND        (new_any () spaces pos)
-  | STAR             (pos) -> pos, Parser.STAR             (new_any () spaces pos)
-  | ARRAYLEN         (pos) -> pos, Parser.ARRAYLEN         (new_any () spaces pos)
-  | SEMI_COLON       (pos) -> pos, Parser.SEMI_COLON       (new_any () spaces pos)
-  | PKG_SCOPE        (pos) -> pos, Parser.PKG_SCOPE        (new_any () spaces pos)
-  | PAREN            (pos) -> pos, Parser.PAREN            (new_any () spaces pos)
-  | PAREN_END        (pos) -> pos, Parser.PAREN_END        (new_any () spaces pos)
-  | BRACKET          (pos) -> pos, Parser.BRACKET          (new_any () spaces pos)
-  | BRACKET_END      (pos) -> pos, Parser.BRACKET_END      (new_any () spaces pos)
-  | BRACKET_HASHREF  (pos) -> pos, Parser.BRACKET_HASHREF  (new_any () spaces pos)
-  | ARRAYREF         (pos) -> pos, Parser.ARRAYREF         (new_any () spaces pos)
-  | ARRAYREF_END     (pos) -> pos, Parser.ARRAYREF_END     (new_any () spaces pos)
-  | ARROW            (pos) -> pos, Parser.ARROW            (new_any () spaces pos)
-  | INCR             (pos) -> pos, Parser.INCR             (new_any () spaces pos)
-  | DECR             (pos) -> pos, Parser.DECR             (new_any () spaces pos)
-  | POWER            (pos) -> pos, Parser.POWER            (new_any () spaces pos)
-  | TIGHT_NOT        (pos) -> pos, Parser.TIGHT_NOT        (new_any () spaces pos)
-  | BIT_NEG          (pos) -> pos, Parser.BIT_NEG          (new_any () spaces pos)
-  | REF              (pos) -> pos, Parser.REF              (new_any () spaces pos)
-  | PATTERN_MATCH    (pos) -> pos, Parser.PATTERN_MATCH    (new_any () spaces pos)
-  | PATTERN_MATCH_NOT(pos) -> pos, Parser.PATTERN_MATCH_NOT(new_any () spaces pos)
-  | LT               (pos) -> pos, Parser.LT               (new_any () spaces pos)
-  | GT               (pos) -> pos, Parser.GT               (new_any () spaces pos)
-  | BIT_AND          (pos) -> pos, Parser.BIT_AND          (new_any () spaces pos)
-  | BIT_OR           (pos) -> pos, Parser.BIT_OR           (new_any () spaces pos)
-  | BIT_XOR          (pos) -> pos, Parser.BIT_XOR          (new_any () spaces pos)
-  | AND_TIGHT        (pos) -> pos, Parser.AND_TIGHT        (new_any () spaces pos)
-  | OR_TIGHT         (pos) -> pos, Parser.OR_TIGHT         (new_any () spaces pos)
-  | QUESTION_MARK    (pos) -> pos, Parser.QUESTION_MARK    (new_any () spaces pos)
-  | COLON            (pos) -> pos, Parser.COLON            (new_any () spaces pos)
-  | COMMA            (pos) -> pos, Parser.COMMA            (new_any () spaces pos)
-  | RIGHT_ARROW      (pos) -> pos, Parser.RIGHT_ARROW      (new_any () spaces pos)
-  | NOT              (pos) -> pos, Parser.NOT              (new_any () spaces pos)
-  | AND              (pos) -> pos, Parser.AND              (new_any () spaces pos)
-  | OR               (pos) -> pos, Parser.OR               (new_any () spaces pos)
-  | XOR              (pos) -> pos, Parser.XOR              (new_any () spaces pos)
+  | EOF              (pos) -> pos, Parser.EOF              (new_any M_special () spaces pos)
+  | IF               (pos) -> pos, Parser.IF               (new_any M_special () spaces pos)
+  | ELSIF            (pos) -> pos, Parser.ELSIF            (new_any M_special () spaces pos)
+  | ELSE             (pos) -> pos, Parser.ELSE             (new_any M_special () spaces pos)
+  | UNLESS           (pos) -> pos, Parser.UNLESS           (new_any M_special () spaces pos)
+  | DO               (pos) -> pos, Parser.DO               (new_any M_special () spaces pos)
+  | WHILE            (pos) -> pos, Parser.WHILE            (new_any M_special () spaces pos)
+  | UNTIL            (pos) -> pos, Parser.UNTIL            (new_any M_special () spaces pos)
+  | CONTINUE         (pos) -> pos, Parser.CONTINUE         (new_any M_special () spaces pos)
+  | SUB              (pos) -> pos, Parser.SUB              (new_any M_special () spaces pos)
+  | LOCAL            (pos) -> pos, Parser.LOCAL            (new_any M_special () spaces pos)
+  | USE              (pos) -> pos, Parser.USE              (new_any M_special () spaces pos)
+  | PACKAGE          (pos) -> pos, Parser.PACKAGE          (new_any M_special () spaces pos)
+  | BEGIN            (pos) -> pos, Parser.BEGIN            (new_any M_special () spaces pos)
+  | END              (pos) -> pos, Parser.END              (new_any M_special () spaces pos)
+  | AT               (pos) -> pos, Parser.AT               (new_any M_special () spaces pos)
+  | DOLLAR           (pos) -> pos, Parser.DOLLAR           (new_any M_special () spaces pos)
+  | PERCENT          (pos) -> pos, Parser.PERCENT          (new_any M_special () spaces pos)
+  | AMPERSAND        (pos) -> pos, Parser.AMPERSAND        (new_any M_special () spaces pos)
+  | STAR             (pos) -> pos, Parser.STAR             (new_any M_special () spaces pos)
+  | ARRAYLEN         (pos) -> pos, Parser.ARRAYLEN         (new_any M_special () spaces pos)
+  | SEMI_COLON       (pos) -> pos, Parser.SEMI_COLON       (new_any M_special () spaces pos)
+  | PKG_SCOPE        (pos) -> pos, Parser.PKG_SCOPE        (new_any M_special () spaces pos)
+  | PAREN            (pos) -> pos, Parser.PAREN            (new_any M_special () spaces pos)
+  | PAREN_END        (pos) -> pos, Parser.PAREN_END        (new_any M_special () spaces pos)
+  | BRACKET          (pos) -> pos, Parser.BRACKET          (new_any M_special () spaces pos)
+  | BRACKET_END      (pos) -> pos, Parser.BRACKET_END      (new_any M_special () spaces pos)
+  | BRACKET_HASHREF  (pos) -> pos, Parser.BRACKET_HASHREF  (new_any M_special () spaces pos)
+  | ARRAYREF         (pos) -> pos, Parser.ARRAYREF         (new_any M_special () spaces pos)
+  | ARRAYREF_END     (pos) -> pos, Parser.ARRAYREF_END     (new_any M_special () spaces pos)
+  | ARROW            (pos) -> pos, Parser.ARROW            (new_any M_special () spaces pos)
+  | INCR             (pos) -> pos, Parser.INCR             (new_any M_special () spaces pos)
+  | DECR             (pos) -> pos, Parser.DECR             (new_any M_special () spaces pos)
+  | POWER            (pos) -> pos, Parser.POWER            (new_any M_special () spaces pos)
+  | TIGHT_NOT        (pos) -> pos, Parser.TIGHT_NOT        (new_any M_special () spaces pos)
+  | BIT_NEG          (pos) -> pos, Parser.BIT_NEG          (new_any M_special () spaces pos)
+  | REF              (pos) -> pos, Parser.REF              (new_any M_special () spaces pos)
+  | PATTERN_MATCH    (pos) -> pos, Parser.PATTERN_MATCH    (new_any M_special () spaces pos)
+  | PATTERN_MATCH_NOT(pos) -> pos, Parser.PATTERN_MATCH_NOT(new_any M_special () spaces pos)
+  | LT               (pos) -> pos, Parser.LT               (new_any M_special () spaces pos)
+  | GT               (pos) -> pos, Parser.GT               (new_any M_special () spaces pos)
+  | BIT_AND          (pos) -> pos, Parser.BIT_AND          (new_any M_special () spaces pos)
+  | BIT_OR           (pos) -> pos, Parser.BIT_OR           (new_any M_special () spaces pos)
+  | BIT_XOR          (pos) -> pos, Parser.BIT_XOR          (new_any M_special () spaces pos)
+  | AND_TIGHT        (pos) -> pos, Parser.AND_TIGHT        (new_any M_special () spaces pos)
+  | OR_TIGHT         (pos) -> pos, Parser.OR_TIGHT         (new_any M_special () spaces pos)
+  | QUESTION_MARK    (pos) -> pos, Parser.QUESTION_MARK    (new_any M_special () spaces pos)
+  | COLON            (pos) -> pos, Parser.COLON            (new_any M_special () spaces pos)
+  | COMMA            (pos) -> pos, Parser.COMMA            (new_any M_special () spaces pos)
+  | CONCAT           (pos) -> pos, Parser.CONCAT           (new_any M_special () spaces pos)
+  | MULT_L_STR       (pos) -> pos, Parser.MULT_L_STR       (new_any M_special () spaces pos)
+  | RIGHT_ARROW      (pos) -> pos, Parser.RIGHT_ARROW      (new_any M_special () spaces pos)
+  | NOT              (pos) -> pos, Parser.NOT              (new_any M_special () spaces pos)
+  | AND              (pos) -> pos, Parser.AND              (new_any M_special () spaces pos)
+  | OR               (pos) -> pos, Parser.OR               (new_any M_special () spaces pos)
+  | XOR              (pos) -> pos, Parser.XOR              (new_any M_special () spaces pos)
 
   | SPACE _ | CR -> internal_error "raw_token_to_token"
 
@@ -384,16 +390,18 @@ rule token = parse
 | "!~" { PATTERN_MATCH_NOT(pos lexbuf) }
 | "*" { MULT(lexeme lexbuf, pos lexbuf) }
 | "%" { MULT(lexeme lexbuf, pos lexbuf) }
-| "x" { MULT(lexeme lexbuf, pos lexbuf) }
+| "x" { MULT_L_STR(pos lexbuf) }
 | "+" { PLUS(lexeme lexbuf, pos lexbuf) }
 | "-" { PLUS(lexeme lexbuf, pos lexbuf) }
-| "." { PLUS(lexeme lexbuf, pos lexbuf) }
+| "." { CONCAT(pos lexbuf) }
 | "<<" { BIT_SHIFT(lexeme lexbuf, pos lexbuf) }
 | ">>" { BIT_SHIFT(lexeme lexbuf, pos lexbuf) }
 | "<" { LT(pos lexbuf) }
 | ">" { GT(pos lexbuf) }
-| "<=" | ">=" | "lt" | "gt" | "le" | "ge" { COMPARE_OP(lexeme lexbuf, pos lexbuf) }
-| "==" | "!=" | "<=>" | "eq" | "ne" | "cmp" { EQ_OP(lexeme lexbuf, pos lexbuf) }
+| "<=" | ">="  { COMPARE_OP(lexeme lexbuf, pos lexbuf) }
+| "lt" | "gt" | "le" | "ge" { COMPARE_OP_STR(lexeme lexbuf, pos lexbuf) }
+| "==" | "!=" | "<=>" { EQ_OP(lexeme lexbuf, pos lexbuf) }
+| "eq" | "ne" | "cmp" { EQ_OP_STR(lexeme lexbuf, pos lexbuf) }
 | "&" { BIT_AND(pos lexbuf) }
 | "|" { BIT_OR(pos lexbuf) }
 | "^" { BIT_XOR(pos lexbuf) }
@@ -616,11 +624,14 @@ rule token = parse
     REVISION(lexeme lexbuf, pos lexbuf)
   }
 
-| ['0'-'9']* '.' ['0'-'9']+ (['e' 'E']['-' '+']?['0'-'9']+)? 
+| ['0'-'9']* '.' ['0'-'9']+ (['e' 'E']['-' '+']?['0'-'9']+)? { 
+    not_ok_for_match := lexeme_end lexbuf; 
+    FLOAT(lexeme lexbuf, pos lexbuf)
+  }
 | ['0'-'9'] ['0'-'9' '_']*  (['e' 'E']['-' '+']?['0'-'9']+)?
 | "0x" ['0'-'9' 'a'-'f' 'A'-'F']+ { 
     not_ok_for_match := lexeme_end lexbuf; 
-    NUM(lexeme lexbuf, pos lexbuf)
+    INT(lexeme lexbuf, pos lexbuf)
   }
 
 | '"'   { ins_to_string string lexbuf }
