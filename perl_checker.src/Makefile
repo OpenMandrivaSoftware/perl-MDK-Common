@@ -1,5 +1,5 @@
 # OCAMLC = ocamlcp -p a
-OCAMLBCFLAGS = -w A
+OCAMLBCFLAGS = -w A -w e
 YFLAGS = -v
 TRASH = parser.output TAGS
 RESULT  = perl_checker
