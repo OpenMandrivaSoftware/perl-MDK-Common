@@ -810,6 +810,13 @@ let call_raw is_a_func (e, para) =
 	  | Anonymous_sub _ :: _ -> ()
 	  | _ -> warn_rule (sprintf "always use \"%s\" with a block (eg: %s { ... } @list)" f f));
 	  None
+
+      | "member" ->
+	  (match para with
+	    [ List [ _; Call(Deref(I_func, Ident(None, "keys", _)), _) ] ] ->
+	      warn_rule "you can replace \"member($xxx, keys %yyy)\" with \"exists $yyy{$xxx}\""
+	  | _ -> ());
+	  None
 	    
       | _ -> None
       in Call(e, some_or para' para)
