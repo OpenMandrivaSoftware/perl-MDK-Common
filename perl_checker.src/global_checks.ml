@@ -75,6 +75,7 @@ and get_imports state package =
       package.imported := Some l ;
       l
 
+let is_anonymous_variable_name s = String.length s > 1 && s.[0] = '_'
 
 let is_my_declared vars t = 
   List.exists (fun l ->
@@ -138,7 +139,7 @@ let is_global_var context ident =
       | "defined" | "delete" | "die"
       | "each" | "endpwent" | "eof" | "eval" | "exec" | "exists" | "exit"
       | "fcntl" | "fileno" | "flock" | "formline" | "fork"
-      | "gethostbyaddr" | "gethostbyname" | "getgrnam" | "getgrgid" | "getppid" | "getpwent" | "getpwnam" | "getpwuid" | "gmtime" | "goto" | "grep" | "hex"
+      | "gethostbyaddr" | "gethostbyname" | "getgrnam" | "getgrgid" | "getppid" | "getpwent" | "getpwnam" | "getpwuid" | "glob" | "gmtime" | "goto" | "grep" | "hex"
       | "index" | "int" | "ioctl" | "join" | "keys" | "kill"
       | "last" | "lc" | "lcfirst" | "length" | "link" | "localtime" | "log" | "lstat"
       | "map" | "mkdir" | "next" | "no" | "oct" | "open" | "opendir" | "ord"
@@ -154,6 +155,8 @@ let is_global_var context ident =
 
 let check_variable (context, var) vars = 
   match var with
+  | Ident(_, s, pos) when context <> I_func && is_anonymous_variable_name s && s <> "__FILE__" && s <> "__LINE__" ->
+      warn_with_pos pos (sprintf "variable %s must not be used\n  (variable with name _XXX are reserved for unused variables)" (variable2s(context, string_of_Ident var)))
   | Ident(Some pkg, _, _) when uses_external_package pkg || List.mem pkg !ignored_packages -> ()
   | Ident(None, ident, pos) ->
       if is_my_declared vars (context, ident) || is_our_declared vars (context, ident) || is_var_declared vars (context, ident) || is_global_var context ident
