@@ -117,6 +117,7 @@ sub push {}
 sub put {}
 sub queue_draw {}
 sub realize {}
+sub remove_page {}
 sub render_to_drawable {}
 sub resize {}
 sub rgb_find_color {}
@@ -141,6 +142,7 @@ sub set_editable {}
 sub set_events {}
 sub set_filename {}
 sub set_focus_vadjustment {}
+sub set_fraction {}
 sub set_has_window {}
 sub set_headers_visible {}
 sub set_justify {}
