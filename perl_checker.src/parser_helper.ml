@@ -733,7 +733,7 @@ msgstr \"\"
 	List.iter (fun po_comment -> output_string fd ("#. " ^ po_comment ^ "\n")) po_comments;
 
 	List.iter (fun _ -> Hashtbl.remove pot_strings_and_file s) l ;
-	fprintf fd "#: %s\n" (String.concat " " (List.map (fun s -> s ^ ":1") l)) ;
+	fprintf fd "#: %s\n" (String.concat " " (List.map (fun s -> Info.absolute_file_to_file s ^ ":1") l)) ;
 	output_string fd "#, c-format\n" ;
 
 	output_string fd (if String.contains s '\n' then "msgid \"\"\n\"" else "msgid \"") ;
