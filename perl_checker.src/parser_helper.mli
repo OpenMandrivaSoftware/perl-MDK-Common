@@ -95,6 +95,7 @@ val check_block_ref :
   Types.fromparser list * (Types.spaces * (int * int)) ->
   'a * (Types.spaces * (int * 'b)) -> unit
 val check_my_our_paren : ((bool * 'a) * 'b) * 'c -> unit
+val check_simple_pattern : Types.fromparser list -> unit
 val only_one : Types.fromparser list * ('a * (int * int)) -> Types.fromparser
 val only_one_array_ref :
   Types.fromparser list * ('a * (int * int)) -> Types.fromparser

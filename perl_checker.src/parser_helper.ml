@@ -422,6 +422,15 @@ let check_block_ref (l, (_, (_, end_)) as ter_lines) (_, (space, _) as ter_BRACK
 let check_my_our_paren (((comma_closed, _), _), _) = 
   if not comma_closed then die_rule "syntax error"
 
+let check_simple_pattern = function
+  | [ String([ st, List [] ], _); Raw_string("", _) ] ->
+      if String.length st > 2 &&
+	st.[0] = '^' && st.[String.length st - 1] = '$' then
+	let st = skip_n_char_ 1 1 st in
+	if string_forall_with char_is_alphanumerical_ 0 st then
+	  warn_rule (sprintf "\"... =~ /^%s$/\" is better written \"... eq %s\"" st st)
+  | _ -> ()
+
 let rec only_one (l, (spaces, pos)) =
   match l with
   | [List l'] -> only_one (l', (spaces, pos))
@@ -677,10 +686,10 @@ let call_func is_a_func (e, para) =
 	      Some(Call_op("qr//", pattern, pos) :: l)
 	  | _ -> None)
 
-      | "map" -> 
+      | "map" | "grep" -> 
 	  (match para with
 	  | Anonymous_sub _ :: _ -> ()
-	  | _ -> warn_rule "always use \"map\" with a block (eg: map { ... } @list)");
+	  | _ -> warn_rule (sprintf "always use \"%s\" with a block (eg: map { ... } @list)" f));
 	  None
 	    
       | _ -> None

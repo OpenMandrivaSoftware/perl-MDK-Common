@@ -220,8 +220,8 @@ term:
 | term OR_TIGHT   BRACKET expr BRACKET_END {sp_p($3); sp_p($4); sp_p($5); call_op_(op_p P_tight_or  "||"  $2, $3, [prio_lo P_assign    $1; Ref(I_hash, sndfst $4)]) (sp_pos_range $1 $5)}
 
 
-| term PATTERN_MATCH     PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_   ($1); to_Call_op_(P_expr, "m//",  sndfst $1 :: from_PATTERN $3) (sp_pos_range $1 $3)}
-| term PATTERN_MATCH_NOT PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_not($1); to_Call_op_(P_expr, "!m//", sndfst $1 :: from_PATTERN $3) (sp_pos_range $1 $3)}
+| term PATTERN_MATCH     PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_   ($1); let pattern = from_PATTERN $3 in check_simple_pattern pattern ; to_Call_op_(P_expr, "m//",  sndfst $1 :: pattern) (sp_pos_range $1 $3)}
+| term PATTERN_MATCH_NOT PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_not($1); let pattern = from_PATTERN $3 in check_simple_pattern pattern ; to_Call_op_(P_expr, "!m//", sndfst $1 :: pattern) (sp_pos_range $1 $3)}
 | term PATTERN_MATCH PATTERN_SUBST {sp_n($2); sp_p($3); check_unneeded_var_dollar_s  ($1); to_Call_op_(P_expr, "s///", sndfst $1 :: from_PATTERN_SUBST $3) (sp_pos_range $1 $3)}
 | term PATTERN_MATCH_NOT PATTERN_SUBST {die_with_rawpos (sndsnd $2) "use =~ instead of !~ and negate the return value"}
 
