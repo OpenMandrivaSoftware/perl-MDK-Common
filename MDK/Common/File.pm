@@ -135,7 +135,11 @@ sub substInFile(&@) {
     if (-s $file) {
 	local @ARGV = $file;
 	local ($^I, $_) = '';
-	while (<>) { &$f($_); print }
+	while (<>) { 
+	    $_ .= "\n" if eof && !/\n/;
+	    &$f($_); 
+	    print;
+	}
     } else {
 	local *F; my $old = select F; # that way eof return true
 	local $_ = '';
