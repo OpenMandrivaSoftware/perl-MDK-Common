@@ -2,6 +2,7 @@ package Gtk2;
 
 our @ISA = qw();
 
+sub Gtk2::foreach {}
 sub Gtk2::x {}
 sub XWINDOW {}
 sub action_area {}
@@ -30,8 +31,10 @@ sub can_default {}
 sub can_focus {}
 sub cancel_button {}
 sub child {}
+sub child_position {}
 sub children {}
 sub clear {}
+sub clicked {}
 sub collapse_all {}
 sub composite {}
 sub copy {}
@@ -48,14 +51,20 @@ sub draw_rectangle {}
 sub entry {}
 sub expand {}
 sub expand_all {}
+sub expand_row {}
+sub expand_row {}
+sub expand_to_path {}
 sub fg_gc {}
 sub file_list {}
 sub fill {}
 sub free {}
 sub get {}
+sub get_active {}
 sub get_buffer {}
 sub get_char_count {}
 sub get_colormap {}
+sub get_context_id {}
+sub get_cursor {}
 sub get_data {}
 sub get_depth {}
 sub get_end_iter {}
@@ -64,9 +73,10 @@ sub get_font_desc {}
 sub get_group {}
 sub get_height {}
 sub get_iter_at_offset {}
+sub get_iter_first {}
 sub get_language {}
 sub get_metrics {}
-sub get_modal {}
+sub get_model {}
 sub get_origin {}
 sub get_pango_context {}
 sub get_parent {}
@@ -79,6 +89,7 @@ sub get_selection {}
 sub get_size {}
 sub get_text {}
 sub get_vadjustment {}
+sub get_value {}
 sub get_widget {}
 sub get_width {}
 sub grab_default {}
@@ -99,12 +110,17 @@ sub pack1 {}
 sub pack2 {}
 sub pack_end {}
 sub pack_start {}
+sub pop {}
+sub push {}
 sub put {}
 sub queue_draw {}
 sub realize {}
 sub render_to_drawable {}
 sub rgb_find_color {}
 sub saturate_and_pixelate {}
+sub scroll_to_cell {}
+sub select_item {}
+sub select_region {}
 sub selection_entry {}
 sub set {}
 sub set_active {}
@@ -115,6 +131,9 @@ sub set_col_spacings {}
 sub set_current_page {}
 sub set_cursor {}
 sub set_cursor_visible {}
+sub set_data {}
+sub set_default_size {}
+sub set_digits {}
 sub set_editable {}
 sub set_events {}
 sub set_filename {}
@@ -124,9 +143,11 @@ sub set_headers_visible {}
 sub set_justify {}
 sub set_layout {}
 sub set_markup {}
+sub set_min_width {}
 sub set_minmax_width {}
 sub set_modal {}
 sub set_mode {}
+sub set_model {}
 sub set_name {}
 sub set_policy {}
 sub set_popdown_strings {}
@@ -136,9 +157,11 @@ sub set_relief {}
 sub set_rgb_fg_color {}
 sub set_row_spacings {}
 sub set_selectable {}
+sub set_selection_mode {}
 sub set_sensitive {}
 sub set_shadow_type {}
 sub set_size_request {}
+sub set_sizing {}
 sub set_style {}
 sub set_submenu {}
 sub set_text {}
@@ -147,17 +170,20 @@ sub set_title {}
 sub set_transient_for {}
 sub set_uposition {}
 sub set_use_arrows_always {}
+sub set_value {}
 sub set_visibility {}
 sub set_wrap_mode {}
 sub shape_combine_mask {}
 sub show_all {}
 sub signal_connect {}
 sub signal_disconnect {}
+sub signal_stop_emission_by_name {}
 sub size {}
 sub state {}
 sub steal {}
 sub style {}
 sub toggle_expansion {}
+sub type {}
 sub unref {}
 sub values {}
 sub vbox {}
@@ -180,4 +206,3 @@ sub timeout_add {}
 sub timeout_remove {}
 sub update {}
 sub update_ui {}
-
