@@ -8,6 +8,7 @@ sub XWINDOW {}
 sub action_area {}
 sub active {}
 sub add_accel_group {}
+sub add_attribute {}
 sub add_events {}
 sub add_with_viewport {}
 sub allocation {}
