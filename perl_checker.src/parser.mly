@@ -104,7 +104,7 @@ prog: lines EOF {$1.any}
 lines: /* A collection of "lines" in the program */
 | { default_esp [] }
 | sideff { new_1esp [$1.any] $1 }
-| line lines { new_esp $2.mcontext ($1.any @ $2.any) $1 $2 }
+| line lines { if $2.any <> [] then mcontext_check_none $1; new_esp $2.mcontext ($1.any @ $2.any) $1 $2 }
 
 line:
 | decl { new_1esp [$1.any] $1 }
@@ -114,7 +114,8 @@ line:
 | PERL_CHECKER_COMMENT {sp_p($1); new_1esp [Perl_checker_comment($1.any, get_pos $1)] $1 }
 | semi_colon {new_1esp [Semi_colon] $1 }
 | sideff semi_colon {new_1esp [$1.any ; Semi_colon] $1 }
-| BRACKET lines BRACKET_END {check_block_sub $2 $3; new_esp $2.mcontext [Block $2.any] $1 $3}
+| BRACKET lines BRACKET_END            {check_block_sub $2 $3; new_esp $2.mcontext [Block $2.any] $1 $3}
+| BRACKET lines BRACKET_END semi_colon {check_block_sub $2 $3; new_esp $2.mcontext [Block $2.any] $1 $4}
 
 if_then_else: /* Real conditional expressions */
 | IF     PAREN expr PAREN_END BRACKET lines BRACKET_END elsif else_ {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_scalar $3; check_block_sub $6 $7; to_Call_op (if $9.any = [] then M_none else mcontext_lmerge ($6.mcontext :: mcontext_lmaybe $8 @ [$9.mcontext])) "if"     (prio_lo P_loose $3 :: Block $6.any :: $8.any @ $9.any) $1 $9}
@@ -153,8 +154,8 @@ sideff: /* An expression which may have a side-effect */
 | expr  FOR    expr {sp_p($2); sp_p($3); mcontext_check M_list $3; check_foreach($2); to_Call_op M_none "for infix"   [ prio_lo P_loose $1 ; prio_lo P_loose $3 ] $1 $3}
 
 decl:
-| FORMAT BAREWORD ASSIGN {new_esp M_special Too_complex $1 $3}
-| FORMAT ASSIGN {new_esp M_special Too_complex $1 $2}
+| FORMAT BAREWORD ASSIGN {new_esp M_none Too_complex $1 $3}
+| FORMAT ASSIGN {new_esp M_none Too_complex $1 $2}
 | func_decl semi_colon {if snd $1.any = None then die_rule "there is no need to pre-declare in Perl!" else (warn_rule "please don't use prototype pre-declaration" ; new_esp M_special Too_complex $1 $2) }
 | func_decl BRACKET BRACKET_END {sp_n($2); sp_0_or_cr($3); let name, proto = $1.any in new_esp M_none (sub_declaration (name, proto) []) $1 $3}
 | func_decl BRACKET lines BRACKET_END {sp_n($2); check_block_sub $3 $4; new_esp M_none (sub_declaration $1.any $3.any) $1 $4}
@@ -211,25 +212,25 @@ term:
 | term BIT_AND    term {sp_same $2 $3; sp_p $2; let pri = P_bit       in to_Call_op_ (mcontext_symops M_int    $1 $3) pri "&"    [prio_lo pri $1; prio_lo_after pri $3] $1 $3}
 | term BIT_OR     term {sp_same $2 $3;          let pri = P_bit       in to_Call_op_ (mcontext_symops M_int    $1 $3) pri "|"    [prio_lo pri $1; prio_lo_after pri $3] $1 $3}
 | term BIT_XOR    term {sp_same $2 $3; sp_p $2; let pri = P_bit       in to_Call_op_ (mcontext_symops M_int    $1 $3) pri "^"    [prio_lo pri $1; prio_lo_after pri $3] $1 $3}
-| term AND_TIGHT  term {sp_same $2 $3; sp_p $2; let pri = P_tight_and in to_Call_op_ (mcontext_symops M_scalar $1 $3) pri "&&"   [prio_lo pri $1; prio_lo_after pri $3] $1 $3}
+| term AND_TIGHT  term {sp_same $2 $3; sp_p $2; let pri = P_tight_and in to_Call_op_ (mcontext_rightops M_scalar $1 $3) pri "&&" [prio_lo pri $1; prio_lo_after pri $3] $1 $3}
 | term OR_TIGHT   term {sp_same $2 $3; sp_p $2; let pri = P_tight_or  in to_Call_op_ (mcontext_symops M_scalar $1 $3) pri "||"   [prio_lo pri $1; prio_lo_after pri $3] $1 $3}
 | term MULT       term {sp_same $2 $3;          let pri = P_mul       in to_Call_op_ (mcontext_symops M_float  $1 $3) pri $2.any [prio_lo_concat $1; prio_lo_after pri $3] $1 $3}
 | term MULT_L_STR term {sp_same $2 $3; mcontext_check M_int $3; let pri = P_mul in to_Call_op_ (if mcontext_lower $1.mcontext M_string then M_string else M_list) pri "x" [prio_lo_concat $1; prio_lo_after pri $3] $1 $3}
 | term PLUS       term {sp_same $2 $3;          let pri = P_add       in to_Call_op_ (mcontext_symops M_float  $1 $3) pri $2.any [prio_lo pri $1; prio_lo_after pri $3] $1 $3}
 | term CONCAT     term {sp_same $2 $3;          let pri = P_add       in to_Call_op_ (mcontext_symops M_string $1 $3) pri "."    [prio_lo pri $1; prio_lo_after pri $3] $1 $3}
-| term ASSIGN     term {sp_same $2 $3; mcontext_check_non_none $3 ; let pri = P_assign in to_Call_op_ $3.mcontext     pri $2.any [$1.any.expr   ; prio_lo_after pri $3] $1 $3}
+| term ASSIGN     term {sp_same $2 $3;          let pri = P_assign    in to_Call_op_ (mcontext_op_assign $1 $3)       pri $2.any [$1.any.expr   ; prio_lo_after pri $3] $1 $3}
 | term DOTDOT     term {sp_same $2 $3;          let pri = P_paren_wanted P_expr  in to_Call_op_ (mcontext_symops M_scalar $1 $3) pri $2.any [prio_lo pri $1; prio_lo_after pri $3] $1 $3}
 | term BIT_SHIFT  term {sp_same $2 $3;          let pri = P_paren_wanted P_tight in to_Call_op_ (mcontext_symops M_int    $1 $3) pri $2.any [prio_lo pri $1; prio_lo_after pri $3] $1 $3}
 | term XOR        term {sp_same $2 $3; sp_p $2; let pri = P_paren_wanted P_expr  in to_Call_op_ (mcontext_symops M_scalar $1 $3) pri "xor"  [prio_lo pri $1; prio_lo_after pri $3] $1 $3}
 
-| term ASSIGN     BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); to_Call_op_ (M_ref M_hash) P_assign $2.any [prio_lo P_assign $1; Ref(I_hash, $4.any.expr)] $1 $5}
+| term ASSIGN     BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); to_Call_op_ (M_mixed [M_ref M_hash; M_none]) P_assign $2.any [prio_lo P_assign $1; Ref(I_hash, $4.any.expr)] $1 $5}
 | term AND_TIGHT  BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); to_Call_op_ M_scalar P_tight_and "&&"   [prio_lo P_assign $1; Ref(I_hash, $4.any.expr)] $1 $5}
 | term OR_TIGHT   BRACKET expr BRACKET_END {sp_p($2); sp_p($3); sp_p($4); sp_p($5); to_Call_op_ M_scalar P_tight_or  "||"   [prio_lo P_assign $1; Ref(I_hash, $4.any.expr)] $1 $5}
 
 
 | term PATTERN_MATCH     PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_   ($1); let pattern = from_PATTERN $3 in check_simple_pattern pattern ; to_Call_op_ M_array P_expr "m//"  ($1.any.expr :: pattern) $1 $3}
 | term PATTERN_MATCH_NOT PATTERN   {sp_n($2); sp_p($3); check_unneeded_var_dollar_not($1); let pattern = from_PATTERN $3 in check_simple_pattern pattern ; to_Call_op_ M_int   P_expr "!m//" ($1.any.expr :: pattern) $1 $3}
-| term PATTERN_MATCH PATTERN_SUBST {sp_n($2); sp_p($3); check_unneeded_var_dollar_s  ($1); to_Call_op_ M_int P_expr "s///" ($1.any.expr :: from_PATTERN_SUBST $3) $1 $3}
+| term PATTERN_MATCH PATTERN_SUBST {sp_n($2); sp_p($3); check_unneeded_var_dollar_s  ($1); to_Call_op_ (M_mixed[M_none; M_int]) P_expr "s///" ($1.any.expr :: from_PATTERN_SUBST $3) $1 $3}
 | term PATTERN_MATCH_NOT PATTERN_SUBST {die_with_rawpos $2.pos "use =~ instead of !~ and negate the return value"}
 
 | term PATTERN_MATCH     QR_PATTERN {sp_n($2); sp_p($3); to_Call_op_ M_array P_expr "m//"  ($1.any.expr :: from_PATTERN $3) $1 $3}
@@ -262,10 +263,10 @@ term:
 }
 | TIGHT_NOT term {check_negatable_expr $2; to_Call_op_ (mcontext_unop M_scalar $2) P_tight "not" [$2.any.expr] $1 $2}
 | BIT_NEG term {to_Call_op_ (mcontext_unop M_int $2) P_expr "~" [$2.any.expr] $1 $2}
-| INCR term    {sp_0($2); to_Call_op_ (mcontext_unop M_int $2) P_tight "++" [$2.any.expr] $1 $2}
-| DECR term    {sp_0($2); to_Call_op_ (mcontext_unop M_int $2) P_tight "--" [$2.any.expr] $1 $2}
-| term INCR    {sp_0($2); to_Call_op_ (mcontext_unop M_int $1) P_tight "++ post" [$1.any.expr] $1 $2}
-| term DECR    {sp_0($2); to_Call_op_ (mcontext_unop M_int $1) P_tight "-- post" [$1.any.expr] $1 $2}
+| INCR term    {sp_0($2); mcontext_check M_int $2; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "++" [$2.any.expr] $1 $2}
+| DECR term    {sp_0($2); mcontext_check M_int $2; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "--" [$2.any.expr] $1 $2}
+| term INCR    {sp_0($2); mcontext_check M_int $1; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "++ post" [$1.any.expr] $1 $2}
+| term DECR    {sp_0($2); mcontext_check M_int $1; to_Call_op_ (M_mixed [M_int ; M_none]) P_tight "-- post" [$1.any.expr] $1 $2}
 | NOT argexpr  {warn_rule "don't use \"not\", use \"!\" instead"; to_Call_op_ (mcontext_unop M_scalar $2) P_and "not" ($2.any.expr) $1 $2}
 
 /* Constructors for anonymous data */
@@ -285,7 +286,7 @@ term:
 | termdo {new_1pesp P_tok $1.any $1}
 | REF term {new_pesp (M_ref $2.mcontext) P_expr (Ref(I_scalar, remove_call_with_same_para_special $2.any.expr)) $1 $2} /* \$x, \@y, \%z */
 | my_our %prec UNIOP {new_1pesp P_expr $1.any $1}
-| LOCAL term    %prec UNIOP {sp_n($2); new_pesp $2.mcontext P_expr (to_Local $2) $1 $2}
+| LOCAL term    %prec UNIOP {sp_n($2); new_pesp M_none P_expr (to_Local $2) $1 $2}
 
 | parenthesized {new_1pesp $1.any.priority (List $1.any.expr) $1} /* (1, 2) */
 | parenthesized arrayref {sp_0($2); let is_slice = not (is_only_one_in_List $2.any) in new_pesp (if is_slice then M_list else M_scalar) P_tok (to_Deref_with(I_array, (if is_slice then I_array else I_scalar), List $1.any.expr, List $2.any)) $1 $2} /* list indexing or slicing */
@@ -311,14 +312,17 @@ term:
 | ONE_SCALAR_PARA restricted_subscripted   {call_one_scalar_para $1 [$2.any] $1 $2}
 | ONE_SCALAR_PARA parenthesized            {call_one_scalar_para $1 $2.any.expr $1 $2}
 | ONE_SCALAR_PARA word_paren parenthesized {call_one_scalar_para $1 [call(Deref(I_func, $2.any), $3.any.expr)] $1 $3}
+| ONE_SCALAR_PARA BRACKET lines BRACKET_END {sp_n($2); check_block_sub $3 $4; new_pesp M_unknown P_tok (call(Deref(I_func, Ident(None, $1.any, raw_pos2pos $1.pos)), [anonymous_sub None $3])) $1 $4} /* eval { foo } */
+| ONE_SCALAR_PARA diamond {call_one_scalar_para $1 [$2.any] $1 $2}
 | ONE_SCALAR_PARA {call_one_scalar_para $1 [] $1 $1}
 | ONE_SCALAR_PARA word argexpr {check_parenthesized_first_argexpr_with_Ident  $2.any $3; call_one_scalar_para $1 [call(Deref(I_func, $2.any), $3.any.expr)] $1 $3} /* ref foo $a, $b */
 | ONE_SCALAR_PARA hash PKG_SCOPE {sp_0($3); call_one_scalar_para $1 [ Call(Too_complex, [$2.any]) ] $1 $3} /* keys %main:: */
 
 | func parenthesized {sp_0($2); new_pesp M_unknown P_tok (call_func true ($1.any, $2.any.expr)) $1 $2} /* &foo(@args) */
 | word argexpr {check_parenthesized_first_argexpr_with_Ident  $1.any $2; new_pesp M_unknown P_call_no_paren (call(Deref(I_func, $1.any), $2.any.expr)) $1 $2} /* foo $a, $b */
+| word BRACKET lines BRACKET_END COMMA argexpr %prec LSTOP {sp_n($2); new_pesp M_unknown P_call_no_paren (call(Deref(I_func, $1.any), Ref(I_hash, List $3.any) :: $6.any.expr)) $1 $6} /* bless { foo }, $bar */
 | word_paren parenthesized {sp_0($2); new_pesp M_unknown P_tok (call(Deref(I_func, $1.any), $2.any.expr)) $1 $2} /* foo(@args) */
-| word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); check_block_sub $3 $4; new_pesp M_unknown (if $5.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None $3 :: $5.any.expr)) $1 $5} /* map { foo } @bar */
+| word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); check_block_sub $3 $4; call_and_context(Deref(I_func, $1.any), anonymous_sub None $3 :: $5.any.expr) (if $5.any.expr = [] then P_tok else P_call_no_paren) $1 $5} /* map { foo } @bar */
 | word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); new_pesp M_unknown (if $7.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ Ref(I_hash, $4.any.expr) ] $4 $4) :: $7.any.expr)) $1 $7} /* map { { foo } } @bar */
 | word BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); new_pesp M_unknown (if $8.any.expr = [] then P_tok else P_call_no_paren) (call(Deref(I_func, $1.any), anonymous_sub None (new_esp (M_ref M_hash) [ Ref(I_hash, $4.any.expr); Semi_colon ] $4 $4) :: $8.any.expr)) $1 $8} /* map { { foo }; } @bar */
 
@@ -334,12 +338,12 @@ term:
 | NEW word terminal { die_rule "you must parenthesize parameters: \"new Class(...)\" instead of \"new Class ...\"" }
 | NEW word variable { die_rule "you must parenthesize parameters: \"new Class(...)\" instead of \"new Class ...\"" }
 
-| PRINT { to_Call_op_ M_int P_call_no_paren $1.any (var_STDOUT :: [ var_dollar_ (get_pos $1) ]) $1 $1}
-| PRINT argexpr {check_parenthesized_first_argexpr  $1.any $2; to_Call_op_ M_int P_call_no_paren $1.any (var_STDOUT :: $2.any.expr) $1 $2}
-| PRINT_TO_SCALAR         { to_Call_op_ M_int P_call_no_paren (fst $1.any) (var_STDOUT :: [ Deref(I_scalar, Ident(None, snd $1.any, get_pos $1)) ]) $1 $1}
-| PRINT_TO_SCALAR argexpr { to_Call_op_ M_int P_call_no_paren (fst $1.any) (Deref(I_scalar, Ident(None, snd $1.any, get_pos $1)) :: $2.any.expr) $1 $2}
-| PRINT_TO_STAR           { to_Call_op_ M_int P_call_no_paren (fst $1.any) (Deref(I_star, Ident(None, snd $1.any, get_pos $1)) :: [ var_dollar_ (get_pos $1) ]) $1 $1}
-| PRINT_TO_STAR argexpr   { to_Call_op_ M_int P_call_no_paren (fst $1.any) (Deref(I_star, Ident(None, snd $1.any, get_pos $1)) :: $2.any.expr) $1 $2}
+| PRINT { to_Call_op_ (M_mixed [M_int; M_none]) P_call_no_paren $1.any (var_STDOUT :: [ var_dollar_ (get_pos $1) ]) $1 $1}
+| PRINT argexpr {check_parenthesized_first_argexpr  $1.any $2; to_Call_op_ (M_mixed [M_int; M_none]) P_call_no_paren $1.any (var_STDOUT :: $2.any.expr) $1 $2}
+| PRINT_TO_SCALAR         { to_Call_op_ (M_mixed [M_int; M_none]) P_call_no_paren (fst $1.any) (var_STDOUT :: [ Deref(I_scalar, Ident(None, snd $1.any, get_pos $1)) ]) $1 $1}
+| PRINT_TO_SCALAR argexpr { to_Call_op_ (M_mixed [M_int; M_none]) P_call_no_paren (fst $1.any) (Deref(I_scalar, Ident(None, snd $1.any, get_pos $1)) :: $2.any.expr) $1 $2}
+| PRINT_TO_STAR           { to_Call_op_ (M_mixed [M_int; M_none]) P_call_no_paren (fst $1.any) (Deref(I_star, Ident(None, snd $1.any, get_pos $1)) :: [ var_dollar_ (get_pos $1) ]) $1 $1}
+| PRINT_TO_STAR argexpr   { to_Call_op_ (M_mixed [M_int; M_none]) P_call_no_paren (fst $1.any) (Deref(I_star, Ident(None, snd $1.any, get_pos $1)) :: $2.any.expr) $1 $2}
 
 | hash PKG_SCOPE {sp_0($2); new_pesp M_hash P_tok (Call(Too_complex, [$1.any])) $1 $2} /* %main:: */
 
@@ -351,18 +355,18 @@ terminal:
 | STRING {new_1pesp P_tok (to_String true $1) $1}
 | RAW_STRING {new_1pesp P_tok (to_Raw_string $1) $1}
 | REVISION {new_1pesp P_tok (to_Raw_string $1) $1}
-| COMMAND_STRING {to_Call_op_ (M_mixed(M_string, M_list)) P_tok "``" [to_String false $1] $1 $1}
+| COMMAND_STRING {to_Call_op_ (M_mixed[M_string; M_list]) P_tok "``" [to_String false $1] $1 $1}
 | QUOTEWORDS {to_Call_op_ M_list P_tok "qw" [to_Raw_string $1] $1 $1}
 | HERE_DOC {new_1pesp P_tok (to_String false (new_1esp (fst $1.any) $1)) $1 }
 | RAW_HERE_DOC {new_1pesp P_tok (Raw_string(fst $1.any, raw_pos2pos (snd $1.any))) $1}
 | QR_PATTERN {to_Call_op_ M_string P_tok "qr//" (from_PATTERN $1) $1 $1}
 | PATTERN {to_Call_op_ M_array P_expr "m//" (var_dollar_ (get_pos $1) :: from_PATTERN $1) $1 $1}
-| PATTERN_SUBST {to_Call_op_ M_int P_expr "s///" (var_dollar_ (get_pos $1) :: from_PATTERN_SUBST $1) $1 $1}
+| PATTERN_SUBST {to_Call_op_ (M_mixed[M_none; M_int]) P_expr "s///" (var_dollar_ (get_pos $1) :: from_PATTERN_SUBST $1) $1 $1}
 | diamond {new_1pesp P_expr $1.any $1}
 
 diamond:
-| LT GT {sp_0($2); to_Call_op (M_mixed(M_string, M_list)) "<>" [] $1 $2}
-| LT term GT {sp_0($2); sp_0($3); to_Call_op (M_mixed(M_string, M_list)) "<>" [$2.any.expr] $1 $3}
+| LT GT {sp_0($2); to_Call_op (M_mixed[M_string; M_list]) "<>" [] $1 $2}
+| LT term GT {sp_0($2); sp_0($3); to_Call_op (M_mixed[M_string; M_list]) "<>" [$2.any.expr] $1 $3}
 
 subscripted: /* Some kind of subscripted expression */
 | variable PKG_SCOPE bracket_subscript {sp_0($2); sp_0($3); new_esp M_unknown (Call(Too_complex, [$3.any])) $1 $3} /* $foo::{something} */
@@ -370,18 +374,18 @@ subscripted: /* Some kind of subscripted expression */
 | scalar arrayref                      {sp_0($2); check_scalar_subscripted $1; new_esp M_scalar (to_Deref_with(I_array, I_scalar, from_scalar $1, only_one_array_ref $2)) $1 $2} /* $array[$element] */
 | term ARROW bracket_subscript         {sp_0($2); sp_0($3); check_arrow_needed $1 $2; new_esp M_scalar (to_Deref_with(I_hash , I_scalar, $1.any.expr, $3.any               )) $1 $3} /* somehref->{bar} */
 | term ARROW arrayref                  {sp_0($2); sp_0($3); check_arrow_needed $1 $2; new_esp M_scalar (to_Deref_with(I_array, I_scalar, $1.any.expr, only_one_array_ref $3)) $1 $3} /* somearef->[$element] */
-| term ARROW parenthesized             {sp_0($2); sp_0($3); new_esp M_scalar (to_Deref_with(I_func , I_scalar, $1.any.expr, List($3.any.expr))) $1 $3} /* $subref->(@args) */
-| subscripted bracket_subscript        {sp_0($2); new_esp M_scalar (to_Deref_with(I_hash , I_scalar, $1.any, $2.any               )) $1 $2} /* $foo->[bar]{baz} */
-| subscripted arrayref                 {sp_0($2); new_esp M_scalar (to_Deref_with(I_array, I_scalar, $1.any, only_one_array_ref $2)) $1 $2} /* $foo->[$bar][$baz] */
-| subscripted parenthesized            {sp_0($2); new_esp M_scalar (to_Deref_with(I_func , I_scalar, $1.any, List($2.any.expr))) $1 $2} /* $foo->{bar}(@args) */
+| term ARROW parenthesized             {sp_0($2); sp_0($3); new_esp M_unknown (to_Deref_with(I_func , I_scalar, $1.any.expr, List($3.any.expr))) $1 $3} /* $subref->(@args) */
+| subscripted bracket_subscript        {sp_0($2); new_esp M_scalar  (to_Deref_with(I_hash , I_scalar, $1.any, $2.any               )) $1 $2} /* $foo->[bar]{baz} */
+| subscripted arrayref                 {sp_0($2); new_esp M_scalar  (to_Deref_with(I_array, I_scalar, $1.any, only_one_array_ref $2)) $1 $2} /* $foo->[$bar][$baz] */
+| subscripted parenthesized            {sp_0($2); new_esp M_unknown (to_Deref_with(I_func , I_scalar, $1.any, List($2.any.expr))) $1 $2} /* $foo->{bar}(@args) */
 
 restricted_subscripted: /* Some kind of subscripted expression */
 | variable PKG_SCOPE bracket_subscript {sp_0($2); sp_0($3); new_esp M_unknown (Call(Too_complex, [$3.any])) $1 $3} /* $foo::{something} */
 | scalar bracket_subscript             {sp_0($2); check_scalar_subscripted $1; new_esp M_scalar (to_Deref_with(I_hash , I_scalar, from_scalar $1, $2.any               )) $1 $2} /* $foo{bar} */
 | scalar arrayref                      {sp_0($2); check_scalar_subscripted $1; new_esp M_scalar (to_Deref_with(I_array, I_scalar, from_scalar $1, only_one_array_ref $2)) $1 $2} /* $array[$element] */
-| restricted_subscripted bracket_subscript        {sp_0($2); new_esp M_scalar (to_Deref_with(I_hash , I_scalar, $1.any, $2.any               )) $1 $2} /* $foo->[bar]{baz} */
-| restricted_subscripted arrayref                 {sp_0($2); new_esp M_scalar (to_Deref_with(I_array, I_scalar, $1.any, only_one_array_ref $2)) $1 $2} /* $foo->[$bar][$baz] */
-| restricted_subscripted parenthesized            {sp_0($2); new_esp M_scalar (to_Deref_with(I_func , I_scalar, $1.any, List($2.any.expr))) $1 $2} /* $foo->{bar}(@args) */
+| restricted_subscripted bracket_subscript        {sp_0($2); new_esp M_scalar  (to_Deref_with(I_hash , I_scalar, $1.any, $2.any               )) $1 $2} /* $foo->[bar]{baz} */
+| restricted_subscripted arrayref                 {sp_0($2); new_esp M_scalar  (to_Deref_with(I_array, I_scalar, $1.any, only_one_array_ref $2)) $1 $2} /* $foo->[$bar][$baz] */
+| restricted_subscripted parenthesized            {sp_0($2); new_esp M_unknown (to_Deref_with(I_func , I_scalar, $1.any, List($2.any.expr))) $1 $2} /* $foo->{bar}(@args) */
 
 arrayref:
 | arrayref_start ARRAYREF_END {sp_0($2); new_esp (M_ref M_array) $1.any $1 $2}
@@ -404,17 +408,17 @@ my_our: /* Things that can be "my"'d */
 | my_our_paren SCALAR_IDENT PAREN_END {(if snd $1.any = [] then sp_0 else sp_1)($2); check_my_our_paren $1; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_scalar, snd $2.any], pos_range $1 $3)) $1 $3}
 | my_our_paren HASH_IDENT   PAREN_END {(if snd $1.any = [] then sp_0 else sp_1)($2); check_my_our_paren $1; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_hash,   snd $2.any], pos_range $1 $3)) $1 $3}
 | my_our_paren ARRAY_IDENT  PAREN_END {(if snd $1.any = [] then sp_0 else sp_1)($2); check_my_our_paren $1; new_esp M_none (My_our(sndfst $1.any, snd $1.any @ [I_array,  snd $2.any], pos_range $1 $3)) $1 $3}
-| MY_OUR SCALAR_IDENT {new_esp M_scalar (My_our($1.any, [I_scalar, snd $2.any], get_pos $2)) $1 $2}
-| MY_OUR HASH_IDENT   {new_esp M_hash   (My_our($1.any, [I_hash,   snd $2.any], get_pos $2)) $1 $2}
-| MY_OUR ARRAY_IDENT  {new_esp M_array  (My_our($1.any, [I_array,  snd $2.any], get_pos $2)) $1 $2}
+| MY_OUR SCALAR_IDENT {new_esp (M_mixed [M_scalar; M_none]) (My_our($1.any, [I_scalar, snd $2.any], get_pos $2)) $1 $2}
+| MY_OUR HASH_IDENT   {new_esp (M_mixed [M_hash  ; M_none]) (My_our($1.any, [I_hash,   snd $2.any], get_pos $2)) $1 $2}
+| MY_OUR ARRAY_IDENT  {new_esp (M_mixed [M_array ; M_none]) (My_our($1.any, [I_array,  snd $2.any], get_pos $2)) $1 $2}
 
 my_our_paren:
 | MY_OUR PAREN {sp_1($2); new_esp M_special ((true, $1.any), []) $1 $2}
-| my_our_paren comma {if fstfst $1.any then die_rule "syntax error"; new_esp M_special ((true, sndfst $1.any), snd $1.any) $1 $2}
-| my_our_paren BAREWORD {check_my_our_paren $1; if $2.any <> "undef" then die_rule "scalar expected"; new_esp M_special ((false, sndfst $1.any), snd $1.any @ [I_raw, $2.any]) $1 $2}
-| my_our_paren SCALAR_IDENT {check_my_our_paren $1; new_esp M_special ((false, sndfst $1.any), snd $1.any @ [I_scalar, snd $2.any]) $1 $2}
-| my_our_paren HASH_IDENT   {check_my_our_paren $1; new_esp M_special ((false, sndfst $1.any), snd $1.any @ [I_hash,   snd $2.any]) $1 $2}
-| my_our_paren ARRAY_IDENT  {check_my_our_paren $1; new_esp M_special ((false, sndfst $1.any), snd $1.any @ [I_array,  snd $2.any]) $1 $2}
+| my_our_paren comma {if fstfst $1.any then die_rule "syntax error"; new_esp M_none ((true, sndfst $1.any), snd $1.any) $1 $2}
+| my_our_paren BAREWORD {check_my_our_paren $1; if $2.any <> "undef" then die_rule "scalar expected"; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_raw, $2.any]) $1 $2}
+| my_our_paren SCALAR_IDENT {check_my_our_paren $1; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_scalar, snd $2.any]) $1 $2}
+| my_our_paren HASH_IDENT   {check_my_our_paren $1; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_hash,   snd $2.any]) $1 $2}
+| my_our_paren ARRAY_IDENT  {check_my_our_paren $1; new_esp M_none ((false, sndfst $1.any), snd $1.any @ [I_array,  snd $2.any]) $1 $2}
 
 termdo: /* Things called with "do" */
 | DO term %prec UNIOP { die_rule "\"do EXPR\" not allowed" } /* do $filename */

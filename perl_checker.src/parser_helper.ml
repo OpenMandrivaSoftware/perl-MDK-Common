@@ -327,7 +327,7 @@ let word_alone esp =
       | "split" -> M_array
       | "shift" -> M_scalar
       | "die" | "return" | "redo" | "next" | "last" -> M_unknown
-      | "caller" -> M_mixed(M_string, M_list)
+      | "caller" -> M_mixed [M_string ; M_list]
 	    
       | "ref" -> M_ref M_scalar
       | _ -> M_unknown
@@ -770,6 +770,20 @@ let call_func is_a_func (e, para) =
 
 let call(e, para) = call_func false (e, para)
 
+let call_and_context(e, para) priority esp_start esp_end =
+  let context = 
+    match e with
+    | Deref(I_func, Ident(None, f, _)) ->
+	(match f with
+	| "map" | "grep" | "grep_index" | "map_index" | "partition" -> M_list
+	| "find" -> M_scalar
+	| "any" | "every" -> M_scalar
+	| "find_index" -> M_int
+	| "each_index" -> M_none
+	| _ -> M_unknown)
+    | _ -> M_unknown
+  in
+  new_pesp context priority (call(e, para)) esp_start esp_end
 
 let call_one_scalar_para { any = e ; pos = pos } para esp_start esp_end =
   let para =
@@ -880,7 +894,7 @@ let rec mcontext2s = function
 
   | M_special -> "special"
   | M_unknown -> "unknown"
-  | M_mixed(a, b) -> mcontext2s a ^ " | " ^ mcontext2s b
+  | M_mixed l -> String.concat " | " (List.map mcontext2s l)
 
 let mcontext_is_scalar = function
   | M_int | M_float | M_string | M_ref _ | M_revision
@@ -910,24 +924,44 @@ let rec mcontext_lower c1 c2 =
     -> true
 
   | M_ref a, M_ref b -> mcontext_lower a b
-  | M_mixed(c1, c2), M_mixed(a, b) -> mcontext_lower c1 a && mcontext_lower c2 b || mcontext_lower c2 a && mcontext_lower c1 b
-  | c, M_mixed(a, b) -> mcontext_lower c a || mcontext_lower c b
+  | c, M_mixed l -> List.exists (mcontext_lower c) l
+  | M_mixed l, c -> List.exists (fun a -> mcontext_lower a c) l
 
   | _ -> false
 
-let mcontext_merge c1 c2 =
-  if mcontext_lower c1 c2 then c2 else
-  if mcontext_lower c2 c1 then c1 else
+let mcontext_merge_raw c1 c2 =
   match c1, c2 with
-  | M_unknown, _ | _, M_unknown -> internal_error "mcontext_merge1"
-  | M_mixed _, _ | _, M_mixed _ -> internal_error "TODO: complex mcontext_merge"
+  | M_unknown, _ | _, M_unknown -> Some M_unknown
+  | M_mixed _, _ | _, M_mixed _ -> internal_error "mcontext_merge_raw"
   | _ -> 
+      (*
+      if mcontext_lower c1 c2 then Some c2 else
+      if mcontext_lower c2 c1 then Some c1 else
+       *)
+      if c1 = c2 then Some c1 else
       if mcontext_is_scalar c1 && mcontext_is_scalar c2 
-      then M_scalar 
-      else M_mixed(c1, c2)
-let mcontext_lmerge = function
+      then Some M_scalar 
+      else None
+
+let rec mcontext_lmerge_add l = function
+  | M_mixed l2 -> List.fold_left mcontext_lmerge_add [] (l2 @ l)
+  | c ->
+      let rec add_to = function
+	| [] -> [c]
+	| M_mixed subl :: l -> add_to (subl @ l)
+	| c2 :: l ->
+	    match mcontext_merge_raw c c2 with
+	    | Some c' -> c' :: l
+	    | None -> c2 :: add_to l
+      in add_to l
+
+let mcontext_lmerge l =
+  match List.fold_left mcontext_lmerge_add [] l with
   | [] -> internal_error "mcontext_lmerge"
-  | e :: l -> List.fold_left mcontext_merge e l
+  | [c] -> c
+  | l -> M_mixed l
+
+let mcontext_merge c1 c2 = mcontext_lmerge [ c1 ; c2 ]
 
 let mcontext_lmaybe esp = if esp.any = [] then [] else [esp.mcontext]
 
@@ -939,6 +973,9 @@ let mcontext_check_raw wanted_mcontext esp f_lower f_greater f_err =
   else 
     (warn_rule (sprintf "context %s is not compatible with context %s" (mcontext2s esp.mcontext) (mcontext2s wanted_mcontext)); 
      f_err())
+
+let mcontext_check wanted_mcontext esp =
+  mcontext_check_raw wanted_mcontext esp (fun () -> ()) (fun () -> ()) (fun () -> ())
 
 let mcontext_symops wanted_mcontext esp1 esp2 =
   mcontext_check_raw wanted_mcontext esp1 
@@ -957,10 +994,28 @@ let mcontext_symops wanted_mcontext esp1 esp2 =
 	(fun () -> wanted_mcontext))
     (fun () -> wanted_mcontext)
 
-let mcontext_check wanted_mcontext esp =
-  mcontext_check_raw wanted_mcontext esp (fun () -> ()) (fun () -> ()) (fun () -> ())
+let mcontext_rightops wanted_mcontext esp1 esp2 = 
+  mcontext_check wanted_mcontext esp1 ;
+  mcontext_check_raw wanted_mcontext esp2 (fun () -> esp2.mcontext) (fun () -> wanted_mcontext) (fun () -> wanted_mcontext)
 
 let mcontext_unop wanted_mcontext esp = mcontext_check wanted_mcontext esp ; wanted_mcontext
 
 let mcontext_check_non_none esp =
   if esp.mcontext = M_none then warn_rule "() context not accepted here"
+
+let mcontext_check_none esp =
+  match esp.mcontext with
+  | M_none | M_unknown -> ()
+  | M_mixed l when List.exists (fun c -> c = M_none) l -> ()
+  | _ -> 
+      match esp.any with
+      | [List [Num("1", _)]; Semi_colon] -> () (* allow "1;" for package return value. It would be much better to check we are at toplevel, but hell i don't want to wire this information up to here *)
+      | [List [Call_op ("<>", [Ident (None, "STDIN", _)], _)]; Semi_colon] -> () (* allow <STDIN> to ask "press return" *)
+      | _ -> warn_rule "value is dropped"
+
+let mcontext_op_assign left right =
+  mcontext_check_non_none right;
+
+  match left.any.expr with
+  | Deref(I_array, _) | My_our("my", [(I_array, _)], _) -> M_mixed [ M_array; M_none ]
+  | _ -> mcontext_merge right.mcontext M_none

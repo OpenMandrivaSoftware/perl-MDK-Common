@@ -25,7 +25,7 @@ type maybe_context =
 
   | M_special
   | M_unknown
-  | M_mixed of maybe_context * maybe_context
+  | M_mixed of maybe_context list
 
 type fromparser = 
    | Undef

@@ -184,6 +184,12 @@ val generate_pot : string -> unit
 val call_func :
   bool -> Types.fromparser * Types.fromparser list -> Types.fromparser
 val call : Types.fromparser * Types.fromparser list -> Types.fromparser
+val call_and_context :
+  Types.fromparser * Types.fromparser list ->
+  Types.priority ->
+  'a Types.any_spaces_pos ->
+  'b Types.any_spaces_pos ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
 val call_one_scalar_para :
   string Types.any_spaces_pos ->
   Types.fromparser list ->
@@ -225,19 +231,30 @@ val from_PATTERN_SUBST :
 val mcontext2s : Types.maybe_context -> string
 val mcontext_is_scalar : Types.maybe_context -> bool
 val mcontext_lower : Types.maybe_context -> Types.maybe_context -> bool
+val mcontext_merge_raw :
+  Types.maybe_context -> Types.maybe_context -> Types.maybe_context option
+val mcontext_lmerge_add :
+  Types.maybe_context list -> Types.maybe_context -> Types.maybe_context list
+val mcontext_lmerge : Types.maybe_context list -> Types.maybe_context
 val mcontext_merge :
   Types.maybe_context -> Types.maybe_context -> Types.maybe_context
-val mcontext_lmerge : Types.maybe_context list -> Types.maybe_context
 val mcontext_lmaybe :
   'a list Types.any_spaces_pos -> Types.maybe_context list
 val mcontext_check_raw :
   Types.maybe_context ->
   'a Types.any_spaces_pos ->
   (unit -> 'b) -> (unit -> 'b) -> (unit -> 'b) -> 'b
+val mcontext_check : Types.maybe_context -> 'a Types.any_spaces_pos -> unit
 val mcontext_symops :
   Types.maybe_context ->
   'a Types.any_spaces_pos -> 'b Types.any_spaces_pos -> Types.maybe_context
-val mcontext_check : Types.maybe_context -> 'a Types.any_spaces_pos -> unit
+val mcontext_rightops :
+  Types.maybe_context ->
+  'a Types.any_spaces_pos -> 'b Types.any_spaces_pos -> Types.maybe_context
 val mcontext_unop :
   Types.maybe_context -> 'a Types.any_spaces_pos -> Types.maybe_context
 val mcontext_check_non_none : 'a Types.any_spaces_pos -> unit
+val mcontext_check_none : Types.fromparser list Types.any_spaces_pos -> unit
+val mcontext_op_assign :
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
+  'a Types.any_spaces_pos -> Types.maybe_context

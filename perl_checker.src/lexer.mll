@@ -72,7 +72,7 @@ let rec raw_token_to_pos_and_token spaces = function
   | RAW_STRING(s, pos) -> pos, Parser.RAW_STRING(new_any M_string s spaces pos)
   | RAW_HERE_DOC(r, pos) -> pos, Parser.RAW_HERE_DOC(new_any M_string !r spaces pos)
   | STRING(l, pos) -> pos, Parser.STRING(new_any M_string (raw_interpolated_string_to_tokens l) spaces pos)
-  | COMMAND_STRING(l, pos) -> pos, Parser.COMMAND_STRING(new_any (M_mixed (M_string, M_array)) (raw_interpolated_string_to_tokens l) spaces pos)
+  | COMMAND_STRING(l, pos) -> pos, Parser.COMMAND_STRING(new_any (M_mixed [M_string; M_array]) (raw_interpolated_string_to_tokens l) spaces pos)
   | QR_PATTERN(s, opts, pos) -> pos, Parser.QR_PATTERN(new_any M_special (raw_interpolated_string_to_tokens s, opts) spaces pos)
   | PATTERN(s, opts, pos) -> pos, Parser.PATTERN(new_any M_special (raw_interpolated_string_to_tokens s, opts) spaces pos)
   | PATTERN_SUBST(from, to_, opts, pos) -> pos, Parser.PATTERN_SUBST(new_any M_special (raw_interpolated_string_to_tokens from, raw_interpolated_string_to_tokens to_, opts) spaces pos)
@@ -80,10 +80,10 @@ let rec raw_token_to_pos_and_token spaces = function
   | BAREWORD(s, pos) -> pos, Parser.BAREWORD(new_any M_special s spaces pos)
   | BAREWORD_PAREN(s, pos) -> pos, Parser.BAREWORD_PAREN(new_any M_special s spaces pos)
   | REVISION(s, pos) -> pos, Parser.REVISION(new_any M_revision s spaces pos)
-  | PERL_CHECKER_COMMENT(s, pos) -> pos, Parser.PERL_CHECKER_COMMENT(new_any M_special s spaces pos)
+  | PERL_CHECKER_COMMENT(s, pos) -> pos, Parser.PERL_CHECKER_COMMENT(new_any M_none s spaces pos)
   | PO_COMMENT(s, pos) -> pos, Parser.PO_COMMENT(new_any M_special s spaces pos)
   | POD(s, pos) -> pos, Parser.POD(new_any M_special s spaces pos)
-  | LABEL(s, pos) -> pos, Parser.LABEL(new_any M_special s spaces pos)
+  | LABEL(s, pos) -> pos, Parser.LABEL(new_any M_none s spaces pos)
   | PRINT(s, pos) -> pos, Parser.PRINT(new_any M_special s spaces pos)
   | PRINT_TO_STAR(s, pos) -> pos, Parser.PRINT_TO_STAR(new_any M_special s spaces pos)
   | PRINT_TO_SCALAR(s, pos) -> pos, Parser.PRINT_TO_SCALAR(new_any M_special s spaces pos)
@@ -137,7 +137,7 @@ let rec raw_token_to_pos_and_token spaces = function
   | AMPERSAND        (pos) -> pos, Parser.AMPERSAND        (new_any M_special () spaces pos)
   | STAR             (pos) -> pos, Parser.STAR             (new_any M_special () spaces pos)
   | ARRAYLEN         (pos) -> pos, Parser.ARRAYLEN         (new_any M_special () spaces pos)
-  | SEMI_COLON       (pos) -> pos, Parser.SEMI_COLON       (new_any M_special () spaces pos)
+  | SEMI_COLON       (pos) -> pos, Parser.SEMI_COLON       (new_any M_none    () spaces pos)
   | PKG_SCOPE        (pos) -> pos, Parser.PKG_SCOPE        (new_any M_special () spaces pos)
   | PAREN            (pos) -> pos, Parser.PAREN            (new_any M_special () spaces pos)
   | PAREN_END        (pos) -> pos, Parser.PAREN_END        (new_any M_special () spaces pos)
@@ -450,6 +450,7 @@ rule token = parse
 | "length" 
 | "keys" 
 | "exists" 
+| "eval"
 | "ref"      { ONE_SCALAR_PARA(lexeme lexbuf, pos lexbuf) }
 
 | "split"
