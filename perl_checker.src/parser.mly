@@ -388,6 +388,9 @@ restricted_subscripted: /* Some kind of subscripted expression */
 | restricted_subscripted arrayref                 {sp_0($2); new_esp M_scalar  (to_Deref_with(I_array, I_scalar, $1.any, only_one_array_ref $2)) $1 $2} /* $foo->[$bar][$baz] */
 | restricted_subscripted parenthesized            {sp_0($2); new_esp M_unknown (to_Deref_with(I_func , I_scalar, $1.any, List($2.any.expr))) $1 $2} /* $foo->{bar}(@args) */
 
+| restricted_subscripted ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); if $4.any.expr = [] then warn $4.pos "remove these unneeded parentheses"; new_esp M_unknown (to_Method_call($1.any, $3.any, $4.any.expr)) $1 $4} /* $foo->bar(list) */
+| restricted_subscripted ARROW word_or_scalar {sp_0($2); sp_0($3); new_esp M_unknown (to_Method_call($1.any, $3.any, [])) $1 $3} /* $foo->bar */
+
 arrayref:
 | arrayref_start ARRAYREF_END {sp_0($2); new_esp (M_ref M_array) $1.any $1 $2}
 | arrayref_start expr ARRAYREF_END {sp_0($3); new_esp (M_ref M_array) ($1.any @ [$2.any.expr]) $1 $3}
