@@ -6,6 +6,10 @@ $xxx[1, 2]                               you must give only one argument
 
 $xxx[]                                   you must give one argument
 
+my $_x = 'xxx' if $xxx;                  replace "my $foo = ... if <cond>" with "my $foo = <cond> && ..."
+
+$xxx or my $_x = 'xxx';                  replace "<cond> or my $foo = ..." with "my $foo = !<cond> && ..."
+
 '' || 'xxx'                              <constant> || ... is the same as ...
 
 if ($xxx = '') {}                        are you sure you did not mean "==" instead of "="?

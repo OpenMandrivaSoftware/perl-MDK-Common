@@ -658,6 +658,13 @@ let remove_call_with_same_para_special = function
   | Call(f, [Deref(I_star, (Ident(None, "_", _)))]) -> f
   | e -> e
 
+let check_My_under_condition msg = function
+  | List [ My_our("my", _, _) ] ->
+      warn_rule "this is stupid"
+  | List [ Call_op("=", [ My_our("my", _, _); _ ], _) ] ->
+      warn_rule msg
+  | _ -> ()
+
 let cook_call_op op para pos =
   (match op with
   | "le" | "ge" | "eq" | "ne" | "gt" | "lt" | "cmp" ->
@@ -720,6 +727,9 @@ let cook_call_op op para pos =
 
   | "or", [ List [ Deref(I_scalar, id) ]; List [ Call_op("=", [ Deref(I_scalar, id_); _], _) ] ] when is_same_fromparser id id_ ->
       warn_rule "\"$foo or $foo = ...\" can be written \"$foo ||= ...\""
+
+  | "and", [ cond ; expr ] -> check_My_under_condition "replace \"<cond> and my $foo = ...\" with \"my $foo = <cond> && ...\"" expr
+  | "or",  [ cond ; expr ] -> check_My_under_condition "replace \"<cond> or my $foo = ...\" with \"my $foo = !<cond> && ...\"" expr
       
   | _ -> ());
 
@@ -1266,6 +1276,10 @@ let call_op_if_infix left right esp_start esp_end =
   | _ -> ());
 
   mcontext_check_none "value is dropped" [left] esp_start;
+  (match right with 
+  | List [ Num("0", _)] -> () (* allow my $x if 0 *)
+  | _ -> check_My_under_condition "replace \"my $foo = ... if <cond>\" with \"my $foo = <cond> && ...\"" left);
+
   let pos = raw_pos_range esp_start esp_end in
   new_any M_none (Call_op("if infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
 
@@ -1283,6 +1297,8 @@ let call_op_unless_infix left right esp_start esp_end =
   | _ -> ());
 
   mcontext_check_none "value is dropped" [left] esp_start;
+  check_My_under_condition "replace \"my $foo = ... unless <cond>\" with \"my $foo = !<cond> && ...\"" left;
+
   let pos = raw_pos_range esp_start esp_end in
   new_any M_none (Call_op("unless infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
 
