@@ -697,6 +697,9 @@ let cook_call_op op para pos =
   | "or",  e :: _ when is_always_false (un_parenthesize_full e) -> warn_rule "<constant> or ... is the same as ..."
   | "and", e :: _ when is_always_true  (un_parenthesize_full e) -> warn_rule "<constant> and ... is the same as ..."
 
+  | "or", [ List [ Deref(I_scalar, id) ]; List [ Call_op("=", [ Deref(I_scalar, id_); _], _) ] ] when is_same_fromparser id id_ ->
+      warn_rule "\"$foo or $foo = ...\" can be written \"$foo ||= ...\""
+      
   | _ -> ());
 
 match op, para with

@@ -38,6 +38,8 @@ $o = xxx() if !$o;                       "$foo = ... if !$foo" can be written "$
 
 $o = xxx() unless $o;                    "$foo = ... unless $foo" can be written "$foo ||= ..."
 
+$o or $o = xxx();                        "$foo or $foo = ..." can be written "$foo ||= ..."
+
 $_ =~ s/xxx/yyy/                         "$_ =~ s/regexp/.../" can be written "s/regexp/.../"
 
 $xxx =~ /^yyy$/                          "... =~ /^yyy$/" is better written "... eq 'yyy'"
