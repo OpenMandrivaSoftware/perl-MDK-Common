@@ -55,6 +55,10 @@ s{([!=]~|\bif\b)\s*/.*?/}{}g;
 
 s/#.*//;
 
+if (/\blength(\s*|\()\@/) {
+    err(q(never use ``length @l'', it returns the length of the string int(@l)), info());
+}
+
 if (/\blocal\b.*\|\|=/) {
     err(q(never use ``local $var ||= <val>'', write ``local $var = $var || <val>''), info());
 }
