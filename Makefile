@@ -5,7 +5,7 @@ PREFIX = /usr
 BINDIR = $(PREFIX)/bin
 INSTALLVENDORLIB = $(shell eval "`perl -V:installvendorlib`"; echo $$installvendorlib | sed 's,/usr,$(PREFIX),')
 
-GENERATED = MDK/Common.pm index.html
+GENERATED = MDK/Common.pm index.html perl_checker.src/perl_checker
 
 .PHONY: perl_checker.src
 
@@ -17,10 +17,10 @@ index.html: MDK/Common.pm
 MDK/Common.pm: %: %.pl
 	perl $< > $@
 
-perl_checker.src:
-	$(MAKE) -C $@
+perl_checker.src/perl_checker:
+	$(MAKE) -C perl_checker.src native-code
 
-test: perl_checker.src
+test: perl_checker.src/perl_checker
 	perl_checker.src/perl_checker MDK/Common/*.pm
 
 clean:

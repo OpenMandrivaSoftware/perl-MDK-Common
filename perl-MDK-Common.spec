@@ -13,6 +13,7 @@ Source0: %{name}.tar.bz2
 License: GPL
 Group: Development/Perl
 BuildRoot: %{_tmppath}/%{name}-buildroot
+BuildRequires: ocaml
 
 %package devel
 Summary: Various verifying scripts
