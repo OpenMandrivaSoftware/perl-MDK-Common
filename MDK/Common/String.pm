@@ -90,7 +90,7 @@ sub formatList {
 }
 sub formatError {
     my ($err) = @_;
-    $err =~ s/ at .*?$/\./ if !$::testing;
+    $err =~ s/ at .*?$/\./s if !$::testing;
     $err;
 }
 sub formatTimeRaw {
