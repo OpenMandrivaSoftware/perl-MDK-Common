@@ -318,6 +318,7 @@ term:
 | ONE_SCALAR_PARA {call_one_scalar_para $1 [] $1 $1}
 | ONE_SCALAR_PARA word argexpr {check_parenthesized_first_argexpr_with_Ident  $2.any $3; call_one_scalar_para $1 [call(Deref(I_func, $2.any), $3.any.expr)] $1 $3} /* ref foo $a, $b */
 | ONE_SCALAR_PARA hash PKG_SCOPE {sp_0($3); call_one_scalar_para $1 [ Call(Too_complex, [$2.any]) ] $1 $3} /* keys %main:: */
+| ONE_SCALAR_PARA BAREWORD {if $2.any = "_" && $1.any.[0] = '-' then new_pesp M_bool P_mul Too_complex $1 $2 else die_rule "syntax error"} /* -e "foo" && -f _ */
 
 | func parenthesized {sp_0($2); call_func $1 $2} /* &foo(@args) */
 | word argexpr {check_parenthesized_first_argexpr_with_Ident $1.any $2; call_no_paren $1 $2} /* foo $a, $b */
