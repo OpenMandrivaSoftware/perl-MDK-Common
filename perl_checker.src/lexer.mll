@@ -315,6 +315,8 @@ let ins_re re_delimited_string lexbuf =
 let string_interpolate token pre lexbuf =
    let s = lexeme lexbuf in
    let local_lexbuf = Lexing.from_string (pre ^ s ^ " ") in (* add a space to help tokenizing "xxx$$" *)
+   local_lexbuf.lex_start_p <- lexbuf.lex_start_p ;
+   local_lexbuf.lex_curr_p <- lexbuf.lex_start_p ;
    local_lexbuf.lex_abs_pos <- lexeme_start lexbuf ;
    let l = lexbuf2list [] token local_lexbuf in
    let l = concat_bareword_paren [] l in
