@@ -280,10 +280,12 @@ sub catch_cdie(&&) {
 }
 
 sub cdie {
-    my ($err, $f) = @_;
+    my ($err) = @_;
     foreach (@MDK::Common::Func::cdie_catches) {
 	$@ = $err;
-	&{$_}(\$err) and return;
+	if (my $v = &{$_}(\$err)) {
+	    return $v;
+	}
     }
     die $err;
 }
