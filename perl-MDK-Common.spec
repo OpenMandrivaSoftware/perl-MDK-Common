@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 13mdk
+%define release 1mdk
 %define perl_sitelib %(eval "`perl -V:installsitelib`"; echo $installsitelib)
 
 Summary: Various simple functions
@@ -50,6 +50,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Jul  3 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-1mdk
+- MDK/Common/Func.pm: add "partition"
+
 * Tue Feb 19 2002 Pixel <pixel@mandrakesoft.com> 1.0.2-13mdk
 - perl_checker: skip s///
 

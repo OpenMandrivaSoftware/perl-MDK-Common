@@ -100,6 +100,14 @@ returns the hash key/value for which CODE applied with $::a (key) and $::b
 
 gives 1=>2, 4=>2
 
+=item partition { CODE } LIST
+
+alike C<grep>, but returns both the list of matching elements and non matching elements
+
+    my ($greater, $lower) = partition { $_ > 3 } 4, 2, 8, 0, 1
+
+gives $greater = [ 4, 8 ] and $lower = [ 2, 0, 1 ]
+
 =item before_leaving { CODE }
 
 the code will be executed when the current block is finished
@@ -141,7 +149,7 @@ use MDK::Common::Math;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(may_apply if_ if__ fold_left mapn mapn_ map_index each_index grep_index find_index map_each grep_each before_leaving catch_cdie cdie);
+@EXPORT_OK = qw(may_apply if_ if__ fold_left mapn mapn_ map_index each_index grep_index find_index map_each grep_each partition before_leaving catch_cdie cdie);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -227,7 +235,14 @@ sub grep_each(&%) {
     while (($::a, $::b) = each %h) { $l{$::a} = $::b if &$f($::a, $::b) }
     %l;
 }
-
+sub partition(&@) {
+    my $f = shift;
+    my (@a, @b);
+    foreach (@_) {
+	$f->($_) ? push(@a, $_) : push(@b, $_);
+    }
+    \@a, \@b;
+}
 
 sub add_f4before_leaving {
     my ($f, $b, $name) = @_;
