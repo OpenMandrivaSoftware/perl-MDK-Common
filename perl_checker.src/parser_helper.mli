@@ -1,7 +1,4 @@
 val bpos : int * int
-val pot_strings : (string * string list) list ref
-val pot_strings_and_file : (string, string) Hashtbl.t
-val po_comments : string list ref
 val raw_pos2pos : 'a * 'b -> string * 'a * 'b
 val pos_range :
   'a * ('b * (int * int)) -> 'c * ('d * (int * int)) -> string * int * int
@@ -59,6 +56,9 @@ val sp_same :
 val check_word_alone : Types.fromparser * 'a -> Types.fromparser
 val check_parenthesized_first_argexpr :
   string ->
+  ('a * Types.fromparser list) * (Types.spaces * (int * 'b)) -> unit
+val check_parenthesized_first_argexpr_with_Ident :
+  Types.fromparser ->
   ('a * Types.fromparser list) * (Types.spaces * (int * 'b)) -> unit
 val check_hash_subscript :
   ('a * Types.fromparser) * ('b * (int * int)) -> unit
@@ -129,6 +129,12 @@ val to_Call_op_ :
   'b * (int * int) -> ('a * Types.fromparser) * ('b * (int * int))
 val followed_by_comma :
   ('a * Types.fromparser list) * 'b -> bool * 'c -> Types.fromparser list
+val pot_strings : (string * string list) list ref
+val pot_strings_and_file : (string, string) Hashtbl.t
+val po_comments : string list ref
+val po_comment : string * 'a -> unit
+val check_format_a_la_printf : string -> int -> unit
+val generate_pot : string -> unit
 val call_func :
   bool -> Types.fromparser * Types.fromparser list -> Types.fromparser
 val call : Types.fromparser * Types.fromparser list -> Types.fromparser
@@ -165,5 +171,3 @@ val from_PATTERN_SUBST :
   ((string * ((int * int) * 'a) list) list *
    (string * ((int * int) * 'a) list) list * string) *
   ('b * (int * int)) -> Types.fromparser list
-val po_comment : string * 'a -> unit
-val generate_pot : string -> unit

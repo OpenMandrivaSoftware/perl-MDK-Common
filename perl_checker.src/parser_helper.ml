@@ -265,6 +265,15 @@ let check_parenthesized_first_argexpr word ((_, e), (_, (start, _)) as ex) =
       if word = "time" then die_rule "please use time() instead of time";
       sp_p(ex)
 
+let check_parenthesized_first_argexpr_with_Ident ident ((_, e), _ as ex) =
+  (match ident with
+  | Ident(Some _, _, _) ->
+      (match e with
+      | [e] when is_parenthesized e -> ()
+      | _ -> warn_rule "use parentheses around argument (otherwise it might cause syntax errors if the package is \"require\"d and not \"use\"d")
+  | _ -> ());
+  check_parenthesized_first_argexpr (string_of_Ident ident) ex
+
 let check_hash_subscript ((_, e), (_, pos)) =
   let can_be_raw_string = function
     | "" | "x" | "y" -> false (* special case for {'y'} otherwise the emacs mode goes wild, special case for {'x'} to have the same as {'y'} (since they usually go together) *)
@@ -308,6 +317,7 @@ let check_ternary_paras(cond, a, b) =
   in
   if dont_need_short_circuit a || is_same_fromparser cond a then check_ternary_para b;
   if dont_need_short_circuit b || is_same_fromparser cond b then check_ternary_para a;
+  if is_same_fromparser cond a && dont_need_short_circuit b then warn_rule "you can replace \"$foo ? $foo : $bar\" with \"$foo || $bar\"";
   [ cond; a; b ]
 
 let check_unneeded_var_dollar_    ((_, e), (_, pos)) =

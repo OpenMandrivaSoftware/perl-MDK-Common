@@ -288,7 +288,7 @@ term:
 
 /* function_calls */
 | func parenthesized {sp_0($2); (P_tok, call_func true (fst $1, sndfst $2)), sp_pos_range $1 $2} /* &foo(@args) */
-| word argexpr {check_parenthesized_first_argexpr (string_of_Ident (fst $1)) $2; (P_call_no_paren, call(Deref(I_func, fst $1), sndfst $2)), sp_pos_range $1 $2} /* foo $a, $b */
+| word argexpr {check_parenthesized_first_argexpr_with_Ident (fst $1) $2; (P_call_no_paren, call(Deref(I_func, fst $1), sndfst $2)), sp_pos_range $1 $2} /* foo $a, $b */
 | word_paren parenthesized {sp_0($2); (P_tok, call(Deref(I_func, fst $1), sndfst $2)), sp_pos_range $1 $2} /* foo(@args) */
 | word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); check_block_sub $3 $4; ((if sndfst $5 = [] then P_tok else P_call_no_paren), call(Deref(I_func, fst $1), anonymous_sub $3 :: sndfst $5)), sp_pos_range $1 $5} /* map { foo } @bar */
 | word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); ((if sndfst $7 = [] then P_tok else P_call_no_paren), call(Deref(I_func, fst $1), anonymous_sub([ Ref(I_hash, sndfst $4) ], snd $4) :: sndfst $7)), sp_pos_range $1 $7} /* map { { foo } } @bar */
