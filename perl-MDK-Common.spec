@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 2mdk
+%define release 1mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,17 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Aug 11 2003 Pixel <pixel@mandrakesoft.com> 1.1.6-1mdk
+- perl_checker:
+  - allow $_o_XXX parameter name which is both unused and optional (same for $_b_XXX)
+  - shift is a ONE_SCALAR_PARA so that $box->pack_start(shift @l, 0, 0, 4) is parsed correctly
+  - in arrange_global_vars_declared(), don't keep anything in global_vars_declared, better
+    create shadow packages to contain them
+  - much better merging of multiple files defining functions in the same package.
+    This fixes the bad behaviour when using the cache (esp. do_pkgs, but it was even worse
+    with things in ugtk2.pm)
+  - adapt to perl-Gtk2 xs (which replace the perl-GTK2 inline version)
+
 * Fri Aug  1 2003 Pixel <pixel@mandrakesoft.com> 1.1.5-2mdk
 - rebuild for new perl (it helps DrakX build script)
 
