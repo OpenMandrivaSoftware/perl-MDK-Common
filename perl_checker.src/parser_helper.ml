@@ -452,6 +452,8 @@ let check_for_foreach esp arg =
       if esp.any = "foreach" then warn esp.pos "you are using the special fpons trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
   | List [ Deref_with(context, I_scalar, _, _) ] when context <> I_func -> 
       if esp.any = "foreach" then warn esp.pos "you are using the special fpons trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
+  | List [ Deref(I_hash, _) ] ->
+      warn esp.pos "foreach with a hash is usually an error"
   | _ -> 
       if esp.any = "for" then warn esp.pos "write \"foreach\" instead of \"for\""
 
