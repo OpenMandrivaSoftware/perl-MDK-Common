@@ -58,11 +58,6 @@ simple version of C<glob>: doesn't handle wildcards in directory (eg:
 executes the code for each line of the file. You can know the end of the file
 is reached using C<eof>
 
-=item concat_symlink(DIRNAME, RELATIVE LINK)
-
-concat dirname and the symlink and removes "../" if possible:
-C<concat_symlink("/usr/bin", "../../bin/ls")> gives "/bin/ls"
-
 =item expand_symlinks(FILENAME)
 
 expand the symlinks in the absolute filename:
@@ -89,7 +84,7 @@ package MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(dirname basename cat_ cat__ output linkf symlinkf renamef touch all glob_ substInFile concat_symlink expand_symlinks openFileMaybeCompressed catMaybeCompressed);
+@EXPORT_OK = qw(dirname basename cat_ cat__ output linkf symlinkf renamef touch all glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
