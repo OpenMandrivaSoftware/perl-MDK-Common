@@ -1766,7 +1766,7 @@ sub Gtk2::create_from_data {}
 sub Gtk2::create_from_xpm { my ($_class, $_window, $_xparent_color, $_filename) = @_ }
 sub Gtk2::create_from_xpm_d { my ($_class, $_window, $_xparent_color, $_data) = @_ }
 sub Gtk2::create_item { my ($_factory, $_entry, $_callback_data, $_callback_type) = @_ }
-sub Gtk2::create_items { my ($_factory, $_entries, $_callback_data) = @_ }
+sub Gtk2::create_items { my ($_factory, $_entries, $o_callback_data) = @_ }
 sub Gtk2::create_items_ac { my ($_factory, $_entries, $_callback_data, $_callback_type) = @_ }
 sub Gtk2::create_mark { my ($_buffer, $_mark_name, $_where, $_left_gravity) = @_ }
 sub Gtk2::create_pango_context { my ($_widget) = @_ }

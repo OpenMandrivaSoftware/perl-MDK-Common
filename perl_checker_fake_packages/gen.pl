@@ -18,9 +18,12 @@ sub gtk2 {
       [ 'signal_disconnect',            ' { my ($_target, $_closure) = @_ }' ],
       [ 'signal_is_connected',          ' { my ($_target, $_closure) = @_ }' ],
       [ 'signal_stop_emission_by_name', ' { my ($_target, $_detailed_signal) = @_ }' ],
+      [ 'create_items',                 ' { my ($_factory, $_entries, $o_callback_data) = @_ }' ],
                       );
+    my @added_subroutines;
     my $add = sub {
-        push @subroutines, [ $_[0], $_[1] ];
+        member($_[0], map { $_->[0] } @subroutines) and return;
+        push @added_subroutines, [ $_[0], $_[1] ];
     };
     
     my $pm_file = sub {
@@ -157,7 +160,7 @@ sub gtk2 {
 our \@ISA = qw();
 
 ";
-    @subroutines = sort { $a->[0] cmp $b->[0] } @subroutines;
+    @subroutines = sort { $a->[0] cmp $b->[0] } @subroutines, @added_subroutines;
     my @ok;
     foreach my $fun (uniq(map { $_->[0] } @subroutines)) {
         my @multiples = grep { $_->[0] eq $fun } @subroutines;
