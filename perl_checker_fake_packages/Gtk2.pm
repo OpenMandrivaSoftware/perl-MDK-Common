@@ -189,6 +189,7 @@ sub show_all {}
 sub signal_connect {}
 sub signal_disconnect {}
 sub signal_stop_emission_by_name {}
+sub sink {}
 sub size {}
 sub state {}
 sub steal {}
