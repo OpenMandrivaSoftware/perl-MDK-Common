@@ -55,7 +55,8 @@ let is_a_scalar = function
   | Ref _
   | Num _
   | Raw_string _
-  | String _ -> true
+  | String _
+  | Call(Deref(I_func, Ident(None, "N", _)), _) -> true
   | My_our(_, [ context, _ ], _)
   | Deref_with(_, context, _, _)
   | Deref(context, _) -> is_scalar_context context
