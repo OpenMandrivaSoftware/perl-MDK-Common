@@ -10,6 +10,8 @@ qw{a b c}                                don't use qw{...}, use qw(...) instead
 
 q{xxx}                                   don't use q{...}, use q(...) instead
 
+qq{xxx}                                  don't use qq{...}, use qq(...) instead
+
 qx(xxx)                                  don't use qx{...}, use `...` instead
 
 -xxx                                     don't use -xxx, use '-xxx' instead

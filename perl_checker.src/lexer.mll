@@ -266,7 +266,8 @@ let current_string_start_pos = ref 0
 let current_string_start_line = ref 0
 
 let die_in_string lexbuf err = failwith (pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ err)
-let warn_escape_unneeded lexbuf c = warn lexbuf ("you can replace \\" ^ c ^ " with " ^ c)
+let warn_escape_unneeded lexbuf c = 
+  let s = String.make 1 c in warn lexbuf ("you can replace \\" ^ s ^ " with " ^ s)
 let next_interpolated toks =
   let r = Stack.top building_current_string in
   Queue.push (!r, toks) (Stack.top building_current_interpolated_string) ;
@@ -299,7 +300,8 @@ let ins_to_string t lexbuf =
   if not !string_is_i18n then
     (match !string_escape_useful, s with
     | Right c, [ _, [] ] ->
-	warn_with_pos pos ("you can replace \"xxx\\" ^ c ^ "xxx\" with 'xxx" ^ c ^ "xxx', that way you don't need to escape <" ^ c ^ ">")
+	let s = String.make 1 c in
+	warn_with_pos pos ("you can replace \"xxx\\" ^ s ^ "xxx\" with 'xxx" ^ s ^ "xxx', that way you don't need to escape <" ^ s ^ ">")
     | _ -> 
 	if !string_quote_escape then
 	  let full_s = String.concat "" (List.map fst s) in
@@ -761,7 +763,7 @@ rule token = parse
 	  check_multi_line_delimited_string None pos ;
 	  COMMAND_STRING(s, pos) }
 | "q" pattern_open { set_delimit_char_open lexbuf "q"; raw_ins_to_string qstring lexbuf }
-| "qq(" { ins_to_string qqstring lexbuf }
+| "qq" pattern_open { set_delimit_char_open lexbuf "qq"; ins_to_string qqstring lexbuf }
 | "qw" pattern_open { set_delimit_char_open lexbuf "qw"; let s, pos = raw_ins qstring lexbuf in QUOTEWORDS(s, pos) }
 
 | "\n__END__" [^ '0'-'9' 'A'-'Z' 'a'-'z' '_'] 
@@ -816,11 +818,14 @@ and rawstring = parse
 | eof { die_in_string lexbuf "Unterminated_rawstring" }
 
 and qqstring = parse
-| ')' { 
-    if !string_nestness <> 0 then (decr string_nestness; next qqstring lexbuf)
+| pattern_close { 
+    if lexeme_char lexbuf 0 = !delimit_char_close then
+      if !string_nestness <> 0 then (decr string_nestness; next qqstring lexbuf)
+      else ()
+    else next qstring lexbuf
   }
-| '(' {
-    incr string_nestness;
+| pattern_open {
+    if lexeme_char lexbuf 0 = !delimit_char_open then incr string_nestness;
     next qqstring lexbuf
   }
 | '\\' { Stack.push qqstring next_rule ; string_escape_kind := Qq; string_escape lexbuf }
@@ -830,7 +835,7 @@ and qqstring = parse
     add_a_new_line(lexeme_end lexbuf);
     next qqstring lexbuf
   }
-| [^ '\n' '(' ')' '\\' '$' '@']+ { next qqstring lexbuf }
+| [^ '\n' '(' ')' '{' '}' '\\' '$' '@']+ { next qqstring lexbuf }
 | eof { die_in_string lexbuf "Unterminated_qqstring" }
 
 and qstring = parse
@@ -891,26 +896,26 @@ and string_escape = parse
 | '\\'{ next_s "\\" (Stack.pop next_rule) lexbuf }
 | ['b' 'f' 'a' 'r'] { string_escape_useful := Left true; next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 | ['$' '@' '%' '{' '[' ':'] { 
-	if !string_escape_useful = Left false then string_escape_useful := Right (lexeme lexbuf) ;
+	if !string_escape_useful = Left false then string_escape_useful := Right (lexeme_char lexbuf 0) ;
 	next_s (lexeme lexbuf) (Stack.pop next_rule) lexbuf 
   }
 | _   { 
-    let c = lexeme lexbuf in
+    let c = lexeme_char lexbuf 0 in
     (match !string_escape_kind with
     | Double_quote -> 
-	if c <> "\"" then
+	if c <> '"' then
 	  warn_escape_unneeded lexbuf c
 	else (
 	  if !string_escape_useful = Left false then string_escape_useful := Right c ;
 	  string_quote_escape := true
         )
-    | Qq -> if c <> "(" && c <> ")" then warn_escape_unneeded lexbuf c
+    | Qq -> if c <> !delimit_char_open && c <> !delimit_char_close then warn_escape_unneeded lexbuf c
     | Here_doc -> warn_escape_unneeded lexbuf c
-    | Delimited -> if c = String.make 1 !delimit_char then 
+    | Delimited -> if c = !delimit_char then 
           warn lexbuf ("change the delimit character " ^ String.make 1 !delimit_char ^ " to get rid of this escape")
         else warn_escape_unneeded lexbuf c);
-    let c = if c = "\"" then c else "\\" ^ c in
-    next_s c (Stack.pop next_rule) lexbuf 
+    let s = if c = '"' then String.make 1 c else "\\" ^ String.make 1 c in
+    next_s s (Stack.pop next_rule) lexbuf 
   }
 
 and re_string_escape = parse
@@ -924,9 +929,9 @@ and re_string_escape = parse
 | ['r' 'b' 'f' '$' '@' '%' 's' 'S' 'd' 'D' 'w' 'W' 'Q' 'E' 'b' '.' '*' '+' '?' '[' ']' '(' ')' '|' '{' '}' '-' ':'] { 
      next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf 
   }
-| _  { 
-     let c = lexeme lexbuf in 
-     if c = String.make 1 !delimit_char then 
+| _  {
+     let c = lexeme_char lexbuf 0 in 
+     if c = !delimit_char then 
        warn lexbuf ("change the delimit character " ^ String.make 1 !delimit_char ^ " to get rid of this escape")
      else warn_escape_unneeded lexbuf c ;
      next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf 
