@@ -27,6 +27,8 @@ type maybe_context =
   | M_unknown
   | M_mixed of maybe_context list
 
+type sub_declaration_kind = Real_sub_declaration | Glob_assign
+
 type fromparser = 
    | Undef
    | Ident of string option * string * pos
@@ -50,7 +52,7 @@ type fromparser =
    | Anonymous_sub of string option * fromparser * pos (* prototype, expr, pos *)
    | My_our of string * (context * string) list * pos
    | Use of fromparser * fromparser list
-   | Sub_declaration of fromparser * string option * fromparser (* name, prototype, body *)
+   | Sub_declaration of fromparser * string option * fromparser * sub_declaration_kind (* name, prototype, body, kind *)
    | Package of fromparser
    | Label of string
    | Perl_checker_comment of string * pos

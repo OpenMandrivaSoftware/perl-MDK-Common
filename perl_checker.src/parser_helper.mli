@@ -150,7 +150,7 @@ val to_Local :
   Types.fromparser
 val sub_declaration :
   Types.fromparser * string option ->
-  Types.fromparser list -> Types.fromparser
+  Types.fromparser list -> Types.sub_declaration_kind -> Types.fromparser
 val anonymous_sub :
   string option ->
   Types.fromparser list Types.any_spaces_pos -> Types.fromparser

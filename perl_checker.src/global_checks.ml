@@ -306,7 +306,7 @@ let check_variables vars t =
 	check_unused_local_variables vars' ;
 	Some vars
 
-    | Sub_declaration(Ident(fq, name, pos) as ident, perl_proto, Block body) ->
+    | Sub_declaration(Ident(fq, name, pos) as ident, perl_proto, Block body, kind) ->
 	let vars = declare_Our vars ([ I_func, string_of_Ident ident ], pos) in
 
 	let my_vars, l =
@@ -315,7 +315,8 @@ let check_variables vars t =
 	      [], My_our ("my", mys, mys_pos) :: body
 	  | _ -> 
 	      let dont_check_use = 
-		fq = None && List.mem name ["BEGIN"; "END"; "DESTROY"] ||
+		kind = Glob_assign ||
+		fq = None && List.mem name ["DESTROY"] ||
 		Hashtbl.mem vars.state.packages_being_classes (some_or fq vars.current_package.package_name)
 	      in
 	      [(I_array, "_"), (pos, ref dont_check_use, None)], body

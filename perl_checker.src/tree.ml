@@ -267,9 +267,9 @@ let get_proto perl_proto body =
 
 let get_vars_declaration global_vars_declared package = 
   List.iter (function
-    | Sub_declaration(Ident(None, name, pos), perl_proto, body) ->
+    | Sub_declaration(Ident(None, name, pos), perl_proto, body, _) ->
 	Hashtbl.replace package.vars_declared (I_func, name) (pos, ref false, get_proto perl_proto body)
-    | Sub_declaration(Ident(Some fq, name, pos), perl_proto, body) ->
+    | Sub_declaration(Ident(Some fq, name, pos), perl_proto, body, _) ->
 	Hashtbl.replace global_vars_declared (I_func, fq, name) (pos, get_proto perl_proto body)
 
     | List [ Call_op("=", [My_our("our", ours, pos); _], _) ]
@@ -310,7 +310,7 @@ let rec fold_tree f env e =
   | String(l, _)
     -> List.fold_left (fun env (_, e) -> fold_tree f env e) env l
 
-  | Sub_declaration(e1, _, e2)
+  | Sub_declaration(e1, _, e2, _)
   | Deref_with(_, _, e1, e2)
     -> 
       let env = fold_tree f env e1 in
