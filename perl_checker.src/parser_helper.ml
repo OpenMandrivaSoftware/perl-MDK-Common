@@ -778,7 +778,15 @@ let to_String parse strict (l, (_, pos)) =
   String(l', raw_pos2pos pos)
 
 let from_PATTERN parse ((s, opts), (_, pos)) = 
-  [ String(parse_interpolated parse s, raw_pos2pos pos) ; 
+  let re = parse_interpolated parse s in
+  (match List.rev re with
+  | (s, List []) :: _ ->
+      if str_ends_with s ".*" then
+	warn_rule (sprintf "you can remove \"%s\" at the end of your regexp" ".*")
+      else if str_ends_with s ".*$" then
+	warn_rule (sprintf "you can remove \"%s\" at the end of your regexp" ".*$")
+  | _ -> ());
+  [ String(re, raw_pos2pos pos) ; 
     Raw_string(opts, raw_pos2pos pos) ]
 let from_PATTERN_SUBST parse ((s1, s2, opts), (_, pos)) = 
   [ String(parse_interpolated parse s1, raw_pos2pos pos) ; 
