@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -15,10 +15,22 @@ Group: Development/Perl
 Conflicts: drakxtools-newt < 9.1-30mdk, drakconf < 9.1-14mdk
 BuildRoot: %{_tmppath}/%{name}-buildroot
 BuildRequires: ocaml
+Provides: perl(MDK::Common) = %{version}
+Provides: perl(MDK::Common::DataStructure)  
+Provides: perl(MDK::Common::File)  
+Provides: perl(MDK::Common::Func)  
+Provides: perl(MDK::Common::Globals)  
+Provides: perl(MDK::Common::Math)  
+Provides: perl(MDK::Common::String)  
+Provides: perl(MDK::Common::System)  
+Provides: perl(MDK::Common::Various)  
+
 
 %package devel
 Summary: Various verifying scripts
 Group: Development/Perl
+AutoReqProv: 0
+Requires: perl-base >= 2:5.8.0
 
 %description
 Various simple functions created for DrakX
@@ -52,6 +64,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon May 12 2003 Pixel <pixel@mandrakesoft.com> 1.1.2-2mdk
+- rebuild for perl auto-provides
+  (except for perl-MDK-Common-devel which need special handling for the faked packages)
+
 * Tue Apr 29 2003 Pixel <pixel@mandrakesoft.com> 1.1.2-1mdk
 - perl_checker: more context checks
   - ensure the values are used (eg: "map { ... } ...", "/xxx/")
