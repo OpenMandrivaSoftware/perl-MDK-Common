@@ -1,3 +1,5 @@
+package MDK::Common::DataStructure;
+
 =head1 NAME
 
 MDK::Common::DataStructure - miscellaneous list/hash manipulation functions
@@ -102,7 +104,6 @@ L<MDK::Common>
 
 =cut
 
-package MDK::Common::DataStructure;
 
 use MDK::Common::Math;
 use MDK::Common::Func;

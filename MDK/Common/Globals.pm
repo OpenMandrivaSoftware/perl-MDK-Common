@@ -1,3 +1,5 @@
+package MDK::Common::Globals;
+
 =head1 NAME
 
 Shares constant values between modules
@@ -13,12 +15,10 @@ Shares constant values between modules
 =cut
 
 
-package MDK::Common::Globals;
-
 sub import {
     my (undef, $name, @globals) = @_;
     foreach (@globals) {
-	$name =~ /^\$/ and die q(usage : use MDK::Common::Globals "group", qw($var1 $var2 ...););
+	$name =~ /^\$/ and die qq(usage : use MDK::Common::Globals "group", qw(\$var1 \$var2 ...);\n);
 	s/^\$// or die qq(bad parameter to "use MDK::Common::Globals": missing variable ``$_'' should be written ``\$$_''); #);
 
 	no strict 'refs';

@@ -1,3 +1,5 @@
+package MDK::Common::System;
+
 =head1 NAME
 
 MDK::Common::System - formatting functions
@@ -155,7 +157,6 @@ L<MDK::Common>
 
 =cut
 
-package MDK::Common::System;
 
 use MDK::Common::Math;
 use MDK::Common::File;

@@ -1,3 +1,5 @@
+package MDK::Common::File;
+
 =head1 NAME
 
 MDK::Common::File - miscellaneous file/filename manipulation functions
@@ -96,7 +98,6 @@ L<MDK::Common>
 
 =cut
 
-package MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);

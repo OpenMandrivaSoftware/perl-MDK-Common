@@ -1,3 +1,5 @@
+package MDK::Common::Various;
+
 =head1 NAME
 
 MDK::Common::Various - miscellaneous functions
@@ -93,8 +95,6 @@ L<MDK::Common>
 
 =cut
   
-
-package MDK::Common::Various;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);

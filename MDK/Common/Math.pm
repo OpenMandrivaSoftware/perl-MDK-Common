@@ -1,3 +1,5 @@
+package MDK::Common::Math;
+
 =head1 NAME
 
 MDK::Common::Math - miscellaneous math functions
@@ -109,7 +111,6 @@ L<MDK::Common>
 
 =cut
 
-package MDK::Common::Math;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK $PRECISION $PI);
 @ISA = qw(Exporter);
@@ -138,7 +139,7 @@ sub product { my $n = 1; $n  *= $_ foreach @_; $n }
 
 sub factorize {
     my ($n) = @_;
-    my @r = ();
+    my @r;
 
     $n == 1 and return [ 1, 1 ];
     for (my $k = 2; sqr($k) <= $n; $k++) {

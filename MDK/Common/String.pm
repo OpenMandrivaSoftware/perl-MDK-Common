@@ -1,3 +1,5 @@
+package MDK::Common::String;
+
 =head1 NAME
 
 MDK::Common::String - formatting functions
@@ -57,7 +59,6 @@ L<MDK::Common>
 
 =cut
 
-package MDK::Common::String;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);

@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 9mdk
+%define release 10mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -49,6 +49,11 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Jul 31 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-10mdk
+- perl_checker: cleaner, more usable (via .perl_checker for -exclude's)
+- perl_checker: more stricter syntax rules
+- adapt *.pm's to those rules
+
 * Wed Jul 31 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-9mdk
 - perl_checker: add *much* stricter syntax rules
 - adapt *.pm's to those rules

@@ -1,3 +1,5 @@
+package MDK::Common::Func;
+
 =head1 NAME
 
 MDK::Common::Func - miscellaneous functions
@@ -142,8 +144,6 @@ L<MDK::Common>
 
 =cut
 
-package MDK::Common::Func;
-
 use MDK::Common::Math;
 
 
@@ -180,7 +180,7 @@ sub fold_left(&@) {
 sub smapn {
     my $f = shift;
     my $n = shift;
-    my @r = ();
+    my @r;
     for (my $i = 0; $i < $n; $i++) { push @r, &$f(map { $_->[$i] } @_) }
     @r
 }
