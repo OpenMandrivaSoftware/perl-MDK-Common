@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 11mdk
+%define release 12mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -49,6 +49,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Aug 12 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-12mdk
+- add setExportedVarsInSh and setExportedVarsInCsh
+- remove setVarsInCsh (obsoleted by setExportedVarsInCsh)
+
 * Wed Jul 31 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-11mdk
 - File.pm: add "append_to_file"
 - perl_checker: a few more stricter rules

@@ -101,9 +101,9 @@ restrict the fields that will be printed to LIST
 
 like setVarsInSh with INT being the chmod value for the config file
 
-=item setVarsInCsh(FILENAME, HASH REF, LIST)
+=item setExportedVarsInCsh(FILENAME, HASH REF, LIST)
 
-same as C<setVarsInSh> for csh format
+same as C<setExportedVarsInSh> for csh format
 
 =item template2file(FILENAME_IN, FILENAME_OUT, HASH)
 
@@ -163,7 +163,7 @@ use MDK::Common::File;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_int $bitof_int); #);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch typeFromMagic list_passwd list_home list_skels syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setVarsInCsh template2file template2userfile update_gnomekderc fuzzy_pidofs); #);
+@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch typeFromMagic list_passwd list_home list_skels syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos getVarsFromSh setVarsInSh setVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile update_gnomekderc fuzzy_pidofs); #);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -299,19 +299,27 @@ sub setVarsInShMode {
     my ($file, $mod, $l, @fields) = @_;
     @fields = keys %$l unless @fields;
 
-    local *F;
-    open F, "> $file" or die "cannot create config file $file";
+    MDK::Common::File::output($file, 
+	map { $l->{$_} ? "$_=$l->{$_}\n" : () } @fields
+    );
     chmod $mod, $file;
-    $l->{$_} and print F "$_=$l->{$_}\n" foreach @fields;
 }
 
-sub setVarsInCsh {
+sub setExportedVarsInSh {
     my ($file, $l, @fields) = @_;
     @fields = keys %$l unless @fields;
 
-    local *F;
-    open F, "> $_[0]" or die "cannot create config file $file";
-    $l->{$_} and print F "setenv $_ $l->{$_}\n" foreach @fields;
+    MDK::Common::File::output($file, 
+	(map { $l->{$_} ? "$_=$l->{$_}\n" : () } @fields), 
+	@fields ? "export " . join(" ", @fields) . "\n" : (),
+    );
+}
+
+sub setExportedVarsInCsh {
+    my ($file, $l, @fields) = @_;
+    @fields = keys %$l unless @fields;
+
+    MDK::Common::File::output($file, map { $l->{$_} ? "setenv $_ $l->{$_}\n" : () } @fields);
 }
 
 sub template2file {
