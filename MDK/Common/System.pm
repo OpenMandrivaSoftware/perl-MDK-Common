@@ -292,7 +292,7 @@ sub unix2dos { local $_ = $_[0]; s/\015$//mg; s/$/\015/mg; $_ }
 sub whereis_binary {
     my ($prog) = @_;
     if ($prog =~ m!/!) {
-	warn "don't call whereis_binary with a name containing a \"/\" (the culprit is: $prog)\n";
+	warn qq(don't call whereis_binary with a name containing a "/" (the culprit is: $prog)\n);
 	return;
     }
     foreach (split(':', $ENV{PATH})) {
