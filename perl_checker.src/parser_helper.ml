@@ -1008,32 +1008,6 @@ let call_one_scalar_para { any = e ; pos = pos } para esp_start esp_end =
   new_pesp M_unknown P_mul (call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)) esp_start esp_end
 
 
-let call_op_if_infix left right esp_start esp_end =
-  (match left, right with
-  | List [Call_op("=", [Deref(context, _); _], _)], _ when non_scalar_context context -> ()
-  | List [Call_op("=", [v; _], _)],
-    List [Call_op("not", [v'], _)] when is_same_fromparser v v' ->
-      warn_rule "\"$foo = ... if !$foo\" can be written \"$foo ||= ...\""
-  | _ -> ());
-  let pos = raw_pos_range esp_start esp_end in
-  new_any M_none (Call_op("if infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
-
-let call_op_unless_infix left right esp_start esp_end =
-  (match left, right with
-  | List [Call_op("=", [Deref(context, _); _], _)], _ when non_scalar_context context -> ()
-  | List [Call_op("=", [v; _], _)], List [v'] when is_same_fromparser v v' ->
-      warn_rule "\"$foo = ... unless $foo\" can be written \"$foo ||= ...\""
-  | _ -> ());
-  (match right with
-  | List [Call_op(op, _, _)] ->
-      (match op with
-      | "&&" | "||" | "not" | "ne" | "?:" -> warn_rule "don't use \"unless\" when the condition is complex, use \"if\" instead"
-      | _ -> ());
-  | _ -> ());
-  let pos = raw_pos_range esp_start esp_end in
-  new_any M_none (Call_op("unless infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
-
-
 let (current_lexbuf : Lexing.lexbuf option ref) = ref None
 
 let rec list2tokens l =
@@ -1282,6 +1256,35 @@ let mtuple_context_concat c1 c2 =
   | M_hash, _ | _, M_hash -> M_list
   | M_tuple l, _ -> M_tuple (l @ [c2])
   | _ -> M_tuple [c1 ; c2]
+
+let call_op_if_infix left right esp_start esp_end =
+  (match left, right with
+  | List [Call_op("=", [Deref(context, _); _], _)], _ when non_scalar_context context -> ()
+  | List [Call_op("=", [v; _], _)],
+    List [Call_op("not", [v'], _)] when is_same_fromparser v v' ->
+      warn_rule "\"$foo = ... if !$foo\" can be written \"$foo ||= ...\""
+  | _ -> ());
+
+  mcontext_check_none "value is dropped" [left] esp_start;
+  let pos = raw_pos_range esp_start esp_end in
+  new_any M_none (Call_op("if infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
+
+let call_op_unless_infix left right esp_start esp_end =
+  (match left, right with
+  | List [Call_op("=", [Deref(context, _); _], _)], _ when non_scalar_context context -> ()
+  | List [Call_op("=", [v; _], _)], List [v'] when is_same_fromparser v v' ->
+      warn_rule "\"$foo = ... unless $foo\" can be written \"$foo ||= ...\""
+  | _ -> ());
+  (match right with
+  | List [Call_op(op, _, _)] ->
+      (match op with
+      | "&&" | "||" | "not" | "ne" | "?:" -> warn_rule "don't use \"unless\" when the condition is complex, use \"if\" instead"
+      | _ -> ());
+  | _ -> ());
+
+  mcontext_check_none "value is dropped" [left] esp_start;
+  let pos = raw_pos_range esp_start esp_end in
+  new_any M_none (Call_op("unless infix", [ left ; right], raw_pos2pos pos)) esp_start.spaces pos
 
 let symops pri para_context return_context op_str left op right =
   sp_same op right;
