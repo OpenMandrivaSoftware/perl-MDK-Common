@@ -165,6 +165,7 @@ decl:
 
 use:
 | use_word listexpr semi_colon {sp_n($2); Use(fst $1, sndfst $2), sp_pos_range $1 $3}
+| use_revision RAW_IDENT_PAREN PAREN PAREN_END {Use(to_Ident $2, []), sp_pos_range $1 $2}
 
 use_word:
 | use_revision word comma {fst $2, sp_pos_range $1 $3}
