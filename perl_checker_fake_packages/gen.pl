@@ -16,14 +16,15 @@ sub gtk2 {
         each_index {
             if (/^\s*sub\s+(\w+)/) {
                 my $fun = $1;
+                my $line = $::i;
 
                 #- obtain first statement of function
                 local $_ = $_;
                 if (/^\s*sub\s+\w+\s*{?\s*$/) {
                     if ($contents[$::i+1] =~ /^\s*{\s*$/) {
-                        $_ .= $contents[$::i+1] . $contents[$::i+2];
+                        $_ .= $contents[++$line] . $contents[++$line];
                     } else {
-                        $_ .= $contents[$::i+1];
+                        $_ .= $contents[++$line];
                     }
                 }
 
@@ -60,9 +61,15 @@ sub gtk2 {
 
                 #- methods with variable list of arguments (which branch to different XS functions)
                 #-   Gtk2::_Helpers::check_usage(\@_, [ 'Gtk2::GSList group' ], [ 'Gtk2::GSList group', 'string label' ]);
-                if (/Gtk2::_Helpers::check_usage\(\\\@_, (.*)\);/) {
+                if (/Gtk2::_Helpers::check_usage\(\\\@_, (.*)/) {
+                    my $various = $1;
+                    while ($various !~ /\)\s*;\s*$/) {
+                        $various .= $contents[++$line];
+                    }
+                    $various =~ s/\)\s*;\s*$//;
+
                     my $subroutine = ' { my (';
-                    my @various = split /\]\s*,/, $1;
+                    my @various = split /\]\s*,/, $various;
                     s/[\[\]]//g foreach @various;
                     my @mandatory = split /,/, $various[0];
                     my $proto2varname = sub { $_[0] =~ /\s*'\s*\S+\s+(.*)\s*'/; $1 };

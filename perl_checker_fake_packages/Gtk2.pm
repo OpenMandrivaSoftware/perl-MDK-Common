@@ -1220,6 +1220,7 @@ sub Gtk2::set_text {}
 sub Gtk2::set_text_aa_gc { my ($_style, $_state, $_gc) = @_ }
 sub Gtk2::set_text_gc { my ($_style, $_state, $_gc) = @_ }
 sub Gtk2::set_text_with_mnemonic { my ($_label, $_str) = @_ }
+sub Gtk2::set_tip { my ($_widget, $_tip_text, $o_tip_private) = @_ }
 sub Gtk2::set_title { my ($_DUMMY0, $_DUMMY1) = @_ }
 sub Gtk2::set_tooltips { my ($_toolbar, $_enable) = @_ }
 sub Gtk2::set_transient_for { my ($_DUMMY0, $_DUMMY1) = @_ }
