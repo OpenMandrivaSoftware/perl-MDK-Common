@@ -175,8 +175,7 @@ val to_Call_op_ :
   'b Types.any_spaces_pos ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
 val followed_by_comma :
-  Types.fromparser list Types.prio_anyexpr Types.any_spaces_pos ->
-  bool Types.any_spaces_pos -> Types.fromparser list
+  Types.fromparser list -> bool -> Types.fromparser list
 val pot_strings : (string, string list) Hashtbl.t
 val pot_strings_and_file : (string, string) Hashtbl.t
 val po_comments : string list ref

@@ -663,11 +663,11 @@ let to_Call_op_ mcontext prio op para esp_start esp_end =
   let pos = raw_pos_range esp_start esp_end in
   new_any mcontext { priority = prio ; expr = cook_call_op op para pos } esp_start.spaces pos
 
-let followed_by_comma pesp true_comma =
-  if true_comma.any then pesp.any.expr else
-    match split_last pesp.any.expr with
+let followed_by_comma expr true_comma =
+  if true_comma then expr else
+    match split_last expr with
     | l, Ident(None, s, pos) -> l @ [Raw_string(s, pos)]
-    | _ -> pesp.any.expr
+    | _ -> expr
 
 
 let pot_strings = Hashtbl.create 16
