@@ -22,6 +22,8 @@ join(@l)                                 first argument of join() must be a scal
 
 join(',', 'foo')                         join('...', $foo) is the same as $foo
 
+system(qq(foo "$xxx"))                   instead of quoting parameters you should give a list of arguments
+
 my (@l2, $xxx) = @l;                     @l2 takes all the arguments, $xxx is undef in any case
 
 $bad                                     undeclared variable $bad
