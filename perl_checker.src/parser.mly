@@ -153,7 +153,7 @@ sideff: /* An expression which may have a side-effect */
 decl:
 | FORMAT BAREWORD ASSIGN {Too_complex, sp_pos_range $1 $3}
 | FORMAT ASSIGN {Too_complex, sp_pos_range $1 $2}
-| func_decl semi_colon {die_rule (if sndfst $1 = "" then "there is no need to pre-declare in Perl!" else "please don't use prototype pre-declaration") }
+| func_decl semi_colon {if sndfst $1 = "" then die_rule "there is no need to pre-declare in Perl!" else (warn_rule "please don't use prototype pre-declaration" ; Too_complex, sp_pos_range $1 $2) }
 | func_decl BRACKET BRACKET_END {sp_n($2); sp_0_or_cr($3); let name, proto = fst $1 in sub_declaration (name, proto) [], sp_pos_range $1 $3}
 | func_decl BRACKET lines BRACKET_END {sp_n($2); check_block_sub $3 $4; sub_declaration (fst $1) (fst $3), sp_pos_range $1 $4}
 | func_decl BRACKET BRACKET expr BRACKET_END            BRACKET_END {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); sub_declaration (fst $1) [Ref(I_hash, prio_lo P_loose $4)], sp_pos_range $1 $6}
@@ -243,7 +243,16 @@ term:
 
 
 /* Unary operators and terms */
-| PLUS term %prec UNARY_MINUS {if fst $1 <> "-" then die_rule "syntax error"; sp_0($2); to_Call_op_(P_tight, "- unary", [sndfst $2]) (sp_pos_range $1 $2)}
+| PLUS term %prec UNARY_MINUS {
+    sp_0($2); 
+    match fst $1 with
+    | "+" ->
+	warn_rule "don't use unary +" ;
+	to_Call_op_(P_tight, "+ unary", [sndfst $2]) (sp_pos_range $1 $2)
+    | "-" ->
+	to_Call_op_(P_tight, "- unary", [sndfst $2]) (sp_pos_range $1 $2)
+    | _ -> die_rule "syntax error"
+}
 | TIGHT_NOT term {to_Call_op_(P_tight, "not", [sndfst $2]) (sp_pos_range $1 $2)}
 | BIT_NEG term {to_Call_op_(P_expr, "~", [sndfst $2]) (sp_pos_range $1 $2)}
 | INCR term    {sp_0($2); to_Call_op_(P_tight, "++", [sndfst $2]) (sp_pos_range $1 $2)}
