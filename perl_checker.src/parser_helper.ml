@@ -431,7 +431,7 @@ let check_ternary_paras(cond, a, b) =
   in
   if dont_need_short_circuit a || is_same_fromparser cond a then check_ternary_para b;
   if dont_need_short_circuit b || is_same_fromparser cond b then check_ternary_para a;
-  if is_same_fromparser cond a && dont_need_short_circuit b && is_a_scalar a && is_a_scalar b then warn_rule "you can replace \"$foo ? $foo : $bar\" with \"$foo || $bar\"";
+  if is_same_fromparser cond a && is_a_scalar a && is_a_scalar b then warn_rule "you can replace \"$foo ? $foo : $bar\" with \"$foo || $bar\"";
   [ cond; a; b ]
 
 let check_unneeded_var_dollar_ esp =
