@@ -181,7 +181,7 @@ sub smapn {
     my $f = shift;
     my $n = shift;
     my @r = ();
-    for (my $i = 0; $i < $n; $i++) { push @r, &$f(map { $_->[$i] } @_); }
+    for (my $i = 0; $i < $n; $i++) { push @r, &$f(map { $_->[$i] } @_) }
     @r
 }
 sub mapn(&@) {

@@ -261,8 +261,8 @@ sub df {
 
 sub sync { syscall_('sync') }
 sub psizeof { length pack $_[0] }
-sub availableMemory() { MDK::Common::Math::sum(map { /(\d+)/ } grep { /^(MemTotal|SwapTotal):/ } MDK::Common::File::cat_("/proc/meminfo")); }
-sub availableRamMB() { 4 * MDK::Common::Math::round((-s '/proc/kcore') / 1024 / 1024 / 4); }
+sub availableMemory() { MDK::Common::Math::sum(map { /(\d+)/ } grep { /^(MemTotal|SwapTotal):/ } MDK::Common::File::cat_("/proc/meminfo")) }
+sub availableRamMB() { 4 * MDK::Common::Math::round((-s '/proc/kcore') / 1024 / 1024 / 4) }
 sub gettimeofday { my $t = pack "LL"; syscall_('gettimeofday', $t, 0) or die "gettimeofday failed: $!\n"; unpack("LL", $t) }
 sub unix2dos { local $_ = $_[0]; s/\015$//mg; s/$/\015/mg; $_ }
 

@@ -125,8 +125,8 @@ sub odd  { $_[0] % 2 == 1 }
 sub sqr  { $_[0] * $_[0] }
 sub sign { $_[0] <=> 0 }
 sub round { int ($_[0] + 0.5) }
-sub round_up { my ($i, $r) = @_; $i = int $i; $i += $r - ($i + $r - 1) % $r - 1; }
-sub round_down { my ($i, $r) = @_; $i = int $i; $i -= $i % $r; }
+sub round_up { my ($i, $r) = @_; $i = int $i; $i += $r - ($i + $r - 1) % $r - 1 }
+sub round_down { my ($i, $r) = @_; $i = int $i; $i -= $i % $r }
 sub divide { my $d = int $_[0] / $_[1]; wantarray ? ($d, $_[0] % $_[1]) : $d }
 sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
 sub max { my $n = shift; $_ > $n and $n = $_ foreach @_; $n }
@@ -143,7 +143,7 @@ sub factorize {
     $n == 1 and return [ 1, 1 ];
     for (my $k = 2; sqr($k) <= $n; $k++) {
 	my $i = 0;
-	for ($i = 0; $n % $k == 0; $i++) { $n /= $k; }
+	for ($i = 0; $n % $k == 0; $i++) { $n /= $k }
 	$i and push @r, [ $k, $i ];
     }
     $n > 1 and push @r, [ $n, 1 ];

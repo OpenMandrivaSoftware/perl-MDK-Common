@@ -107,7 +107,7 @@ sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
 sub basename { local $_ = shift; s|/*\s*$||; s|.*/||; $_ }
 sub cat_ { local *F; open F, $_[0] or return; my @l = <F>; wantarray ? @l : join '', @l }
 sub cat__ { my ($f) = @_; my @l = <$f>; wantarray ? @l : join '', @l }
-sub output { my $f = shift; local *F; open F, ">$f" or die "output in file $f failed: $!\n"; print F foreach @_; }
+sub output { my $f = shift; local *F; open F, ">$f" or die "output in file $f failed: $!\n"; print F foreach @_ }
 sub output_p { my $f = shift; mkdir_p(dirname($f)); output($f, @_) }
 sub linkf    { unlink $_[1]; link    $_[0], $_[1] }
 sub symlinkf { unlink $_[1]; symlink $_[0], $_[1] }

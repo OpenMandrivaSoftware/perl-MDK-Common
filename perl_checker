@@ -38,12 +38,39 @@ if (/^# perl_checker: RE-EXPORT-ALL/) {
 /^=head/ .. /^=cut/ and next;
 /^\s*#/ and next;
 
+$explicit_no_warning = /#-#/;
+
 if (/^\s*require\s+([\w:]+);/) {
     add_use($1);
 } elsif (my ($r) = /^\s*require (.*)/) {
     $r =~ /'(.*)'/ or err("<<$_>> should be formatted like <<require 'PACKAGE.pm'>>", info());
     $r =~ m|'([^/]*)\.pm'| and add_use($1);
     next;
+}
+
+
+if (/\(\s+[^#\s({\[]/ && !/qq\(/) {
+    warn_(q(spurious space after opening parenthesis), info());
+}
+
+if (/[^#\s)}\]]\s+\)/) {
+    warn_(q(spurious space before closing parenthesis), info());
+}
+
+if (/;([^\s\\].{0,10})/ && !/^sub/ && !/;-\)/ && !/=~/ && !/^\s+;;$/) {
+    warn_(qq(missing space after ";$1"), info());
+}
+
+if (/;\s*\}/) {
+    warn_(q(spurious ";" before closing block), info());
+}
+
+if (/(.*\s\{)[^\s{}]/ && !/\{[\d,]+\}/ && !/Usage:/) { #- eg of Usage: cmd {foo|bar}
+    warn_(qq(missing space after "$1"), info());
+}
+
+if (/\{\s[^{}]*[^\s{}]\}/) {
+    warn_(qq(missing space before "}$'"), info());
 }
 
 if (/%_\W/ || /[^@]\$_{/) {
@@ -64,7 +91,8 @@ if (/[}>]{(['"])([a-z][a-z0-9_]*)\1}/i) {
       # special case for {'y'} otherwise the emacs mode goes wild
       # special case for {'x'} to have the same as {'y'} (since they usually go together)
 }
-if (/%$\w+(->|\{)/ || /%{([^{}]|{[^{}]*})*}(->|\{)/) {
+if (/%\$\w+(->|\{)/ || /%\{([^{}]|\{[^{}]*\})*\}(->|\{)/ ||
+    /@\$\w+->/      || /@\{([^{}]|\{[^{}]*\})*\}->/) {
     err(q(bad expression, tell pixel@mandrakesoft.com), info());
 }
 
@@ -93,7 +121,7 @@ if ((my ($op) = /([<>]{2})/) && (/[+-]\s*[\w\$]+\s*[<>]{2}/ || /[<>]{2}\s*[\w\$]
     err(qq(parentheses needed around operator $op), info());
 }
 if (/=.*:\s*\$\w+\s*=/) {
-    err(q(do not use ``cond ? $v1 = XX1 : $v2 = XX2'' which is parted as ``(cond ? $v1 = XX1 : $v2) = XX2''), info());
+    err(q(do not use ``cond ? $v1 = XX1 : $v2 = XX2'' which is parsed as ``(cond ? $v1 = XX1 : $v2) = XX2''), info());
 }
 
 if (/^\s*package ([\w:]+)/) {
@@ -215,6 +243,8 @@ sub err {
 }
 sub warn_ {
     my ($m, $i) = @_;
+
+    return if $explicit_no_warning;
 
     if ($i) {
 	 print STDERR "$i->{file}:$i->{line}: $m\n";
