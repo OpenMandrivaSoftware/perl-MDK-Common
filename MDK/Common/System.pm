@@ -224,6 +224,17 @@ sub better_arch {
 }
 sub compat_arch { better_arch(arch(), $_[0]) }
 
+sub distrib() {
+    my $release = MDK::Common::File::cat_('/etc/release');
+    my ($real_system, $real_product) = $release =~ /(.*) release ([\d.]+)/;
+    my $oem_config = '/etc/sysconfig/oem';
+    my %oem = -f $oem_config && getVarsFromSh($oem_config);
+    my $company = $oem{COMPANY} || 'Mandrakesoft';
+    my $system = $oem{SYSTEM} || $real_system;
+    my $product = $oem{PRODUCT} || $real_product;
+    (company => $company, system => $system, product => $product, real_system => $real_system, real_product => $real_product)
+}
+
 sub typeFromMagic {
     my $f = shift;
     sysopen(my $F, $f, 0) or return;
