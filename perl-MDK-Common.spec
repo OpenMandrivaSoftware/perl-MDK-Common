@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -72,6 +72,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Aug  1 2003 Pixel <pixel@mandrakesoft.com> 1.1.5-2mdk
+- rebuild for new perl (it helps DrakX build script)
+
 * Wed Jul 30 2003 Pixel <pixel@mandrakesoft.com> 1.1.5-1mdk
 - add read_gnomekderc() (and make update_gnomekderc() a little more robust when the category is plain weird)
 
