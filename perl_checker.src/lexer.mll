@@ -630,10 +630,10 @@ rule token = parse
     failwith (pos2sfull_with (lexeme_start lexbuf + 2) (lexeme_end lexbuf) ^ "Don't use <<\"MARK\", use <<MARK instead")
   }
 
-| "\\" stash
+| "\\"+ stash
 | "\\" ['0'-'9' 'A'-'Z' 'a'-'z']
 | "\\" ' '* '('
-    { putback lexbuf 1; REF(pos lexbuf) }
+    { lexbuf.lex_curr_pos <- lexbuf.lex_start_pos + 1; REF(pos lexbuf) }
 
 | "sub(" [ '$' '@' '\\' '&' ';' '%' ]* ')' {
     SUB_WITH_PROTO(skip_n_char_ 4 1 (lexeme lexbuf), pos lexbuf)
