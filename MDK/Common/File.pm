@@ -82,6 +82,10 @@ ensure the file exists, set the modification time to current time
 
 returns all the file in directory (except "." and "..")
 
+=item all_files_rec(DIRNAME)
+
+returns all the files in directory and the sub-directories (except "." and "..")
+
 =item glob_(STRING)
 
 simple version of C<glob>: doesn't handle wildcards in directory (eg:
@@ -117,7 +121,7 @@ L<MDK::Common>
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(dirname basename cat_ cat_or_die cat__ output output_p output_with_perm append_to_file linkf symlinkf renamef mkdir_p rm_rf cp_f cp_af touch all glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
+@EXPORT_OK = qw(dirname basename cat_ cat_or_die cat__ output output_p output_with_perm append_to_file linkf symlinkf renamef mkdir_p rm_rf cp_f cp_af touch all all_files_rec glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
@@ -218,6 +222,12 @@ sub all {
     closedir F;
 
     @l;
+}
+
+sub all_files_rec {
+    my ($d) = @_;
+
+    map { $_, -d $_ ? all_files_rec($_) : () } map { "$d/$_" } all($d);
 }
 
 sub glob_ {
