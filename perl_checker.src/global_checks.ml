@@ -143,7 +143,7 @@ let is_global_var context ident =
       | "last" | "lc" | "lcfirst" | "length" | "link" | "localtime" | "log" | "lstat"
       | "map" | "mkdir" | "next" | "no" | "oct" | "open" | "opendir" | "ord"
       | "pack" | "pipe" | "pop" | "print" | "printf" | "push" | "quotemeta" 
-      | "rand" | "read" | "readdir" | "readlink" | "redo" | "ref" | "rename" | "require" | "return" | "reverse" | "rmdir"
+      | "rand" | "read" | "readdir" | "readlink" | "redo" | "ref" | "rename" | "require" | "return" | "reverse" | "rindex" | "rmdir"
       | "scalar" | "seek" | "select" | "setpwent" | "shift" | "sleep" | "sort" | "splice" | "split" | "sprintf" | "stat" | "substr"
       | "symlink" | "syscall" | "sysopen" | "sysread" | "sysseek" | "system" | "syswrite" | "tie" | "time"
       | "uc" | "ucfirst" | "umask" | "undef" | "unlink" | "unpack" | "unshift" | "utime" | "values" | "vec" | "waitpid" | "wantarray" | "warn" | "write"
@@ -366,9 +366,9 @@ let add_package_to_state state package =
   Hashtbl.replace state.per_package package.package_name package
 
 let check_unused_vars package =
-  Hashtbl.iter (fun v (pos, is_used) ->
-    if not !is_used then
-      warn_with_pos pos (sprintf "unused function %s::%s" package.package_name (variable2s v))
+  Hashtbl.iter (fun (context, name) (pos, is_used) ->
+    if not (!is_used || List.mem name ["BEGIN"; "END"; "DESTROY"; "ISA"; "AUTOLOAD"; "EXPORT"; "EXPORT_OK"; "EXPORT_TAGS"]) then
+      warn_with_pos pos (sprintf "unused %s%s::%s" (if context = I_func then "function " else "variable " ^ context2s context) package.package_name name)
   ) package.vars_declared
 
 let arrange_global_vars_declared state =

@@ -2,7 +2,9 @@ package Gtk2;
 
 our @ISA = qw();
 
+sub Gtk2::x {}
 sub action_area {}
+sub active {}
 sub add_accel_group {}
 sub add_events {}
 sub add_with_viewport {}
@@ -51,6 +53,7 @@ sub get_iter_at_offset {}
 sub get_language {}
 sub get_metrics {}
 sub get_modal {}
+sub get_origin {}
 sub get_pango_context {}
 sub get_parent {}
 sub get_path {}
@@ -96,6 +99,7 @@ sub set_col_spacings {}
 sub set_cursor {}
 sub set_cursor_visible {}
 sub set_editable {}
+sub set_events {}
 sub set_filename {}
 sub set_focus_vadjustment {}
 sub set_headers_visible {}
@@ -139,13 +143,14 @@ sub unref {}
 sub values {}
 sub vbox {}
 sub white_gc {}
-sub width {}
 sub widget {}
+sub width {}
 sub window {}
 sub window_position {}
-sub Gtk2::x {}
+sub y {} ;#;
 
 sub bootstrap {}
+sub exit {}
 sub init {}
 sub main {}
 sub main_quit {}
@@ -155,3 +160,4 @@ sub timeout_add {}
 sub timeout_remove {}
 sub update {}
 sub update_ui {}
+
