@@ -87,6 +87,8 @@ val check_block_ref :
   'a * (Types.spaces * (int * 'b)) -> unit
 val check_my_our_paren : ((bool * 'a) * 'b) * 'c -> unit
 val only_one : Types.fromparser list * ('a * (int * int)) -> Types.fromparser
+val only_one_array_ref :
+  Types.fromparser list * ('a * (int * int)) -> Types.fromparser
 val only_one_in_List :
   ('a * Types.fromparser) * ('b * (int * int)) -> Types.fromparser
 val is_only_one_in_List : Types.fromparser list -> bool

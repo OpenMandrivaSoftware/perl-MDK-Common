@@ -372,6 +372,14 @@ let rec only_one (l, (spaces, pos)) =
   | [] -> die_with_rawpos pos "you must give one argument"
   | _  -> die_with_rawpos pos "you must give only one argument"
 
+let only_one_array_ref (l, (spaces, pos)) =
+  let e = only_one (l, (spaces, pos)) in
+  (match e with
+  | Call_op("last_array_index", [Deref(I_array, e)], _) ->
+      warn pos (sprintf "you can replace $#%s with -1" (string_of_Ident e))
+  | _ -> ());
+  e
+
 let only_one_in_List ((_, e), both) =
   match e with
   | List l -> only_one(l, both)
@@ -396,7 +404,7 @@ let to_List = function
   | [e] -> e
   | l -> List l
 
-let deref_arraylen e = Call(Deref(I_func, Ident(None, "int", raw_pos2pos bpos)), [Deref(I_array, e)])
+let deref_arraylen e = Call_op("last_array_index", [Deref(I_array, e)], raw_pos2pos bpos)
 let to_Ident ((fq, name), (_, pos)) = Ident(fq, name, raw_pos2pos pos)
 let to_Raw_string (s, (_, pos)) = Raw_string(s, raw_pos2pos pos)
 let to_Method_call (object_, method_, para) = 
