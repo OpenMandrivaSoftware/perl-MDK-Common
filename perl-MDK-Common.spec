@@ -75,6 +75,7 @@ rm -rf $RPM_BUILD_ROOT
 * Fri Sep 19 2003 Pixel <pixel@mandrakesoft.com> 1.1.7-1mdk
 - read_gnomekderc() & update_gnomekderc() will now handle key=value where key
 can contain spaces
+- export cat_or_die()
 
 * Mon Sep  1 2003 Pixel <pixel@mandrakesoft.com> 1.1.6-3mdk
 - MDK::Common::System::list_users() should list user 500 if it exists
