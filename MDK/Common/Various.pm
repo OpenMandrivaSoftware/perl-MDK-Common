@@ -67,6 +67,18 @@ gives
     oops
     main::g() called from /tmp/t.pl:2
     main::f() called from /tmp/t.pl:4
+
+=item noreturn()
+
+use this to ensure nobody uses the return value of the function. eg:
+
+    sub g { print "g called\n"; noreturn }
+    sub f { print "g returns ", g() }
+    f();
+
+gives
+
+    test.pl:3: main::f() expects a value from main::g(), but main::g() doesn't return any value
     
 =back
 
@@ -105,6 +117,14 @@ sub backtrace {
 	$s .= "$func() called from $file:$line\n";
     }
     $s;
+}
+
+sub noreturn {
+    if (defined wantarray) {
+	my ($package, $file, $line, $func) = caller(1);
+	my (undef, undef, undef, $func2) = caller(2);
+	die "$file:$line: $func2() expects a value from $func(), but $func() doesn't return any value\n";
+    }
 }
 
 1;
