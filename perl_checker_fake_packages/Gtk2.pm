@@ -89,6 +89,7 @@ sub get_path {}
 sub get_path_at_pos {}
 sub get_path_str {}
 sub get_pixel_size {}
+sub get_position {}
 sub get_selected {}
 sub get_selection {}
 sub get_size {}
