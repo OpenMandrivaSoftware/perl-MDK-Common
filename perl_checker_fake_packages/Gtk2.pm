@@ -1226,6 +1226,7 @@ sub Gtk2::set_show_events { my ($_class, $_show_events) = @_ }
 sub Gtk2::set_show_tabs { my ($_notebook, $_show_tabs) = @_ }
 sub Gtk2::set_single_paragraph_mode { my ($_layout, $_setting) = @_ }
 sub Gtk2::set_size {}
+sub Gtk2::set_size_request { my ($_x, $_y) = @_ }
 sub Gtk2::set_size_wildcarded { my ($_source, $_setting) = @_ }
 sub Gtk2::set_sizing { my ($_tree_column, $_type) = @_ }
 sub Gtk2::set_snap_edge { my ($_handle_box, $_edge) = @_ }

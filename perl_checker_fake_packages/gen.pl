@@ -5,7 +5,9 @@ use MDK::Common;
 sub gtk2 {
     my (@files) = @_;
 
-    my @subroutines;
+    my @subroutines = (
+      [ 'set_size_request', ' { my ($_self, $_x, $_y) = @_ }' ],
+                      );
     my $add = sub {
         push @subroutines, [ $_[0], $_[1] ];
     };
