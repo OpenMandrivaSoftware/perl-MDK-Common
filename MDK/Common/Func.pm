@@ -198,7 +198,7 @@ sub fold_left(&@) {
     local ($::a, $::b);
     $::a = $initial;
     foreach (@l) { $::b = $_; $::a = &$f() }
-    $::a
+    $::a;
 }
 
 sub smapn {
@@ -206,7 +206,7 @@ sub smapn {
     my $n = shift;
     my @r;
     for (my $i = 0; $i < $n; $i++) { push @r, &$f(map { $_->[$i] } @_) }
-    @r
+    @r;
 }
 sub mapn(&@) {
     my $f = shift;
@@ -220,7 +220,7 @@ sub mapn_(&@) {
 sub find(&@) {
     my $f = shift;
     $f->($_) and return $_ foreach @_;
-    undef
+    undef;
 }
 sub any(&@) {
     my $f = shift;

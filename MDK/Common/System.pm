@@ -232,7 +232,7 @@ sub distrib() {
     my $company = $oem{COMPANY} || 'Mandrakesoft';
     my $system = $oem{SYSTEM} || $real_system;
     my $product = $oem{PRODUCT} || $real_product;
-    (company => $company, system => $system, product => $product, real_system => $real_system, real_product => $real_product)
+    (company => $company, system => $system, product => $product, real_system => $real_system, real_product => $real_product);
 }
 
 sub typeFromMagic {

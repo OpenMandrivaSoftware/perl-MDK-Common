@@ -165,13 +165,13 @@ sub decimal2fraction { # ex: 1.33333333 -> (4, 3)
 	($c, $d) = ($c * $k + $d, $c);
 	$n -= $k;
     }
-    ($a, $c)
+    ($a, $c);
 }
 
 sub poly2 {
     my ($a, $b, $c) = @_;
     my $d = ($b**2 - 4 * $a * $c) ** 0.5;  
-    (-$b + $d) / 2 / $a, (-$b - $d) / 2 / $a
+    (-$b + $d) / 2 / $a, (-$b - $d) / 2 / $a;
 }
 
 # A(n,p)
@@ -181,14 +181,14 @@ sub permutations {
     for ($r = 1, $i = 0; $i < $p; $i++) {
 	$r *= $n - $i;
     }
-    $r
+    $r;
 }
 
 # C(n,p)
 sub combinaisons {
     my ($n, $p) = @_;
 
-    permutations($n, $p) / factorial($p)
+    permutations($n, $p) / factorial($p);
 }
 
 sub factorial { permutations($_[0], $_[0]) }
