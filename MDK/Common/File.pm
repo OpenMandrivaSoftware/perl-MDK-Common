@@ -140,6 +140,7 @@ sub mkdir_p {
 	mkdir_p(dirname($dir));
 	mkdir($dir, 0755) or die "mkdir: error creating directory $dir: $!\n";
     }
+    1;
 }
 
 sub rm_rf {
@@ -151,6 +152,7 @@ sub rm_rf {
 	    unlink $_ or die "rm of $_ failed: $!\n";
 	}
     }
+    1;
 }
 
 sub cp_af {
@@ -179,6 +181,7 @@ sub cp_af {
 	    chmod((stat($src))[2], $dest);
 	}
     }
+    1;
 }
 
 sub touch {

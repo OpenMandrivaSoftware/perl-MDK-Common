@@ -3,12 +3,15 @@ package Gtk2;
 our @ISA = qw();
 
 sub Gtk2::x {}
+sub XWINDOW {}
 sub action_area {}
 sub active {}
 sub add_accel_group {}
 sub add_events {}
 sub add_with_viewport {}
 sub allocation {}
+sub allow_grow {}
+sub allow_shrink {}
 sub append {}
 sub append_column {}
 sub append_item {}
@@ -16,8 +19,12 @@ sub append_items {}
 sub append_page {}
 sub append_set {}
 sub apply_tag {}
+sub area {}
 sub attach {}
 sub bg_gc {}
+sub black_gc {}
+sub black_gc {}
+sub button {}
 sub can {}
 sub can_default {}
 sub can_focus {}
@@ -26,11 +33,16 @@ sub child {}
 sub children {}
 sub clear {}
 sub collapse_all {}
+sub composite {}
+sub copy {}
 sub create_items {}
 sub create_pango_layout {}
 sub create_tag {}
 sub dir_list {}
 sub disable_activate {}
+sub draw {}
+sub draw_arc {}
+sub draw_drawable {}
 sub draw_layout {}
 sub draw_rectangle {}
 sub entry {}
@@ -38,6 +50,7 @@ sub expand {}
 sub expand_all {}
 sub fg_gc {}
 sub file_list {}
+sub fill {}
 sub free {}
 sub get {}
 sub get_buffer {}
@@ -89,6 +102,7 @@ sub queue_draw {}
 sub realize {}
 sub render_to_drawable {}
 sub rgb_find_color {}
+sub saturate_and_pixelate {}
 sub selection_entry {}
 sub set {}
 sub set_active {}
@@ -96,12 +110,14 @@ sub set_back_pixmap {}
 sub set_background {}
 sub set_border_width {}
 sub set_col_spacings {}
+sub set_current_page {}
 sub set_cursor {}
 sub set_cursor_visible {}
 sub set_editable {}
 sub set_events {}
 sub set_filename {}
 sub set_focus_vadjustment {}
+sub set_has_window {}
 sub set_headers_visible {}
 sub set_justify {}
 sub set_layout {}
@@ -137,6 +153,7 @@ sub signal_connect {}
 sub signal_disconnect {}
 sub size {}
 sub state {}
+sub steal {}
 sub style {}
 sub toggle_expansion {}
 sub unref {}
@@ -147,7 +164,7 @@ sub widget {}
 sub width {}
 sub window {}
 sub window_position {}
-sub y {} ;#;
+sub y {};#;
 
 sub bootstrap {}
 sub exit {}

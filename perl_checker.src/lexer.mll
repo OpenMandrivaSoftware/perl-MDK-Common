@@ -777,7 +777,7 @@ and string_interpolate_array = parse
 | '{' [^ '{' '}']* '}'
 | (ident | (ident? ("::" ident)+)) { string_interpolate token "@" lexbuf }
 
-| [ '@' '*' '<' '>' ']' '.' '('] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| [ '@' '*' '<' '>' ']' '.' '(' ' ' ] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 | '"' { putback lexbuf 1; next_s "@" (Stack.pop next_rule) lexbuf }
 | eof {                   next_s "@" (Stack.pop next_rule) lexbuf }
 | _ { warn lexbuf (Printf.sprintf "weird \"%s\" in string" (lexeme lexbuf)); next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
@@ -787,7 +787,7 @@ and delimited_string_interpolate_array = parse
 | '{' [^ '{' '}']* '}'
 | (ident | (ident? ("::" ident)+)) { string_interpolate token "@" lexbuf }
 
-| [ '@' '*' '<' '>' ']' '.' '('] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
+| [ '@' '*' '<' '>' ']' '.' '(' ' ' ] { next_s ("@" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 | eof { next_s "@" (Stack.pop next_rule) lexbuf }
 | _ { 
     let c = lexeme_char lexbuf 0 in
