@@ -897,9 +897,9 @@ let rec list2tokens l =
     match !rl with
     | [] -> internal_error "list2tokens"
     | ((start, end_), e) :: l -> 
-	lexbuf.Lexing.lex_abs_pos <- 0 ;
-	lexbuf.Lexing.lex_start_pos <- start ;
-	lexbuf.Lexing.lex_curr_pos <- end_ ;
+	(* HACK: fake a normal lexbuf *)
+	lexbuf.Lexing.lex_start_p <- { Lexing.dummy_pos with Lexing.pos_cnum = start } ;
+	lexbuf.Lexing.lex_curr_p <- { Lexing.dummy_pos with Lexing.pos_cnum = end_ } ;
 	rl := l ; e
 
 let parse_tokens parse tokens lexbuf_opt =
