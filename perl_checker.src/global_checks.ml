@@ -231,6 +231,13 @@ let check_variables vars t =
 	check_variable (I_func, Ident(None, func, func_pos)) vars ;
 	Some vars
 
+    | Call(Deref(I_func, (Ident _ as ident)), [ List [ Deref(I_array, (Ident(None, "_", pos))) ] ]) ->
+	(* special warning if @_ is unbound *)
+	check_variable (I_func, ident) vars ;
+	if not (is_our_declared vars (I_array, "_")) then
+	  warn_with_pos pos (sprintf "replace %s(@_) with &%s" (string_of_Ident ident) (string_of_Ident ident)) ;
+	Some vars
+
     | Call_op("while infix", [ expr ; (List [ Call_op("<>", _, _) ] as l) ], pos)
     | Call_op("for infix", [ expr ; l ], pos) ->
 	let vars = check_variables_ vars l in
@@ -251,7 +258,19 @@ let check_variables vars t =
 
     | Sub_declaration(Ident(fq, name, pos) as ident, _proto, Block l) ->
 	let vars = declare_Our vars ([ I_func, string_of_Ident ident ], pos) in
-	let local_vars = ((I_array, "_"), (pos, ref true)) :: (if fq = None && name = "AUTOLOAD" then [ (I_scalar, "AUTOLOAD"), (pos, ref true) ] else []) in
+
+	let local_vars, l =
+	  match l with 
+	  | List [Call_op ("=", [My_our ("my", mys, mys_pos); Deref(I_array, Ident(None, "_", _))], _pos)] :: l ->
+	      (*warn_with_pos pos ("found declaration: " ^ String.concat " " (List.map variable2s mys));*)
+	      [], My_our ("my", mys, mys_pos) :: l
+	  | _ -> [(I_array, "_"), (pos, ref true)], l
+	in
+	let local_vars = 
+	  if fq = None && name = "AUTOLOAD" 
+	  then ((I_scalar, "AUTOLOAD"), (pos, ref true)) :: local_vars 
+	  else local_vars in
+
 	let vars' = { vars with my_vars = [] :: vars.my_vars ; our_vars = local_vars :: vars.our_vars } in
 	let vars' = List.fold_left check_variables_ vars' l in
 	check_unused_local_variables vars' ;
