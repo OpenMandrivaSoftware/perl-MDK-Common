@@ -132,15 +132,14 @@ sub formatAlaTeX {
 
 
 sub warp_text {
-    my ($text, $width) = @_;
-    $width ||= 80;
+    my ($text, $o_width) = @_;
 
     my @l;
     foreach (split "\n", $text) {
 	my ($beg) = /^(\s*)/;
 	my $t = '';
 	foreach (split /\s+/, $_) {
-	    if (length "$beg$t $_" > $width) {
+	    if (length "$beg$t $_" > ($o_width || 80)) {
 		push @l, "$beg$t";
                 $beg = '';
 		$t = $_;

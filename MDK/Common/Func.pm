@@ -322,7 +322,7 @@ sub cdie {
     my ($err) = @_;
     foreach (@MDK::Common::Func::cdie_catches) {
 	$@ = $err;
-	if (my $v = &{$_}(\$err)) {
+	if (my $v = $_->(\$err)) {
 	    return $v;
 	}
     }
