@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 6mdk
+%define release 7mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -49,6 +49,10 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Thu Jul 25 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-7mdk
+- add Various::internal_error
+- export Various::noreturn
+
 * Tue Jul 23 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-6mdk
 - MDK::Common::System: add fuzzy_pidofs
 

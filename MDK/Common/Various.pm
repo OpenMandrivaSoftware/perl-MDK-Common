@@ -68,6 +68,11 @@ gives
     main::g() called from /tmp/t.pl:2
     main::f() called from /tmp/t.pl:4
 
+
+=item internal_error(STRING)
+
+another way to C<die> with a nice error message and a backtrace
+
 =item noreturn()
 
 use this to ensure nobody uses the return value of the function. eg:
@@ -93,7 +98,7 @@ package MDK::Common::Various;
 
 use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(first second top to_bool to_int to_float bool2text bool2yesno text2bool chomp_ backtrace);
+@EXPORT_OK = qw(first second top to_bool to_int to_float bool2text bool2yesno text2bool chomp_ backtrace internal_error noreturn);
 %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -117,6 +122,10 @@ sub backtrace {
 	$s .= "$func() called from $file:$line\n";
     }
     $s;
+}
+
+sub internal_error {
+    die "INTERNAL ERROR: $_[0]\n" . backtrace();
 }
 
 sub noreturn {
