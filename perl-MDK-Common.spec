@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 16mdk
+%define release 17mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -51,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Jan 29 2003 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.0.4-17mdk
+- add list_users()
+
 * Tue Jan 21 2003 Pixel <pixel@mandrakesoft.com> 1.0.4-16mdk
 - perl_checker: add some Gtk2 methods
 
