@@ -18,9 +18,15 @@ sub gtk2 {
       [ 'signal_disconnect',            ' { my ($_target, $_closure) = @_ }' ],
       [ 'signal_is_connected',          ' { my ($_target, $_closure) = @_ }' ],
       [ 'signal_stop_emission_by_name', ' { my ($_target, $_detailed_signal) = @_ }' ],
+      [ 'timeout_add',                  ' { my ($_class, $_interval, $_func, $o_data) = @_ }' ],
+      [ 'timeout_remove',               ' { my ($_class, $_id) = @_ }' ],
+      [ 'idle_add',                     ' { my ($_class, $_func, $o_data) = @_ }' ],
+      [ 'idle_remove',                  ' { my ($_class, $_id) = @_ }' ],
       [ 'create_items',                 ' { my ($_factory, $_entries, $o_callback_data) = @_ }' ],
       [ 'style',                        ' { my ($_widget, $o_style) = @_ }' ],
       [ 'visible',                      ' { my ($_widget, $o_bool) = @_ }' ],
+      [ 'white_gc',                     ' { my ($_style, $o_gc) = @_ }' ],
+      [ 'black_gc',                     ' { my ($_style, $o_gc) = @_ }' ],
                       );
     my @added_subroutines;
     my $add = sub {
