@@ -931,7 +931,7 @@ and re_string_escape = parse
 | "x{" [^ '}']* '}' { hex_in_string lexbuf next_rule (skip_n_char_ 2 1 (lexeme lexbuf)) }
 | 'x' [^ '{'] _ { hex_in_string lexbuf next_rule (skip_n_char 1 (lexeme lexbuf)) }
 | '\n' { die lexbuf "do not use \"\\\" before end-of-line, it's useless and generally bad" }
-| ['r' 'b' 'f' '$' '@' '%' 's' 'S' 'd' 'D' 'w' 'W' 'Q' 'E' 'b' '.' '*' '+' '?' '[' ']' '(' ')' '|' '{' '}' '-' ':'] { 
+| ['r' 'b' 'f' '$' '@' '%' 's' 'S' 'd' 'D' 'w' 'W' 'Q' 'E' 'b' '^' '.' '*' '+' '?' '[' ']' '(' ')' '|' '{' '}' '-' ':'] { 
      next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf 
   }
 | _  {
