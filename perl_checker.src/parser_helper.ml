@@ -3,9 +3,6 @@ open Common
 open Printf
 
 let bpos = -1, -1
-let pot_strings = ref []
-let pot_strings_and_file = Hashtbl.create 16
-let po_comments = ref []
 
 let raw_pos2pos(a, b) = !Info.current_file, a, b
 let pos_range (_, (_, (a1, b1))) (_, (_, (a2, b2))) = raw_pos2pos((if a1 = -1 then a2 else a1), (if b2 = -1 then b1 else b2))
@@ -472,6 +469,51 @@ let followed_by_comma ((_,e), _) (true_comma, _) =
     | l, Ident(None, s, pos) -> l @ [Raw_string(s, pos)]
     | _ -> e
 
+
+let pot_strings = ref []
+let pot_strings_and_file = Hashtbl.create 16
+let po_comments = ref []
+let po_comment (s, _) = lpush po_comments s
+
+let check_format_a_la_printf s pos =
+  let rec check_format_a_la_printf_ i =
+    try
+      let i' = String.index_from s i '%' in
+      try
+	(match s.[i' + 1] with
+	| '%' | 'd' | 's' | 'c' -> ()
+	| c -> warn (pos + i', pos + i') (sprintf "invalid command %%%c" c));
+	check_format_a_la_printf_ (i' + 2)
+      with Invalid_argument _ -> warn (pos + i', pos + i') "invalid command %"
+    with Not_found -> ()
+  in check_format_a_la_printf_ 0
+  
+let generate_pot file = 
+  let fd = open_out file in   
+  let rec print_formatted_char = function
+    | '"'  -> output_char fd '\\'; output_char fd '"'
+    | '\t' -> output_char fd '\\'; output_char fd 't'
+    | '\\' -> output_char fd '\\'; output_char fd '\\'
+    | '\n' -> output_string fd "\\n\"\n\""
+    | c -> output_char fd c
+  in
+  List.iter (fun (s, po_comments) ->
+    match Hashtbl.find_all pot_strings_and_file s with
+    | [] -> ()
+    | l ->
+	List.iter (fun po_comment -> output_string fd ("#. " ^ po_comment ^ "\n")) po_comments;
+
+	List.iter (fun _ -> Hashtbl.remove pot_strings_and_file s) l ;
+	fprintf fd "#: %s\n" (String.concat " " l) ;
+	output_string fd "#, c-format\n" ;
+
+	output_string fd (if String.contains s '\n' then "msgid \"\"\n\"" else "msgid \"") ;
+	String.iter print_formatted_char s ;
+	output_string fd "\"\n" ;
+	output_string fd "msgstr \"\"\n\n"
+  ) !pot_strings ;      
+  close_out fd
+
 let call_func is_a_func (e, para) =
   match e with
   | Deref(I_func, Ident(None, f, _)) ->
@@ -488,12 +530,13 @@ let call_func is_a_func (e, para) =
 
       | "N" | "N_" ->
 	  (match para with
-	  | [ List(String([ s, List [] ], (file, _, _)) :: _) ] -> 
+	  | [ List(String([ s, List [] ], (file, pos_a, _)) :: _) ] -> 
 	      if !Flags.generate_pot then (
 		lpush pot_strings (s, !po_comments) ;
 		po_comments := [] ;
 		Hashtbl.add pot_strings_and_file s file ;
 	      ) ;
+	      check_format_a_la_printf s pos_a ;
 	      (*if String.contains s '\t' then warn_rule "tabulation in translated string must be written \\\\t";*)
 	      (*if count_matching_char s '\n' > 10 then warn_rule "long string";*)
 	      None
@@ -607,30 +650,3 @@ let from_PATTERN_SUBST parse ((s1, s2, opts), (_, pos)) =
   [ String(parse_interpolated parse s1, raw_pos2pos pos) ; 
     String(parse_interpolated parse s2, raw_pos2pos pos) ; 
     Raw_string(opts, raw_pos2pos pos) ]
-
-let po_comment (s, _) = lpush po_comments s
-
-let generate_pot file = 
-  let fd = open_out file in   
-  let rec print_formatted_char = function
-    | '"'  -> output_char fd '\\'; output_char fd '"'
-    | '\t' -> output_char fd '\\'; output_char fd 't'
-    | '\\' -> output_char fd '\\'; output_char fd '\\'
-    | '\n' -> output_string fd "\\n\"\n\""
-    | c -> output_char fd c
-  in
-  List.iter (fun (s, po_comments) ->
-    match Hashtbl.find_all pot_strings_and_file s with
-    | [] -> ()
-    | l ->
-	List.iter (fun po_comment -> output_string fd ("#. " ^ po_comment ^ "\n")) po_comments;
-
-	List.iter (fun _ -> Hashtbl.remove pot_strings_and_file s) l ;
-	fprintf fd "#: %s\n" (String.concat " " l) ;
-
-	output_string fd (if String.contains s '\n' then "msgid \"\"\n\"" else "msgid \"") ;
-	String.iter print_formatted_char s ;
-	output_string fd "\"\n" ;
-	output_string fd "msgstr \"\"\n\n"
-  ) !pot_strings ;      
-  close_out fd

@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 8mdk
+%define release 9mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -50,6 +50,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Tue Dec 10 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-9mdk
+- perl_checker: check the c-format conformity of translated strings
+
 * Tue Dec 10 2002 Pixel <pixel@mandrakesoft.com> 1.0.4-8mdk
 - perl_checker: new --generate-pot feature
 
