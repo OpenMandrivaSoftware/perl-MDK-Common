@@ -33,6 +33,7 @@ if (/^# perl_checker: RE-EXPORT-ALL/) {
     push @re_exported, $package;
 }
 
+/^=head/ .. /^=cut/ and next;
 /^\s*#/ and next;
 
 if (/^\s*require\s+([\w:]+);/) {
