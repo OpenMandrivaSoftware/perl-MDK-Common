@@ -89,7 +89,7 @@ C<next_val_in_array(3, [1, 2, 3])> gives C<1>
 =item group_by2(LIST)
 
 interprets the list as an ordered hash, returns a list of [key,value]:
-C<list2kv(1 => 2, 3 => 4, 5 => 6)> gives C<[1,2], [3,4], [5,6]>
+C<group_by2(1 => 2, 3 => 4, 5 => 6)> gives C<[1,2], [3,4], [5,6]>
 
 =item list2kv(LIST)
 

@@ -345,6 +345,7 @@ sub update_gnomekderc {
     foreach (MDK::Common::File::cat_($file), "[NOCATEGORY]\n") {
 	if (my $i = /^\s*\[$category\]/i ... /^\[/) {
 	    if ($i =~ /E/) { #- for last line of category
+		chomp $s; $s .= "\n";
 		$s .= "$_->[0]=$_->[1]\n" foreach values %subst;
 		%subst = ();
 	    } elsif (/^\s*(\w*?)=/) {
