@@ -794,12 +794,19 @@ let call_raw is_a_func (e, para) =
 	      Some(Call_op("qr//", pattern, pos) :: l)
 	  | _ -> None)
 
-      | "map" | "grep" -> 
+      | "map" | "grep" | "grep_index" | "map_index" | "partition"
+      | "find"
+      | "any" | "every"
+      | "find_index"
+      | "each_index" ->
 	  (match para with
 
 	  | Anonymous_sub(None, Block [ List [ Call(Deref(I_func, Ident(None, "if_", _)),
-						    [ List [ _ ; Deref(I_scalar, Ident(None, "_", _)) ] ]) ] ], _) :: _ ->
+						    [ List [ _ ; Deref(I_scalar, Ident(None, "_", _)) ] ]) ] ], _) :: _ when f = "map" ->
 						      warn_rule "you can replace \"map { if_(..., $_) }\" with \"grep { ... }\""
+	  | [ Anonymous_sub _ ; Deref (I_hash, _) ] ->
+	      warn_rule ("a hash is not a valid parameter to function " ^ f)
+
 	  | Anonymous_sub _ :: _ -> ()
 	  | _ -> warn_rule (sprintf "always use \"%s\" with a block (eg: %s { ... } @list)" f f));
 	  None
