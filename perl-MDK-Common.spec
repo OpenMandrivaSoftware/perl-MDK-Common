@@ -64,6 +64,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Tue Feb 15 2005 Pixel <pixel@mandrakesoft.com> 1.1.22-1mdk
+- fix building doc without buildrequiring perl-MDK-Common (thanks to Gary L. Greene)
+
 * Thu Dec 23 2004 Thierry Vignaud <tvignaud@mandrakesoft.com> 1.1.21-1mdk
 - MDK::Common::File: add secured_output() (secured version of output())
 - MDK::System: make setVarsInShMode be paranoid for all files in /home

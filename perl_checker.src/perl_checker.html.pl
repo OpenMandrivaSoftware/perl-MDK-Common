@@ -113,7 +113,7 @@ It has advantages but also some drawbacks for team project:
  coding rules help learning incrementally
 EOF
 
-use lib 'test';
+use lib ('test', '..');
 use read_t;
 sub get_example {
     my ($file) = @_;
