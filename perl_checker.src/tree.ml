@@ -249,6 +249,7 @@ let get_vars_declaration global_vars_declared package =
 	Hashtbl.replace global_vars_declared (I_func, fq, name) pos
 
     | List [ Call_op("=", [My_our("our", ours, pos); _], _) ]
+    | List [ Call_op("=", [My_our("local", ([ I_scalar, "_" ] as ours), pos); _], _) ]
     | List [ My_our("our", ours, pos) ]
     | My_our("our", ours, pos) ->
 	List.iter (fun (context, name) -> Hashtbl.replace package.vars_declared (context, name) (pos, ref false)) ours
