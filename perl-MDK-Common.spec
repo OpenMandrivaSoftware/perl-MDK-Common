@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 14mdk
+%define release 15mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -50,6 +50,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Sep  6 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-15mdk
+- MDK::Common::System::update_gnomekderc: fix adding section when the file doesn't end with a cr
+
 * Wed Aug 28 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-14mdk
 - no function "xxx undefined" when using "#-#"
 

@@ -358,7 +358,8 @@ sub update_gnomekderc {
 
     #- if category has not been found above.
     if (%subst) {
-	$s .= "[$category]\n";
+	chomp $s;
+	$s .= "\n[$category]\n";
 	$s .= "$_->[0]=$_->[1]\n" foreach values %subst;
     }
 
