@@ -42,7 +42,7 @@ let rec parse_file from_basedir require_name per_files file =
       let required_packages = collect (fun package -> package.required_packages) per_file.packages in
       required_packages, per_files
     with Failure s -> (
-      print_endline_flush s ;
+      print_endline_flush_always s ;
       exit 1
      )
   with 
