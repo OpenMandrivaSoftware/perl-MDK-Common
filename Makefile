@@ -21,7 +21,7 @@ rpm: update tar build commit
 
 
 update:
-#	cvs update
+	cvs update
 
 commit:
 	cvs commit
