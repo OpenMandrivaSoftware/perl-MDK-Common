@@ -117,7 +117,7 @@ line:
 
 if_then_else: /* Real conditional expressions */
 | IF     PAREN expr PAREN_END BRACKET lines BRACKET_END elsif else_ {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_scalar $3; check_block_sub $6 $7; to_Call_op (if $9.any = [] then M_none else mcontext_lmerge ($6.mcontext :: mcontext_lmaybe $8 @ [$9.mcontext])) "if"     (prio_lo P_loose $3 :: Block $6.any :: $8.any @ $9.any) $1 $9}
-| UNLESS PAREN expr PAREN_END BRACKET lines BRACKET_END elsif else_ {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_scalar $3; check_block_sub $6 $7; to_Call_op M_none "unless" (prio_lo P_loose $3 :: Block $6.any :: $8.any @ $9.any) $1 $9}
+| UNLESS PAREN expr PAREN_END BRACKET lines BRACKET_END elsif else_ {sp_p($1); sp_n($2); sp_0($3); sp_0_or_cr($4); sp_p($5); mcontext_check M_scalar $3; check_block_sub $6 $7; check_unless_else $8 $9; to_Call_op M_none "unless" (prio_lo P_loose $3 :: Block $6.any :: $8.any @ $9.any) $1 $9}
 
 elsif:
 |  {default_esp []}

@@ -121,6 +121,8 @@ val check_block_sub :
 val check_block_ref :
   Types.fromparser list Types.any_spaces_pos ->
   'a Types.any_spaces_pos -> unit
+val check_unless_else :
+  'a list Types.any_spaces_pos -> 'b list Types.any_spaces_pos -> unit
 val check_my_our_paren : ((bool * 'a) * 'b) Types.any_spaces_pos -> unit
 val check_simple_pattern : Types.fromparser list -> unit
 val only_one : Types.fromparser list Types.any_spaces_pos -> Types.fromparser

@@ -466,6 +466,10 @@ let check_block_ref esp_lines esp_BRACKET_END =
   if esp_BRACKET_END.spaces <> Space_cr then
     (if l <> [] && last l = Semi_colon then warn_verb (get_pos_end esp_lines) "spurious \";\" before closing block")
 
+let check_unless_else elsif else_ =
+  if elsif.any <> [] then warn elsif.pos "don't use \"elsif\" with \"unless\" (replace \"unless\" with \"if\")";
+  if else_.any <> [] then warn else_.pos "don't use \"else\" with \"unless\" (replace \"unless\" with \"if\")"
+
 let check_my_our_paren { any = ((comma_closed, _), _) } = 
   if not comma_closed then die_rule "syntax error"
 
