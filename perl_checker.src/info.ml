@@ -12,6 +12,8 @@ let start_a_new_file file =
   current_file := file ;
   current_file_lines_starts := [0]
 
+let add_a_file file file_lines_starts = Hashtbl.replace lines_starts file file_lines_starts
+
 let get_lines_starts_for_file file =
   if file = !current_file then !current_file_lines_starts else Hashtbl.find lines_starts file
 

@@ -1,6 +1,6 @@
 open Types
 
-type special_export = Re_export_all | Export_all
+type special_export = Re_export_all | Fake_export_all
 
 type exports = {
   export_ok : (context * string) list;
@@ -15,27 +15,29 @@ type uses = (string * ((context * string) list option * pos)) list
 type per_package = {
     file_name : string ;
     package_name : string ; has_package_name : bool ;
-    vars_declared : (context * string, pos) Hashtbl.t;
-    imported : ((context * string) * string) list option ref;
+    vars_declared : (context * string, pos * bool ref) Hashtbl.t;
+    imported : ((context * string) * (string * bool ref)) list option ref;
     exports : exports ;
     uses : uses ;
+    required_packages : (string * pos) list ;
     body : fromparser list;
+    isa : (string * pos) list option ;
+    lines_starts : int list ;
+    build_time : int ;
+    from_cache : bool ;
+    from_basedir : bool ;
   }
-type state = {
-    per_package : (string * per_package) list;
-    files_parsed : string list;
-    global_vars_declared : (context * string * string, pos) Hashtbl.t;
-    global_vars_used : ((context * string * string) * pos) list ref;
-  } 
 
-val ignored_packages : string list ref
+val ignore_package : string -> unit
 val use_lib : string list ref
+val uses_external_package : string -> bool
+val findfile : string list -> string -> string
 
-val default_state : state
-val get_global_info_from_package : fromparser list -> per_package list * (string * pos) list
-val get_vars_declaration : state -> per_package -> unit
-val check_tree : state -> per_package -> unit
+val get_global_info_from_package : bool -> int -> fromparser list -> per_package list
+val get_vars_declaration : (context * string * string, pos) Hashtbl.t -> per_package -> unit
 
 val die_with_pos : string * int * int -> string -> 'a
 val warn_with_pos : string * int * int -> string -> unit
-val add_package_to_state : state -> per_package -> state
+
+val fold_tree : ('a -> fromparser -> 'a option) -> 'a -> fromparser -> 'a
+val from_qw : fromparser -> (context * string) list

@@ -496,10 +496,6 @@ let adjustModDown m n = n - (n mod m)
 let adjustModUp m n = adjustModDown m (n + m - 1)
 
 
-let hashtbl_set h k v =
-  Hashtbl.remove h k;
-  Hashtbl.add h k v
-
 let hashtbl_find f h =
   let r = ref None in
   Hashtbl.iter (fun v c -> if f v c then r := Some v) h ;
@@ -507,11 +503,20 @@ let hashtbl_find f h =
   | Some v -> v
   | None -> raise Not_found
 
-let hashtbl_filter f h =
-  Hashtbl.iter (fun v c -> hashtbl_set h v (f v c)) h
+let hashtbl_map f h = Hashtbl.iter (fun v c -> Hashtbl.replace h v (f v c)) h
 
-let hashtbl_to_list h =
-  Hashtbl.fold (fun k v l -> (k,v) :: l) h []
+let hashtbl_values  h = Hashtbl.fold (fun _ v l -> v :: l) h []
+let hashtbl_keys    h = Hashtbl.fold (fun k _ l -> k :: l) h []
+let hashtbl_to_list h = Hashtbl.fold (fun k v l -> (k,v) :: l) h []
+
+let hashtbl_collect f h =
+  rev (Hashtbl.fold (fun k v l -> rev_append (f k v) l) h [])
+
+let hashtbl_exists f h =
+  try
+    Hashtbl.iter (fun v c -> if f v c then raise Found) h ;
+    false
+  with Found -> true
 
 let array_shift a = Array.sub a 1 (Array.length a - 1)
 let array_last_n n a = 
@@ -677,7 +682,10 @@ let rec times e = function
   | n -> e :: times e (n-1)
 
 let skip_n_char_ beg end_ s =
-  String.sub s beg (String.length s - beg - end_)
+  let full_len = String.length s in
+  if beg < full_len && full_len - beg - end_ > 0 
+  then String.sub s beg (full_len - beg - end_)
+  else ""
 let skip_n_char n s = skip_n_char_ n 0 s
 
 let rec non_index_from s beg c =

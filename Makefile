@@ -3,7 +3,8 @@ TAR = $(NAME).tar.bz2
 
 PREFIX = /usr
 BINDIR = $(PREFIX)/bin
-INSTALLVENDORLIB = $(shell eval "`perl -V:installvendorlib`"; echo $$installvendorlib | sed 's,/usr,$(PREFIX),')
+VENDORLIB = $(shell eval "`perl -V:installvendorlib`"; echo $$installvendorlib)
+INSTALLVENDORLIB = $(shell echo $(VENDORLIB) | sed 's,/usr,$(PREFIX),')
 
 GENERATED = MDK/Common.pm index.html perl_checker.src/perl_checker
 
@@ -18,7 +19,7 @@ MDK/Common.pm: %: %.pl
 	perl $< > $@
 
 perl_checker.src/perl_checker:
-	$(MAKE) -C perl_checker.src native-code
+	$(MAKE) -C perl_checker.src build_ml native-code VENDORLIB=$(VENDORLIB)
 
 test: perl_checker.src/perl_checker
 	perl_checker.src/perl_checker MDK/Common/*.pm

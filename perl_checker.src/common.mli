@@ -144,10 +144,13 @@ val getset_nth : 'a list -> int -> ('a -> 'a) -> 'a list
 val set_nth : 'a list -> int -> 'a -> 'a list
 val adjustModDown : int -> int -> int
 val adjustModUp : int -> int -> int
-val hashtbl_set : ('a, 'b) Hashtbl.t -> 'a -> 'b -> unit
 val hashtbl_find : ('a -> 'b -> bool) -> ('a, 'b) Hashtbl.t -> 'a
-val hashtbl_filter : ('a -> 'b -> 'b) -> ('a, 'b) Hashtbl.t -> unit
+val hashtbl_map : ('a -> 'b -> 'b) -> ('a, 'b) Hashtbl.t -> unit
+val hashtbl_values : ('a, 'b) Hashtbl.t -> 'b list
+val hashtbl_keys : ('a, 'b) Hashtbl.t -> 'a list
 val hashtbl_to_list : ('a, 'b) Hashtbl.t -> ('a * 'b) list
+val hashtbl_collect : ('a -> 'b -> 'c list) -> ('a, 'b) Hashtbl.t -> 'c list
+val hashtbl_exists : ('a -> 'b -> bool) -> ('a, 'b) Hashtbl.t -> bool
 val array_shift : 'a array -> 'a array
 val array_last_n : int -> 'a array -> 'a array
 val array_collect : ('a -> 'b list) -> 'a array -> 'b list

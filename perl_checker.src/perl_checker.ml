@@ -1,32 +1,34 @@
 open Types
 open Common
 open Tree
+open Global_checks
 
-let inc =
-  let inc_ref = ref [] in
-  let rec updir dir nb =
-    if nb = 0 then dir else
-    match dir with
-    | "." -> String.concat "/" (times ".." nb)
-    | _ -> updir (Filename.dirname dir) (nb-1)
-  in
-  fun file_name package_name has_package_name ->
-    if !inc_ref = [] then (
-      let reldir = if has_package_name then updir file_name (List.length(split_at2 ':'':' package_name)) else "." in
-      let default = readlines (Unix.open_process_in "perl -le 'print foreach @INC'") in
-      inc_ref := reldir :: default ;
-      
-      try
-	ignored_packages := readlines (open_in (reldir ^ "/.perl_checker")) @ !ignored_packages
-      with Sys_error _ -> ()
-    );
-    !inc_ref
+let rec updir dir nb =
+  if nb = 0 then dir else
+  match dir with
+  | "." -> String.concat "/" (times ".." nb)
+  | _ -> updir (Filename.dirname dir) (nb-1)
 
-let findfile dirs f = List.find Sys.file_exists (List.map (fun dir -> dir ^ "/" ^ f) dirs)
+let search_basedir file_name nb =
+  let dir = Filename.dirname file_name in
+  let config = Config_file.read dir in
+  let nb = some_or config.Config_file.basedir nb in
+  updir dir nb
 
-let rec parse_file state file =
+let basedir = ref ""
+let set_basedir state package =
+  let nb = List.length (split_at2 ':'':' package.package_name) - 1 in
+  let dir = search_basedir package.file_name nb in
+  lpush Tree.use_lib dir ;
+  read_packages_from_cache state dir ;
+  basedir := dir
+
+let mtime f = int_of_float ((Unix.stat f).Unix.st_mtime)
+
+let rec parse_file from_basedir state file =
   try
     if !Flags.verbose then print_endline_flush ("checking " ^ file) ;
+    let build_time = int_of_float (Unix.time()) in
     let command = 
       match !Flags.expand_tabs with
       | Some width -> "expand -t " ^ string_of_int width
@@ -36,14 +38,17 @@ let rec parse_file state file =
     try
       Info.start_a_new_file file ;
       let tokens = Lexer.get_token Lexer.token lexbuf in
-      (*let _ = Unix.close_process_in channel in*)
+      let _ = Unix.close_process_in channel in
       let t = Parser_helper.parse_tokens Parser.prog tokens (Some lexbuf) in
-      let packages, required_packages = get_global_info_from_package t in
-      List.fold_left (fun (required_packages, state) package ->
-	Tree.get_vars_declaration state package ;
-	let state = Tree.add_package_to_state state package in
-	List.map (fun (s, (_, pos)) -> s, pos) package.uses @ required_packages, state
-      ) (required_packages, state) packages
+      let packages = get_global_info_from_package from_basedir build_time t in
+      let required_packages =
+	collect (fun package ->
+	  get_vars_declaration state.global_vars_declared package ;
+	  Global_checks.add_package_to_state state package ;
+	  set_basedir state package ;
+	  package.required_packages
+        ) packages in
+      required_packages, state
     with Failure s -> (
       print_endline_flush s ;
       exit 1
@@ -52,19 +57,38 @@ let rec parse_file state file =
   | Not_found -> internal_error "runaway Not_found"
 
 and parse_package_if_needed state (package_name, pos) =
-  if List.mem_assoc package_name state.per_package then [], state else
+  if List.mem package_name !Config_file.ignored_packages then [], state else
+  let splitted = split_at2 ':'':' package_name in
+  let rel_file = String.concat "/" splitted ^ ".pm" in
+
+  (*print_endline_flush ("wondering about " ^ package_name) ;*)
   try
-    let package = snd (List.hd state.per_package) in
-    let inc = !Tree.use_lib @ inc package.file_name package.package_name package.has_package_name in
-    if List.mem package_name !ignored_packages then [], state
-    else
-      let rel_file = String.concat "/" (split_at2 ':'':' package_name) ^ ".pm" in
-      let file = findfile inc rel_file in
-      if List.mem file state.files_parsed 
-      then [], state (* already seen, it happens when many files have the same package_name *)
-      else parse_file state file
+    let dir = findfile (Build.fake_packages_dir :: !use_lib) rel_file in
+    let file = dir ^ "/" ^ rel_file in
+    Config_file.read_any dir (List.length splitted) ;
+    let already_done =
+      try
+	let pkg = Hashtbl.find state.per_package package_name in
+	if pkg.from_cache then
+	  if pkg.build_time > mtime file then (
+	    Hashtbl.replace state.per_package package_name { pkg with from_cache = false };
+	    (*print_endline_flush (package_name ^ " wants " ^ String.concat " " (List.map fst pkg.required_packages)) ; *)
+	    Some pkg.required_packages
+	  ) else (
+	    if !Flags.verbose then print_endline_flush (Printf.sprintf "cached version of %s is outdated, re-parsing" file);
+	    Hashtbl.remove state.per_package package_name ; (* so that check on file name below doesn't need to check from_cache *)
+	    None
+	  )
+	else Some []
+      with Not_found -> None in
+    match already_done with
+    | Some required_packages -> required_packages, state
+    | None ->
+	if hashtbl_exists (fun _ pkg -> pkg.file_name = file) state.per_package
+	then [], state (* already seen, it happens when many files have the same package_name *)
+	else parse_file (dir = !basedir) state file
   with Not_found -> 
-    Tree.warn_with_pos pos (Printf.sprintf "can't find package %s" package_name) ;
+    warn_with_pos pos (Printf.sprintf "can't find package %s" package_name) ;
     [], state
 
 let rec parse_required_packages state = function
@@ -88,6 +112,7 @@ let parse_options =
     "-v", Arg.Set Flags.verbose, "  be verbose" ;
     "-q", Arg.Set Flags.quiet, "  be quiet" ;
     "-t", Arg.Int (fun i -> Flags.expand_tabs := Some i), "  set the tabulation width (default is 8)" ;
+    "--check-unused", Arg.Set Flags.check_unused_global_vars, "  check unused global functions & variables" ;
     "--restrict-to-files", Arg.Set restrict_to_files, "  only display warnings concerning the file(s) given on command line" ;
     "--generate-pot", Arg.String generate_pot_chosen, "" ;
   ] in
@@ -95,7 +120,9 @@ let parse_options =
   Arg.parse options (lpush args_r) usage;
 
   let files = if !args_r = [] then ["../t.pl"] else !args_r in
-  let required_packages, state = collect_withenv parse_file default_state files in
+
+  let required_packages, state = collect_withenv (parse_file true) (default_state()) files in
+  let required_packages = uniq_ (fun (a,_) (b,_) -> a = b) required_packages in
 
   if !Flags.generate_pot then Parser_helper.generate_pot !pot_file else (
 
@@ -103,11 +130,19 @@ let parse_options =
   let state = parse_required_packages state required_packages in
   if !restrict_to_files then Common.print_endline_flush_quiet := false ;
 
-  let l = List.map snd state.per_package in
+  let state = arrange_global_vars_declared state in
+
+  write_packages_cache state !basedir ;
+
+  let state = Global_checks.get_methods_available state in
+
+  let l = List.map snd (hashtbl_to_list state.per_package) in
+  let l = List.filter (fun pkg -> not pkg.from_cache && pkg.from_basedir) l in
   (* HACK: skip ignored_packages. Some package may have appeared in ignored_packages due to the xs bootstrap hack *)
-  let l = List.filter (fun pkg -> not (List.mem pkg.package_name !ignored_packages)) l in
+  let l = List.filter (fun pkg -> not (List.mem pkg.package_name !Config_file.ignored_packages)) l in
 
   let l = if !restrict_to_files then List.filter (fun pkg -> List.mem pkg.file_name files) l else l in
 
-  List.iter (check_tree state) l
+  List.iter (Global_checks.check_tree state) l;
+  if !Flags.check_unused_global_vars then List.iter Global_checks.check_unused_vars l 
   )

@@ -1,7 +1,10 @@
+val lines_starts : (string, int list) Hashtbl.t
 val current_file_lines_starts : int list ref
 val current_file_current_line : int ref
 val current_file : string ref
 val start_a_new_file : string -> unit
+val add_a_file : string -> int list -> unit
+val get_lines_starts_for_file : string -> int list
 val raw_pos2raw_line : string -> int -> int * int
 val pos2line : string * int * int -> string * int * int * int
 val pos2s : string * int * int -> string

@@ -389,7 +389,11 @@ let to_List = function
 let deref_arraylen e = Call(Deref(I_func, Ident(None, "int", raw_pos2pos bpos)), [Deref(I_array, e)])
 let to_Ident ((fq, name), (_, pos)) = Ident(fq, name, raw_pos2pos pos)
 let to_Raw_string (s, (_, pos)) = Raw_string(s, raw_pos2pos pos)
-let to_Method_call (object_, method_, para) = Method_call(maybe_to_Raw_string object_, maybe_to_Raw_string method_, para)
+let to_Method_call (object_, method_, para) = 
+  match method_ with
+  | Ident(Some "SUPER", name, pos) -> Method_call(maybe_to_Raw_string object_, Raw_string(name, pos), para)
+  | Ident(Some _, _, _) -> Call(Deref(I_func, method_), maybe_to_Raw_string object_ :: para)
+  | _ -> Method_call(maybe_to_Raw_string object_, maybe_to_Raw_string method_, para)
 let to_Deref_with(from_context, to_context, ref_, para) =
   if is_not_a_scalar ref_ then warn_rule "bad deref";
   Deref_with(from_context, to_context, ref_, para)

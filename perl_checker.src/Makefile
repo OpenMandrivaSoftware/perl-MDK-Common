@@ -4,12 +4,21 @@ YFLAGS = -v
 TRASH = parser.output TAGS
 RESULT  = perl_checker
 BCSUFFIX = _debug
-SOURCES = common.ml flags.ml types.mli info.ml parser_helper.ml parser.mly lexer.mll tree.ml perl_checker.ml
+SOURCES = build.ml common.ml flags.ml config_file.ml types.mli info.ml parser_helper.ml parser.mly lexer.mll tree.ml global_checks.ml perl_checker.ml
 LIBS = unix
+VENDORLIB = $(shell dirname `pwd`)/perl_checker_fake_packages
 
 NAME = shyant
 
-default: TAGS debug-code native-code
+default: TAGS build_ml build.ml debug-code native-code
+
+build_ml:
+	rm -f build.ml
+	$(MAKE) build.ml
+
+build.ml:
+	date '+let date = %s' > $@
+	echo 'let fake_packages_dir = "'$(VENDORLIB)'"' >> $@
 
 tags: 
 	ocamltags *.ml

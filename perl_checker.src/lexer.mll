@@ -451,7 +451,7 @@ rule token = parse
 
 | "{" ident "}" { (* needed so that $h{if} works *)
     not_ok_for_match := lexeme_end lexbuf;
-    COMPACT_HASH_SUBSCRIPT(lexeme lexbuf, pos lexbuf)
+    COMPACT_HASH_SUBSCRIPT(skip_n_char_ 1 1 (lexeme lexbuf), pos lexbuf)
   }
 
 | '@' { AT(pos lexbuf) }
