@@ -55,7 +55,7 @@ sub gtk2 {
 
                 #- methods with no argument
                 #-   my $values = shift->_get_size_request;
-                if (/$subroutine_decl\shift->\w+\s*;/) {
+                if (/$subroutine_decl\my.*=\s*shift->\w+\s*;/) {
                     $add->($fun, ' { my ($_self) = @_ }');
                 }
 
