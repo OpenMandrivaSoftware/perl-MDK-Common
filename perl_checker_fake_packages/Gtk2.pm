@@ -149,6 +149,7 @@ sub set_fraction {}
 sub set_has_window {}
 sub set_headers_visible {}
 sub set_justify {}
+sub set_label {}
 sub set_layout {}
 sub set_markup {}
 sub set_min_width {}
