@@ -153,7 +153,7 @@ sub list2kv {
 
 sub group_by2 {
     my @l;
-    for (my $i = 0; $i < @_ ; $i += 2) {
+    for (my $i = 0; $i < @_; $i += 2) {
 	push @l, [ $_[$i], $_[$i+1] ];
     }
     @l;

@@ -125,15 +125,15 @@ sub even { $_[0] % 2 == 0 }
 sub odd  { $_[0] % 2 == 1 }
 sub sqr  { $_[0] * $_[0] }
 sub sign { $_[0] <=> 0 }
-sub round { int ($_[0] + 0.5) }
+sub round { int($_[0] + 0.5) }
 sub round_up { my ($i, $r) = @_; $i = int $i; $i += $r - ($i + $r - 1) % $r - 1 }
 sub round_down { my ($i, $r) = @_; $i = int $i; $i -= $i % $r }
 sub divide { my $d = int $_[0] / $_[1]; wantarray ? ($d, $_[0] % $_[1]) : $d }
-sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
-sub max { my $n = shift; $_ > $n and $n = $_ foreach @_; $n }
-sub or_ { my $n = 0; $n ||= $_ foreach @_; $n }
-sub and_{ my $n = 1; $n &&= $_ foreach @_; $n }
-sub sum { my $n = 0; $n  += $_ foreach @_; $n }
+sub min  { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
+sub max  { my $n = shift; $_ > $n and $n = $_ foreach @_; $n }
+sub or_  { my $n = 0; $n ||= $_ foreach @_; $n }
+sub and_ { my $n = 1; $n &&= $_ foreach @_; $n }
+sub sum  { my $n = 0; $n  += $_ foreach @_; $n }
 sub product { my $n = 1; $n  *= $_ foreach @_; $n }
 
 

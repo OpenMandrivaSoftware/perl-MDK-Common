@@ -75,10 +75,10 @@ sub bestMatchSentence {
     foreach (@_) {
 	my $count = 0;
 	foreach my $e (@s) {
-	    $count+= length ($e) if /^$e$/;
-	    $count+= length ($e) if /^$e$/i;
-	    $count+= length ($e) if /$e/;
-	    $count+= length ($e) if /$e/i;
+	    $count += length($e) if /^$e$/;
+	    $count += length($e) if /^$e$/i;
+	    $count += length($e) if /$e/;
+	    $count += length($e) if /$e/i;
 	}
 	$best = $count, $bestSentence = $_ if $count > $best;
     }

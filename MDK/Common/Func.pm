@@ -173,7 +173,7 @@ sub fold_left(&@) {
     my ($f, $initial, @l) = @_;
     local ($::a, $::b);
     $::a = $initial;
-    foreach $::b (@l) { $::a = &$f() }
+    foreach (@l) { $::b = $_; $::a = &$f() }
     $::a
 }
 

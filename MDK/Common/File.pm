@@ -177,7 +177,7 @@ sub touch {
 	local *F;
 	open F, ">$f";
     }
-    my $now = time;
+    my $now = time();
     utime $now, $now, $f;
 }
 
