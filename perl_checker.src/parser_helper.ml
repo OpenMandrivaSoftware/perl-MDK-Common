@@ -1102,7 +1102,8 @@ let mcontext_check_none msg expr esp =
 	| [List l_expr] ->
 	    let rec iter = function
 	      | e::l_expr, mcontext::l ->
-		  mcontext_check_none_rec (if l = [] then msg else "value is dropped") [e] mcontext
+		  mcontext_check_none_rec (if l = [] then msg else "value is dropped") [e] mcontext ;
+		  iter (l_expr, l)
 	      | [], [] -> ()
 	      | _ -> internal_error "mcontext_check_none"
 	    in iter (l_expr, l)
