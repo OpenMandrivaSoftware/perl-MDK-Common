@@ -2,7 +2,12 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release 2mdk
+
+%ifarch x86_64
+%define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
+%define require_ocaml /usr/bin/ocamlrun
+%endif
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -31,6 +36,7 @@ Summary: Various verifying scripts
 Group: Development/Perl
 AutoReqProv: 0
 Requires: perl-base >= 2:5.8.0
+Requires: %{require_ocaml}
 
 %description
 Various simple functions created for DrakX
@@ -42,11 +48,11 @@ Various verifying scripts created for DrakX
 %setup -n %{name}
 
 %build
-make test
+make test %build_option
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install PREFIX="$RPM_BUILD_ROOT/usr"
+make install PREFIX="$RPM_BUILD_ROOT/usr" %build_option
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -64,6 +70,8 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Jun 16 2003 Pixel <pixel@mandrakesoft.com> 1.1.4-2mdk
+- no native perl_checker for x86_64, only bytecode
 - build require ocaml >= 3.06 (thanks to Per Øyvind Karlsen)
 
 * Tue May 27 2003 Pixel <pixel@mandrakesoft.com> 1.1.4-1mdk
