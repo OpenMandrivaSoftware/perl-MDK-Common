@@ -98,6 +98,23 @@ let is_always_false = function
   | Ident(None, "undef", _) -> true
   | _ -> false
 
+let rec is_lvalue = function
+  | Call(Deref(I_func, Ident(None, f, _)), _) -> List.mem f [ "substr" ]
+
+  | Call_op("?:", [ _ ; a ; b ], _) -> is_lvalue a && is_lvalue b
+
+  | Call_op("local", l, _)
+  | List [ List l ] 
+    -> List.for_all is_lvalue l
+
+  | My_our _
+  | Deref(_, _)
+  | Deref_with(_, _, _, _)
+  | Ident(None, "undef", _)
+    -> true
+
+  | _ -> false
+
 let not_complex e =
   if is_parenthesized e then true else
   let rec not_complex_ op = function
@@ -728,6 +745,9 @@ let to_Call_op mcontext op para esp_start esp_end =
 let to_Call_op_ mcontext prio op para esp_start esp_end = 
   let pos = raw_pos_range esp_start esp_end in
   new_any mcontext { priority = prio ; expr = cook_call_op op para pos } esp_start.spaces pos
+let to_Call_assign_op_ mcontext prio op left right esp_left esp_end = 
+  if not (is_lvalue left) then warn esp_left.pos "invalid lvalue";
+  to_Call_op_ mcontext prio op [ left ; right ] esp_left esp_end
 
 let followed_by_comma expr true_comma =
   if true_comma then expr else

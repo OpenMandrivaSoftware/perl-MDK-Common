@@ -230,9 +230,9 @@ term:
 | term MULT_L_STR term {sp_same $2 $3; mcontext_check M_int $3; let pri = P_mul in to_Call_op_ (if mcontext_lower $1.mcontext M_string then M_string else M_list) pri "x" 
     										                                                 [prio_lo_concat $1; prio_lo_after pri $3] $1 $3}
 
-| term ASSIGN     term {sp_same $2 $3; let pri = P_assign    in to_Call_op_ (mcontext_op_assign $1 $3)       pri $2.any [$1.any.expr   ; prio_lo_after pri $3] $1 $3}
+| term ASSIGN     term {sp_same $2 $3; let pri = P_assign    in to_Call_assign_op_ (mcontext_op_assign $1 $3)       pri $2.any ($1.any.expr) (prio_lo_after pri $3) $1 $3}
 
-| term ASSIGN     BRACKET expr_bracket_end {sp_p($2); sp_p($3); sp_p($4); to_Call_op_ (M_mixed [M_ref M_hash; M_none]) P_assign $2.any [prio_lo P_assign $1; $4.any] $1 $4}
+| term ASSIGN     BRACKET expr_bracket_end {sp_p($2); sp_p($3); sp_p($4); to_Call_assign_op_ (M_mixed [M_ref M_hash; M_none]) P_assign $2.any (prio_lo P_assign $1) $4.any $1 $4}
 | term AND_TIGHT  BRACKET expr_bracket_end {sp_p($2); sp_p($3); sp_p($4); to_Call_op_ M_bool P_tight_and "&&"   [prio_lo P_assign $1; $4.any] $1 $4}
 | term OR_TIGHT   BRACKET expr_bracket_end {sp_p($2); sp_p($3); sp_p($4); to_Call_op_ M_bool P_tight_or  "||"   [prio_lo P_assign $1; $4.any] $1 $4}
 

@@ -45,6 +45,7 @@ val un_parenthesize_full : Types.fromparser -> Types.fromparser
 val un_parenthesize_full_l : Types.fromparser list -> Types.fromparser list
 val is_always_true : Types.fromparser -> bool
 val is_always_false : Types.fromparser -> bool
+val is_lvalue : Types.fromparser -> bool
 val not_complex : Types.fromparser -> bool
 val not_simple : Types.fromparser -> bool
 val string_of_Ident : Types.fromparser -> string
@@ -105,6 +106,7 @@ val check_arrow_needed :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos ->
   'a Types.any_spaces_pos -> unit
 val check_scalar_subscripted : Types.fromparser Types.any_spaces_pos -> unit
+val negatable_ops : (string * string) list
 val check_negatable_expr :
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos -> unit
 val check_ternary_paras :
@@ -178,6 +180,15 @@ val to_Call_op_ :
   Types.priority ->
   string ->
   Types.fromparser list ->
+  'a Types.any_spaces_pos ->
+  'b Types.any_spaces_pos ->
+  Types.fromparser Types.prio_anyexpr Types.any_spaces_pos
+val to_Call_assign_op_ :
+  Types.maybe_context ->
+  Types.priority ->
+  string ->
+  Types.fromparser ->
+  Types.fromparser ->
   'a Types.any_spaces_pos ->
   'b Types.any_spaces_pos ->
   Types.fromparser Types.prio_anyexpr Types.any_spaces_pos

@@ -12,9 +12,12 @@ if ($xxx = '') {}                        are you sure you did not mean "==" inst
 
 N("xxx$yyy")                             don't use interpolated translated string, use %s or %d instead
 
+if ($xxx && $yyy = xxx()) {}             invalid lvalue
+
 1 + 2 >> 3                               missing parentheses (needed for clarity)
 
 $xxx ? $yyy = 1 : $zzz = 2;              missing parentheses (needed for clarity)
+                                         invalid lvalue
 
 N_("xxx") . 'yyy'                        N_("xxx") . "yyy" is dumb since the string "xxx" will never get translated
 
