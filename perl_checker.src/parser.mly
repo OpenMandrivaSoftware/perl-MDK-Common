@@ -2,8 +2,12 @@
   open Types
   open Common
 
-  let parse_error msg =
-   failwith (Info.pos2sfull_current (Parsing.symbol_start()) (Parsing.symbol_end()) ^ msg)
+  let die msg =
+      failwith (Info.pos2sfull_current (Parsing.symbol_start()) (Parsing.symbol_end()) ^ msg)
+
+  let parse_error msg = die msg
+
+  let warn msg = if false then prerr_endline msg
 
   let to_Ident = function
    | BAREWORD(name, pos) -> Ident(I_raw, None, name, pos)
@@ -99,199 +103,254 @@
 
 
 %%
-prog: lineseq EOF { "" }
+prog: lines EOF { "" }
 
-block: BRACKET lineseq BRACKET_END { $2 }
-
-lineseq: /* A collection of "lines" in the program */
-|              {[]}
-| decl lineseq {[]}
-| line {[]}
-| LABEL lineseq {[]}
-| line {[]}
+lines: /* A collection of "lines" in the program */
+| {()}
+| sideff {()}
+| line lines {()}
 
 line:
-| if_then_else lineseq { [] }
-| loop lineseq { [] }
-| SEMI_COLON lineseq { [] }
-| sideff SEMI_COLON lineseq { [] }
-
-| sideff { [] }
-
+| decl {()}
+| if_then_else {()}
+| loop {()}
+| LABEL {()}
+| SEMI_COLON {()}
+| sideff SEMI_COLON {()}
+| BRACKET lines BRACKET_END {()}
 
 if_then_else: /* Real conditional expressions */
-| IF     PAREN expr PAREN_END block elsif else_ {[]}
-| UNLESS PAREN expr PAREN_END block elsif else_ {[]}
+| IF     PAREN expr PAREN_END BRACKET lines BRACKET_END elsif else_ {()}
+| UNLESS PAREN expr PAREN_END BRACKET lines BRACKET_END elsif else_ {()}
 
 elsif:
-|  { [] }
-| ELSIF PAREN expr PAREN_END block elsif { [ $3, $5 ] @ $6 }
+|  {()}
+| ELSIF PAREN expr PAREN_END BRACKET lines BRACKET_END elsif {()}
 
 else_: 
-|            { None }
-| ELSE block { Some $2 }
+|            { () }
+| ELSE BRACKET lines BRACKET_END { () }
 
 loop:
-| WHILE PAREN expr_or_empty PAREN_END block cont {[]}
-| UNTIL PAREN expr PAREN_END block cont {[]}
-| FOR MY SCALAR_IDENT PAREN expr PAREN_END block cont {[]}
-| FOR SCALAR_IDENT PAREN expr PAREN_END block cont {[]}
-| FOR PAREN expr PAREN_END block cont {[]}
-| FOR PAREN expr_or_empty SEMI_COLON expr_or_empty SEMI_COLON expr_or_empty PAREN_END block {[]}
-| block cont {[]} /* a block is a loop that happens once */
+| WHILE PAREN expr PAREN_END BRACKET lines BRACKET_END cont {()}
+| UNTIL PAREN expr PAREN_END BRACKET lines BRACKET_END cont {()}
+| FOR MY SCALAR_IDENT PAREN expr PAREN_END BRACKET lines BRACKET_END cont {()}
+| FOR SCALAR_IDENT PAREN expr PAREN_END BRACKET lines BRACKET_END cont {()}
+| FOR PAREN expr PAREN_END BRACKET lines BRACKET_END cont {()}
+| FOR PAREN expr_or_empty SEMI_COLON expr_or_empty SEMI_COLON expr_or_empty PAREN_END BRACKET lines BRACKET_END {()}
 
 cont: /* Continue blocks */
-|  {[]}
-| CONTINUE block {[]}
+|  {()}
+| CONTINUE BRACKET lines BRACKET_END {()}
 
 sideff: /* An expression which may have a side-effect */
-| error { [] }
-| expr { $1 }
-| expr   IF    expr { [ (*Binary("if",      $1, $3)*) ] }
-| expr UNLESS  expr { [ (*Binary("unless",  $1, $3)*) ] }
-| expr  WHILE  expr { [ (*Binary("while",   $1, $3)*) ] }
-| expr  UNTIL  expr { [ (*Binary("until",   $1, $3)*) ] }
-| expr  FOR    expr { [ (*Binary($2,        $1, $3)*) ] }
+| error {()}
+| expr  {()}
+| expr   IF    expr {()}
+| expr UNLESS  expr {()}
+| expr  WHILE  expr {()}
+| expr  UNTIL  expr {()}
+| expr  FOR    expr {()}
 
 decl:
-| FORMAT bareword_or_empty ASSIGN {[]}
-| SUB word subbody {[]}
-| FUNC_DECL_WITH_PROTO subbody {[]}
-| PACKAGE word SEMI_COLON {[]}
-| BEGIN block {[]}
-| END block {[]}
-| USE word_or_empty revision_or_empty listexpr SEMI_COLON {[]}
+| FORMAT BAREWORD ASSIGN {()}
+| FORMAT ASSIGN {()}
+| func_decl SEMI_COLON {()}
+| func_decl BRACKET lines BRACKET_END {()}
+| func_decl BRACKET BRACKET expr BRACKET_END BRACKET_END {()}
+| func_decl BRACKET BRACKET expr BRACKET_END SEMI_COLON BRACKET_END {()}
+| PACKAGE word SEMI_COLON {()}
+| BEGIN BRACKET lines BRACKET_END {()}
+| END BRACKET lines BRACKET_END {()}
+| use {()}
 
-formname: {[]} | BAREWORD {[]}
-subbody: block { $1 } | SEMI_COLON {[]}
+use:
+| use_word listexpr SEMI_COLON {()}
 
+use_word:
+| use_revision word COLON {()}
+| use_revision word {()}
+| use_revision {()}
+
+use_revision:
+| USE REVISION COLON {()}
+| USE REVISION {()}
+| USE {()}
+
+func_decl:
+| SUB word {()}
+| FUNC_DECL_WITH_PROTO {()}
 
 listexpr: /* Basic list expressions */
-| %prec PREC_LOW {[]}
-| argexpr %prec PREC_LOW {[]}
+| %prec PREC_LOW {()}
+| argexpr %prec PREC_LOW {()}
 
 expr: /* Ordinary expressions; logical combinations */
-| expr AND expr {[]}
-| expr OR expr {[]}
-| argexpr %prec PREC_LOW {[]}
+| expr AND expr {()}
+| expr OR expr {()}
+| argexpr %prec PREC_LOW {()}
 
 argexpr: /* Expressions are a list of terms joined by commas */
-| argexpr comma {[]}
-| argexpr comma term {[]}
-| term %prec PREC_LOW {[]}
+| argexpr comma {()}
+| argexpr comma term {()}
+| argexpr comma BRACKET expr BRACKET_END {()}
+| term %prec PREC_LOW {()}
 
+/********************************************************************************/
 term:
-| term binop term {[]}
-| termunop {[]}
-| anonymous {[]}
-| termdo {[]}
-| term QUESTION_MARK term COLON term {[]}
-| REF term {[]} /* \$x, \@y, \%z */
-| MY myterm     %prec UNIOP {[]}
-| LOCAL term    %prec UNIOP {[]}
-| PAREN expr_or_empty PAREN_END {[]}
+| term binop term {()}
+| term binop BRACKET expr BRACKET_END {()}
+| term LT term {()}
+| term LT BRACKET expr BRACKET_END {()}
+| term GT term {()}
+| term GT BRACKET expr BRACKET_END {()}
 
-| variable {[]}
+/* Unary operators and terms */
+| MINUS term %prec UNARY_MINUS {()}
+| TIGHT_NOT term {()}
+| BIT_NEG term {()}
+| INCR term    {()}
+| DECR term    {()}
+| term INCR    {()}
+| term DECR    {()}
 
-| subscripted {[]}
+| NOT argexpr  {()}
 
-| PAREN expr_or_empty PAREN_END ARRAYREF expr ARRAYREF_END {[]} /* list slice */
-| array ARRAYREF expr ARRAYREF_END {[]} /* array slice */
-| array BRACKET expr BRACKET_END {[]} /* @hash{@keys} */
 
-| function_call {[]}
+/* Constructors for anonymous data */
+| arrayref {()} /* [ 1, 2 ] */
+| BRACKET BRACKET_END {()} /* empty hash */
+| BRACKET_HASHREF expr_or_empty BRACKET_END %prec PAREN {()} /* { foo => "Bar" } */
+| SUB BRACKET lines BRACKET_END %prec PAREN {()}
 
-| word {[]}
-| value {[]}
+| termdo {()}
+| term question_mark_ colon_ {()}
+| REF term {()} /* \$x, \@y, \%z */
+| REF BRACKET expr BRACKET_END {()} /* \$x, \@y, \%z */
+| my %prec UNIOP {()}
+| LOCAL term    %prec UNIOP {()}
 
-function_call:
-| func PAREN expr_or_empty PAREN_END {[]} /* &foo(@args) */
-| word argexpr {[]} /* foo(@args) */
-| word block listexpr %prec LSTOP {[]} /* map { foo } @bar */
+| parenthesized {()} /* (1, 2) */
+| parenthesized arrayref {()} /* list slice */
 
-| term ARROW word_or_scalar PAREN expr_or_empty PAREN_END {[]} /* $foo->bar(list) */
-| term ARROW word_or_scalar {[]} /* $foo->bar */
+| variable {()}
 
-| NEW word listexpr {[]} /* new Class @args */
-| PRINT argexpr {[]} /* print $fh @args */
-| PRINT word_or_scalar argexpr {[]} /* print $fh @args */
+| subscripted {()}
 
-termdo: /* Things called with "do" */
-| DO term %prec UNIOP                               {[]} /* do $filename */
-| DO block %prec PAREN                   {[]} /* do { code */
+| array arrayref {()} /* array slice */
+| array BRACKET expr BRACKET_END {()} /* @hash{@keys} */
 
-termunop: /* Unary operators and terms */
-| MINUS term %prec UNARY_MINUS {[]}
-| TIGHT_NOT term {[]}
-| BIT_NEG term {[]}
-| INCR term    {[]}
-| DECR term    {[]}
-| term INCR    {[]}
-| term DECR    {[]}
 
-| NOT argexpr  {[]}
+/* function_calls */
+| func parenthesized {()} /* &foo(@args) */
+| word argexpr {()} /* foo(@args) */
+| word BRACKET lines BRACKET_END listexpr %prec LSTOP {()} /* map { foo } @bar */
+| word BRACKET BRACKET expr BRACKET_END BRACKET_END listexpr %prec LSTOP {()} /* map { foo } @bar */
+| word BRACKET BRACKET expr BRACKET_END SEMI_COLON BRACKET_END listexpr %prec LSTOP {()} /* map { foo } @bar */
 
-myterm: /* Things that can be "my"'d */
-| PAREN expr_or_empty PAREN_END {[]}
-| scalar {[]}
-| hash {[]}
-| array {[]}
+| term ARROW word_or_scalar parenthesized {warn "term->word_or_scalar(expr_or_empty) -> function_call"} /* $foo->bar(list) */
+| term ARROW word_or_scalar {warn "term->word_or_scalar -> function_call"} /* $foo->bar */
+
+| NEW word listexpr {()} /* new Class @args */
+| print listexpr {()}
+
+| word {()}
+
+| NUM {()}
+| STRING {()}
+| REVISION {()}
+| COMMAND_STRING {()}
+| QUOTEWORDS {()}
+| HERE_DOC {()}
+| PATTERN {()}
+| PATTERN_SUBST {()}
+| diamond {()}
+
+diamond:
+| LT GT {()}
+| LT term GT {()}
+
+print:
+| PRINT bareword COLON {()}
+| PRINT bareword {()} /* print FH @args */
+| PRINT scalar COLON {()}
+| PRINT scalar {()} /* print $fh @args */
+| PRINT {()}
+
+| PRINT bareword BRACKET {die "use parentheses around print"}
 
 subscripted: /* Some kind of subscripted expression */
-| variable PKG_SCOPE bracket_subscript        {[]} /* *main::{something} */
-| scalar bracket_subscript                    {[]} /* $foo{bar} */
-| scalar ARRAYREF expr ARRAYREF_END           {[]} /* $array[$element] */
-| term ARROW bracket_subscript                {[]} /* somehref->{bar} */
-| term ARROW ARRAYREF expr ARRAYREF_END       {[]} /* somearef->[$element] */
-| term ARROW PAREN expr_or_empty PAREN_END    {[]} /* $subref->(@args) */
-| subscripted bracket_subscript               {[]} /* $foo->[bar]{baz;} */
-| subscripted ARRAYREF expr ARRAYREF_END      {[]} /* $foo->[$bar][$baz] */
-| subscripted PAREN expr_or_empty PAREN_END   {[]} /* $foo->{bar}(@args) */
+| variable PKG_SCOPE bracket_subscript {()} /* *main::{something} */
+| scalar bracket_subscript             {()} /* $foo{bar} */
+| scalar arrayref                      {()} /* $array[$element] */
+| term ARROW bracket_subscript         {()} /* somehref->{bar} */
+| term ARROW arrayref                  {()} /* somearef->[$element] */
+| term ARROW parenthesized             {()} /* $subref->(@args) */
+| subscripted bracket_subscript        {()} /* $foo->[bar]{baz} */
+| subscripted arrayref                 {()} /* $foo->[$bar][$baz] */
+| subscripted parenthesized            {()} /* $foo->{bar}(@args) */
+
+arrayref:
+| arrayref_start ARRAYREF_END {()}
+| arrayref_start expr ARRAYREF_END {()}
+| arrayref_start BRACKET expr BRACKET_END ARRAYREF_END {()}
+parenthesized:
+| parenthesized_start PAREN_END {()}
+| parenthesized_start expr PAREN_END {()}
+| parenthesized_start BRACKET expr BRACKET_END PAREN_END {()}
+
+arrayref_start:
+| ARRAYREF {()}
+| arrayref_start expr comma {()}
+| arrayref_start BRACKET expr BRACKET_END comma {()}
+parenthesized_start:
+| PAREN {()}
+| parenthesized_start expr comma {()}
+| parenthesized_start BRACKET expr BRACKET_END comma {()}
+
+my: /* Things that can be "my"'d */
+| MY parenthesized {()}
+| MY scalar {()}
+| MY hash {()}
+| MY array {()}
+
+termdo: /* Things called with "do" */
+| DO term %prec UNIOP {()} /* do $filename */
+| DO BRACKET lines BRACKET_END %prec PAREN {()} /* do { code */
+
+question_mark_:
+| QUESTION_MARK term {()}
+| QUESTION_MARK BRACKET expr BRACKET_END {()}
+colon_:
+| COLON term {()}
+| COLON BRACKET expr BRACKET_END {()}
 
 bracket_subscript:
-| BRACKET expr BRACKET_END {[]}
-| COMPACT_HASH_SUBSCRIPT {[]}
-
-anonymous: /* Constructors for anonymous data */
-| ARRAYREF expr_or_empty ARRAYREF_END {[]}
-| BRACKET expr_or_empty BRACKET_END %prec PAREN {[]} /* { foo => "Bar" } */
-| BRACKET_HASHREF expr_or_empty BRACKET_END %prec PAREN {[]} /* { foo => "Bar" } */
-| SUB block %prec PAREN {[]}
+| BRACKET expr BRACKET_END {()}
+| COMPACT_HASH_SUBSCRIPT {()}
 
 binop:
-| ASSIGN {[]}
-| POWER {[]}
-| MULT {[]} | DIVISION {[]} | MODULO {[]} | REPLICATE {[]}
-| PLUS {[]} | MINUS {[]} | CONCAT {[]}
-| BIT_SHIFT_LEFT {[]} | BIT_SHIFT_RIGHT {[]}
-| LT {[]} | GT {[]} | COMPARE_OP {[]}
-| EQ_OP {[]}
-| BIT_AND {[]}
-| BIT_OR {[]} | BIT_XOR {[]}
-| DOTDOT {[]} | DOTDOTDOT {[]}
-| AND_TIGHT {[]}
-| OR_TIGHT {[]} | XOR {[]}
-| PATTERN_MATCH {[]} | PATTERN_MATCH_NOT {[]}
-
-value:
-| NUM {[]}
-| STRING {[]}
-| REVISION {[]}
-| COMMAND_STRING {[]}
-| QUOTEWORDS {[]}
-| HERE_DOC {[]}
-| PATTERN {[]}
-| PATTERN_SUBST {[]}
-| LT GT {[]}
-| LT term GT {[]}
+| ASSIGN {()}
+| POWER {()}
+| MULT {()} | DIVISION {()} | MODULO {()} | REPLICATE {()}
+| PLUS {()} | MINUS {()} | CONCAT {()}
+| BIT_SHIFT_LEFT {()} | BIT_SHIFT_RIGHT {()}
+| COMPARE_OP {()}
+| EQ_OP {()}
+| BIT_AND {()}
+| BIT_OR {()} | BIT_XOR {()}
+| DOTDOT {()} | DOTDOTDOT {()}
+| AND_TIGHT {()}
+| OR_TIGHT {()} | XOR {()}
+| PATTERN_MATCH {()} | PATTERN_MATCH_NOT {()}
 
 variable:
-| scalar   %prec PAREN {[]}
-| star     %prec PAREN {[]}
-| hash     %prec PAREN {[]}
-| array    %prec PAREN {[]}
-| arraylen %prec PAREN {[]} /* $#x, $#{ something } */
-| func     %prec PAREN {[]} /* &foo; */
+| scalar   %prec PAREN {()}
+| star     %prec PAREN {()}
+| hash     %prec PAREN {()}
+| array    %prec PAREN {()}
+| arraylen %prec PAREN {()} /* $#x, $#{ something } */
+| func     %prec PAREN {()} /* &foo; */
 
 word:
 | bareword { fst $1 }
@@ -301,29 +360,23 @@ word:
     | Some s, name, _ -> s ^ "::" ^ name
   }
 
-comma: COMMA {[]} | RIGHT_ARROW {[]}
+comma: COMMA {()} | RIGHT_ARROW {()}
 
 word_or_scalar:
-| bareword  { [] }
-| RAW_IDENT { [] }
-| scalar    { [] }
-
-block_or_scalar: block {[]} | scalar {[]}
+| word      {()}
+| scalar    {()}
 
 bareword:
 | NEW { "new", $1 }
-| PRINT { "print", $1 }
 | FORMAT { "format", $1 }
 | BAREWORD { $1 }
 
-arraylen: ARRAYLEN_IDENT {[]} | ARRAYLEN block_or_scalar {[]}
-scalar: SCALAR_IDENT {[]} | DOLLAR    block_or_scalar {[]}
-func:   FUNC_IDENT   {[]} | AMPERSAND block_or_scalar {[]}
-array:  ARRAY_IDENT  {[]} | AT        block_or_scalar {[]}
-hash:   HASH_IDENT   {[]} | PERCENT   block_or_scalar {[]}
-star:   STAR_IDENT   {[]} | STAR      block_or_scalar {[]}
+arraylen: ARRAYLEN_IDENT {()} | ARRAYLEN  scalar {()} | ARRAYLEN  BRACKET lines BRACKET_END {()}
+scalar:   SCALAR_IDENT   {()} | DOLLAR    scalar {()} | DOLLAR    BRACKET lines BRACKET_END {()} | DOLLAR BRACKET BRACKET expr BRACKET_END BRACKET_END {()}
+func:     FUNC_IDENT     {()} | AMPERSAND scalar {()} | AMPERSAND BRACKET lines BRACKET_END {()}
+array:    ARRAY_IDENT    {()} | AT        scalar {()} | AT        BRACKET lines BRACKET_END {()}
+hash:     HASH_IDENT     {()} | PERCENT   scalar {()} | PERCENT   BRACKET lines BRACKET_END {()}
+star:     STAR_IDENT     {()} | STAR      scalar {()} | STAR      BRACKET lines BRACKET_END {()}
 
-expr_or_empty: {[]} | expr {[]}
-word_or_empty: {[]} | word {[]}
-bareword_or_empty: {[]} | bareword {[]}
-revision_or_empty: {[]} | REVISION {[]}
+expr_or_empty: {()} | expr {()}
+

@@ -112,7 +112,7 @@ rule token = parse
 | space+ { 
     (* propagate not_ok_for_match when it was set by the previous token *)
     if lexeme_start lexbuf = !not_ok_for_match then not_ok_for_match := lexeme_end lexbuf; 
-    (*SPACE(pos lexbuf) *) token lexbuf
+   (*SPACE(pos lexbuf) *) token lexbuf
   }
 | '#' [^ '\n']* { (*COMMENT(lexeme lexbuf, pos lexbuf)*) token lexbuf }
 

@@ -3,14 +3,13 @@ CSLC = ocamlc
 CSLOPT = ocamlopt
 CSLDEP = ocamldep
 CSLLEX = ocamllex
-CSLYACC = ocamlyacc
+CSLYACC = ocamlyacc -v
 CSLFLAGS = -w A -g
 CSLOPTFLAGS =
 
 LEX_FILES = $(wildcard *.mll)
 YACC_FILES = $(wildcard *.mly)
-TMP_MLFILES = $(YACC_FILES:%.mly=%.ml) $(LEX_FILES:%.mll=%.ml)
-TMP_MLIFILES = $(YACC_FILES:%.mly=%.mli)
+TMP_FILES =  $(YACC_FILES:%.mly=%.mli) $(YACC_FILES:%.mly=%.output) $(YACC_FILES:%.mly=%.ml) $(LEX_FILES:%.mll=%.ml)
 
 ALL_PROGS = perl_checker_debug perl_checker
 
@@ -61,7 +60,7 @@ $(PROG_OBJX_WITH_CMI): %.cmx: %.cmi
 	$(CSLC) $(CSLFLAGS) -c $<
 
 clean:
-	rm -f $(ALL_PROGS) *~ *.o *.cm[iox] $(TMP_MLIFILES) $(TMP_MLFILES) .depend .compiling TAGS gmon.out ocamlprof.dump
+	rm -f $(ALL_PROGS) *~ *.o *.cm[iox] $(TMP_FILES) .depend .compiling TAGS gmon.out ocamlprof.dump
 
 tags: 
 	ocamltags *.ml
