@@ -56,6 +56,7 @@ sub get {}
 sub get_buffer {}
 sub get_char_count {}
 sub get_colormap {}
+sub get_data {}
 sub get_depth {}
 sub get_end_iter {}
 sub get_filename {}
@@ -70,6 +71,7 @@ sub get_origin {}
 sub get_pango_context {}
 sub get_parent {}
 sub get_path {}
+sub get_path_at_pos {}
 sub get_path_str {}
 sub get_pixel_size {}
 sub get_selected {}
@@ -167,6 +169,7 @@ sub window_position {}
 sub y {};#;
 
 sub bootstrap {}
+sub equals {}
 sub exit {}
 sub init {}
 sub main {}
