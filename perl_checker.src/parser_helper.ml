@@ -180,12 +180,25 @@ let sp_same (_, (spaces1, _) as ter1) (_, (spaces2, _) as ter2) =
   else if spaces2 <> Space_0 then sp_p ter1
 
 let check_word_alone (word, _) =
-  (match word with
-  | Ident(None, ("time" as f), _)
-  | Ident(None, ("wantarray" as f), _) ->
-      die_rule (sprintf "please use %s() instead of %s" f f)
-  | _ -> ());
-  word
+  match word with
+  | Ident(None, f, _) ->
+      (match f with
+      | "length" | "stat" | "lstat" | "chop" | "chomp" | "quotemeta" | "lc" | "lcfirst" | "uc" | "ucfirst" ->
+	  Deref(I_func, word)
+
+      | "split" | "shift" 
+      | "return" | "eof" | "die" | "caller" 
+      | "redo" | "next" | "last" -> 
+	  Deref(I_func, word)
+
+      | "hex" | "ref" -> 
+	  warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" f f) ;
+	  Deref(I_func, word)
+      | "time" | "wantarray" | "fork" | "getppid" | "arch" -> 
+	  warn_rule (sprintf "please use %s() instead of %s" f f) ;
+	  Deref(I_func, word)
+      | _ -> word)
+  | _ -> word
 
 let check_parenthesized_first_argexpr word ((_, e), (_, (start, _)) as ex) =
   let want_space = word.[0] = '-' in
@@ -207,13 +220,6 @@ let check_for     (s, (_, pos)) = if s = "foreach" then warn pos "write \"for\" 
 let check_MULT_is_x (s, _) = if s <> "x" then die_rule "syntax error"
 let check_my (s, _) = if s <> "my" then die_rule "syntax error"
 
-let check_my_our op para (_, pos) =
-  match op, para with
-  | "=", [List [My_our _]; Ident(None, "undef", _)] -> warn pos "no need to initialize variable, it's done by default"
-  | "=", [List [My_our _]; List[]] -> 
-      if Info.is_on_same_line_current pos then warn pos "no need to initialize variables, it's done by default"
-  | _ -> ()
-
 let check_block_sub (l, (_, (_, end_)) as ter_lines) (_, (space, _) as ter_BRACKET_END) =  
   if l = [] then
     sp_0_or_cr ter_BRACKET_END
@@ -233,7 +239,7 @@ let check_block_ref (l, (_, (_, end_)) as ter_lines) (_, (space, _) as ter_BRACK
   if space <> Space_cr then
     (if l <> [] && last l = Semi_colon then warn_verb end_ "spurious \";\" before closing block")
 
-let check_my_our_paren (((comma_closed, _), _), _) =
+let check_my_our_paren (((comma_closed, _), _), _) = 
   if not comma_closed then die_rule "syntax error"
 
 let rec only_one (l, (spaces, pos)) =
@@ -248,13 +254,21 @@ let only_one_in_List ((_, e), both) =
   | List l -> only_one(l, both)
   | _ -> e
   
+
+let maybe_to_Raw_string = function
+  | Ident(None, s, pos) -> Raw_string(s, pos)
+  | Ident(Some fq, s, pos) -> Raw_string(fq ^ "::" ^ s, pos)
+  | e -> e
+
 let to_List = function
   | [e] -> e
   | l -> List l
 
-let deref_arraylen e = Call(Ident(None, "int", raw_pos2pos bpos), [Deref(I_array, e)])
+let deref_arraylen e = Call(Deref(I_func, Ident(None, "int", raw_pos2pos bpos)), [Deref(I_array, e)])
 let to_Ident ((fq, name), (_, pos)) = Ident(fq, name, raw_pos2pos pos)
 let to_Raw_string (s, (_, pos)) = Raw_string(s, raw_pos2pos pos)
+let to_Method_callP(object_, method_, para) = Method_callP(maybe_to_Raw_string object_, maybe_to_Raw_string method_, para)
+let to_Method_call (object_, method_, para) = Method_call (maybe_to_Raw_string object_, maybe_to_Raw_string method_, para)
 let to_Local ((_, e), (_, pos)) =
   let l = 
     match e with
@@ -281,28 +295,87 @@ let to_Local ((_, e), (_, pos)) =
 let op prio s (_, both) = prio, (((), both), s)
 let op_p prio s e = sp_p e ; op prio s e
 
-let call_op((prio, (prev_ter, op)), ter, para) = 
-  sp_same prev_ter ter ;
-  check_my_our op para (snd ter);
-  prio, Call_op(op, para)
-
 let sub_declaration (name, proto) body = Sub_declaration(name, proto, Block body)
 let anonymous_sub body = Anonymous_sub (Block body)
 
-let call(e, para) = 
-  (match e with
-  | Ident(None, "require", _) ->
-      (match para with
-      | [ Ident _ ] -> ()
-      | [ String _ ] -> ()
-      | [ Raw_string _ ] -> ()
-      | _ -> die_rule "use either \"require PACKAGE\" or \"require 'PACKAGE.pm'\"")
-  | Ident(None, "N", _) ->
-      (match para with
-      | [List(String _ :: _)] -> ()
-      | _ -> die_rule "N() must be used with a string")
-  | _ -> ());
-  Call(e, para)
+let call_op((prio, (prev_ter, op)), (_, (_, pos) as ter), para) = 
+  sp_same prev_ter ter ;
+
+  let call = Call_op(op, para) in
+  let call =
+    match op, para with
+    | "=", [List [My_our _]; Ident(None, "undef", _)] -> 
+	warn pos "no need to initialize variable, it's done by default" ;
+	call
+    | "=", [List [My_our _]; List[]] -> 
+	if Info.is_on_same_line_current pos then warn pos "no need to initialize variables, it's done by default" ;
+	call
+
+    | "=", [ Deref(I_star, String ([(sf1, List [])], _)); _ ] ->
+	warn_rule (sprintf "write *{'%s'} instead of *{\"%s\"}" sf1 sf1) ;
+	call
+
+    | "=", [ Deref(I_star, (Ident _ as f1)); Deref(I_star, (Ident _ as f2)) ] ->
+	let s1, s2 = string_of_Ident f1, string_of_Ident f2 in
+	warn pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
+	sub_declaration (f1, "") [ Deref(I_func, f2) ]
+    | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Deref(I_star, (Ident _ as f2)) ] ->
+	let s2 = string_of_Ident f2 in
+	warn pos (sprintf "\"*{'%s'} = *%s\" is better written \"*{'%s'} = \\&%s\"" sf1 s2 sf1 s2) ;
+	sub_declaration (Ident(None, sf1, pos_f1), "") [ Deref(I_func, f2) ]
+
+    | "=", [ Deref(I_star, (Ident _ as f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
+	sub_declaration (f1, "") [ Deref(I_func, f2) ]
+    | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
+	sub_declaration (Ident(None, sf1, pos_f1), "") [ Deref(I_func, f2) ]
+
+    | _ -> 
+	call
+  in
+  prio, call
+
+let followed_by_comma ((_,e), _) (true_comma, _) =
+  if true_comma then e else
+    match split_last e with
+    | l, Ident(None, s, pos) -> l @ [Raw_string(s, pos)]
+    | _ -> e
+
+let call_func is_a_func (e, para) =
+  match e with
+  | Deref(I_func, Ident(None, f, _)) ->
+      let para' = match f with
+      | "require" ->
+	  (match para with
+	  | [ Ident(_, _, pos) as s ] -> Some [ Raw_string(string_of_Ident s, pos) ]
+	  | [ String _ ]
+	  | [ Raw_string _ ] -> None
+	  | _ -> die_rule "use either \"require PACKAGE\" or \"require 'PACKAGE.pm'\"")
+      | "no" ->
+	  (match para with
+	  | [ Ident(_, _, pos) as s ] -> Some [ Raw_string(string_of_Ident s, pos) ]
+	  | [ Call(Deref(I_func, (Ident(_, _, pos) as s)), l) ] -> Some(Raw_string(string_of_Ident s, pos) :: l)
+	  | _ -> die_rule "use \"no PACKAGE <para>\"")
+      | "N" | "N_" ->
+	  (match para with
+	  | [List(String _ :: _)] -> None
+	  |  _ -> die_rule (sprintf "%s() must be used with a string" f))
+
+      | "goto" ->
+	  (match para with
+	  | [ Ident(None, s, pos) ] -> Some [ Raw_string(s, pos) ]
+	  | _ -> None)
+
+      | "last" | "next" | "redo" when not is_a_func ->
+	  (match para with
+	  | [ Ident(None, s, pos) ] -> Some [ Raw_string(s, pos) ]
+	  | _ -> die_rule (sprintf "%s must be used with a raw string" f))
+
+      | _ -> None
+      in Call(e, some_or para' para)
+  | _ -> Call(e, para)
+
+let call(e, para) = call_func false (e, para)
+
 
 let call_one_scalar_para (e, (_, pos)) para =
   let pri =
@@ -310,7 +383,7 @@ let call_one_scalar_para (e, (_, pos)) para =
     | "defined" -> P_expr
     | _ -> P_add
   in
-  pri, Call(Ident(None, e, raw_pos2pos pos), para)
+  pri, Call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)
 
 let (current_lexbuf : Lexing.lexbuf option ref) = ref None
 

@@ -115,7 +115,7 @@ let get_exported t =
 	    match v with
 	    | List [ List l ] ->
 		List.map (function
-		  | Ident(None, tag, _), Ref(I_array, List [List [v]]) ->
+		  | Raw_string(tag, _), Ref(I_array, List [List [v]]) ->
 		      let para =
 			match v with
 			| Deref(I_array, Ident(None, "EXPORT_OK", _)) -> exports.export_ok
@@ -129,7 +129,7 @@ let get_exported t =
 	  if exports.export_tags <> [] then warn_with_pos pos "weird, %EXPORT_TAGS set twice" ;
 	  { exports with export_tags = export_tags }
 	with _ ->
-	  warn_with_pos pos "unrecognised @EXPORT_TAGS" ;
+	  warn_with_pos pos "unrecognised %EXPORT_TAGS" ;
 	  exports)
     | List (My_our _ :: _) ->
 	let _,_ = e,e in
@@ -138,7 +138,8 @@ let get_exported t =
   ) empty_exports t
 
 let uses_external_package = function
-  | "vars" | "Exporter" | "diagnostics" | "strict" | "lib" | "POSIX" | "Config" | "Socket" | "Net::FTP" | "IO::Socket" | "DynaLoader" -> true
+  | "vars" | "MDK::Common::Globals" | "Exporter" | "diagnostics" | "strict" | "lib" | "POSIX" 
+  | "Config" | "Socket" | "Net::FTP" | "IO::Socket" | "DynaLoader" -> true
   | _ -> false
 
 let get_uses t =
@@ -172,8 +173,11 @@ let get_global_vars_declaration state package =
 	Hashtbl.add state.global_vars_declared (I_func, some_or fq package.package_name, name) pos
 
     | List [ Call_op("=", [My_our("our", ours, pos); _]) ]
+    | List [ My_our("our", ours, pos) ]
     | My_our("our", ours, pos) ->
 	List.iter (fun (context, name) -> Hashtbl.add state.global_vars_declared (context, package.package_name, name) pos) ours
+
+    | Use(Ident(Some "MDK::Common", "Globals", pos), [ String _ ; ours ])
     | Use(Ident(None, "vars", pos), [ours]) -> 
 	List.iter (fun (context, name) -> Hashtbl.add state.global_vars_declared (context, package.package_name, name) pos) (from_qw ours)
     | Use(Ident(None, "vars", pos), _) -> 
@@ -188,10 +192,12 @@ let get_imports state package =
       let exports = package_used.exports in
       let imports_vars =
 	match imports with
-	| None -> 
-	    if exports.re_export_all then
-	      collect (fun (package_name, _) -> (List.assoc package_name state.per_package).exports.export_ok) package_used.uses
-	    else exports.export_auto
+	| None ->
+	    let re = 
+	      if exports.re_export_all 
+	      then collect (fun (package_name, _) -> (List.assoc package_name state.per_package).exports.export_ok) package_used.uses
+	      else [] in
+	    exports.export_auto @ re
 	| Some l -> 
 	    collect (function
 	      | I_raw, tag -> 
@@ -205,7 +211,7 @@ let get_imports state package =
 		    die_with_pos pos (sprintf "package %s doesn't export %s" package_name (variable2s variable))
 		    ) l
       in
-      List.map (fun (context, name) -> (context, name), package.package_name) imports_vars
+      List.map (fun (context, name) -> (context, name), package_name) imports_vars
     with Not_found -> []
   in
   collect get_one package.uses
@@ -218,7 +224,6 @@ let rec fold_tree f env e =
   | Anonymous_sub(e')
   | Ref(_, e')
   | Deref(_, e')
-  | Package(e')
       -> fold_tree f env e'
 
   | Diamond(e')
@@ -232,6 +237,7 @@ let rec fold_tree f env e =
 	 let env = fold_tree f env e2 in
 	 env
 
+  | Use(_, l)
   | List l
   | Block l
   | Call_op(_, l)
@@ -239,7 +245,6 @@ let rec fold_tree f env e =
 
   | Call(e', l)
   | CallP(e', l)
-  | Use(e', l)
     -> 
       let env = fold_tree f env e' in
       List.fold_left (fold_tree f) env l
@@ -282,7 +287,7 @@ let is_global_var context ident =
       | _ -> false)
   | I_array -> 
       (match ident with
-      | "_" | "ARGV" -> true
+      | "_" | "ARGV" | "INC" -> true
       | _ -> false)
   | I_hash ->
       (match ident with
@@ -290,7 +295,8 @@ let is_global_var context ident =
       | _ -> false)
   | I_star ->
       (match ident with
-      | "STDIN" | "STDOUT" | "STDERR" -> true
+      | "STDIN" | "STDOUT" | "STDERR"
+      | "__FILE__" | "__LINE__" | "undef" -> true
       | _ -> false)
   | I_func ->
       (match ident with
@@ -384,6 +390,10 @@ let check_variables vars t =
     | Sub_declaration(Ident(fq, name, pos), _proto, body) ->
 	let vars = declare_Our vars ([ I_func, (some_or fq vars.current_package) ^ "::" ^ name ], pos) in
 	let vars = check_variables_ vars body in
+	Some vars
+
+    | Ident _ as var ->
+	check_variable (I_star, var) vars ;
 	Some vars
 
     | My_our(my_or_our, mys, pos) -> Some(declare_My_our vars (my_or_our, mys, pos))

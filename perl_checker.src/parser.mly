@@ -190,8 +190,8 @@ expr: /* Ordinary expressions; logical combinations */
 
 argexpr: /* Expressions are a list of terms joined by commas */
 | argexpr comma {(P_comma, sndfst $1), sp_pos_range $1 $2}
-| argexpr comma term {if not_simple (sndfst $3) then sp_p($3); (P_comma, sndfst $1 @ [sndfst $3]), sp_pos_range $1 $3}
-| argexpr comma BRACKET expr BRACKET_END {sp_p($3); sp_p($5); (P_comma, sndfst $1 @ [ Ref(I_hash, sndfst $4) ]), sp_pos_range $1 $5}
+| argexpr comma term {if not_simple (sndfst $3) then sp_p($3); (P_comma, followed_by_comma $1 $2 @ [sndfst $3]), sp_pos_range $1 $3}
+| argexpr comma BRACKET expr BRACKET_END {sp_p($3); sp_p($5); (P_comma, followed_by_comma $1 $2 @ [ Ref(I_hash, sndfst $4) ]), sp_pos_range $1 $5}
 | term %prec PREC_LOW {(fstfst $1, [sndfst $1]), snd $1}
 
 /********************************************************************************/
@@ -252,7 +252,7 @@ term:
 | ONE_SCALAR_PARA variable                 {call_one_scalar_para $1 [fst $2], sp_pos_range $1 $2}
 | ONE_SCALAR_PARA restricted_subscripted   {call_one_scalar_para $1 [fst $2], sp_pos_range $1 $2}
 | ONE_SCALAR_PARA parenthesized            {call_one_scalar_para $1 (sndfst $2), sp_pos_range $1 $2}
-| ONE_SCALAR_PARA word_paren parenthesized {call_one_scalar_para $1 [Call(fst $2, sndfst $3)], sp_pos_range $1 $3}
+| ONE_SCALAR_PARA word_paren parenthesized {call_one_scalar_para $1 [Call(Deref(I_func, fst $2), sndfst $3)], sp_pos_range $1 $3}
 
 /* Constructors for anonymous data */
 
@@ -283,19 +283,22 @@ term:
 
 
 /* function_calls */
-| func parenthesized {sp_0($2); (P_tok, call(fst $1, sndfst $2)), sp_pos_range $1 $2} /* &foo(@args) */
+| func parenthesized {sp_0($2); (P_tok, call_func true (fst $1, sndfst $2)), sp_pos_range $1 $2} /* &foo(@args) */
 | word argexpr {check_parenthesized_first_argexpr (string_of_Ident (fst $1)) $2; (P_call_no_paren, call(Deref(I_func, fst $1), sndfst $2)), sp_pos_range $1 $2} /* foo $a, $b */
 | word_paren parenthesized {(P_tok, call(Deref(I_func, fst $1), sndfst $2)), sp_pos_range $1 $2} /* foo(@args) */
 | word BRACKET lines BRACKET_END listexpr %prec LSTOP {sp_n($2); check_block_sub $3 $4; ((if sndfst $5 = [] then P_tok else P_call_no_paren), call(Deref(I_func, fst $1), anonymous_sub(fst $3) :: sndfst $5)), sp_pos_range $1 $5} /* map { foo } @bar */
 | word BRACKET BRACKET expr BRACKET_END            BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($6); ((if sndfst $7 = [] then P_tok else P_call_no_paren), call(Deref(I_func, fst $1), anonymous_sub [ Ref(I_hash, sndfst $4) ] :: sndfst $7)), sp_pos_range $1 $7} /* map { { foo } } @bar */
 | word BRACKET BRACKET expr BRACKET_END semi_colon BRACKET_END listexpr %prec LSTOP {sp_n($2); sp_p($3); sp_p($4); sp_p($5); sp_p($7); ((if sndfst $8 = [] then P_tok else P_call_no_paren), call(Deref(I_func, fst $1), anonymous_sub [ Ref(I_hash, sndfst $4); Semi_colon ] :: sndfst $8)), sp_pos_range $1 $8} /* map { { foo }; } @bar */
 
-| term ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); (P_tok, Method_callP(sndfst $1, fst $3, sndfst $4)), sp_pos_range $1 $4} /* $foo->bar(list) */
-| term ARROW word_or_scalar {sp_0($2); sp_0($3); (P_tok, Method_callP(sndfst $1, fst $3, [])), sp_pos_range $1 $3} /* $foo->bar */
-| term ARROW MULT parenthesized {check_MULT_is_x $3; sp_0($2); sp_0($3); sp_0($4); (P_tok, Method_callP(sndfst $1, Ident(None, "x", get_pos $3), sndfst $4)), sp_pos_range $1 $4} /* $foo->bar(list) */
-| term ARROW MULT {check_MULT_is_x $3; sp_0($2); sp_0($3); (P_tok, Method_callP(sndfst $1, Ident(None, "x", get_pos $3), [])), sp_pos_range $1 $3} /* $foo->bar */
+| term ARROW word_or_scalar parenthesized {sp_0($2); sp_0($3); sp_0($4); (P_tok, to_Method_callP(sndfst $1, fst $3, sndfst $4)), sp_pos_range $1 $4} /* $foo->bar(list) */
+| term ARROW word_or_scalar {sp_0($2); sp_0($3); (P_tok, to_Method_callP(sndfst $1, fst $3, [])), sp_pos_range $1 $3} /* $foo->bar */
+| term ARROW MULT parenthesized {check_MULT_is_x $3; sp_0($2); sp_0($3); sp_0($4); (P_tok, to_Method_callP(sndfst $1, Ident(None, "x", get_pos $3), sndfst $4)), sp_pos_range $1 $4} /* $foo->bar(list) */
+| term ARROW MULT {check_MULT_is_x $3; sp_0($2); sp_0($3); (P_tok, to_Method_callP(sndfst $1, Ident(None, "x", get_pos $3), [])), sp_pos_range $1 $3} /* $foo->bar */
 
-| NEW word listexpr { (P_call_no_paren, Method_call(fst $2, Ident(None, "new", get_pos $1), sndfst $3)), sp_pos_range $1 $3} /* new Class @args */
+| NEW word { sp_n($2); (P_call_no_paren, to_Method_call(fst $2, Ident(None, "new", get_pos $1), [])), sp_pos_range $1 $2} /* new Class */
+| NEW word parenthesized { sp_n($2); sp_0($3); (P_call_no_paren, to_Method_call(fst $2, Ident(None, "new", get_pos $1), sndfst $3)), sp_pos_range $1 $3} /* new Class(...) */
+| NEW word terminal { die_rule "you must parenthesize parameters: \"new Class(...)\" instead of \"new Class ...\"" }
+| NEW word variable { die_rule "you must parenthesize parameters: \"new Class(...)\" instead of \"new Class ...\"" }
 
 | PRINT { (P_call_no_paren, Call_op("print", var_STDOUT :: [ var_dollar_ ])), snd $1}
 | PRINT argexpr {check_parenthesized_first_argexpr (fst $1) $2; (P_call_no_paren, Call_op("print", var_STDOUT :: sndfst $2)), sp_pos_range $1 $2}
@@ -306,8 +309,10 @@ term:
 
 | hash PKG_SCOPE {sp_0($2); (P_tok, Too_complex), sp_pos_range $1 $2} /* %main:: */
 
-| word {(P_tok, check_word_alone $1), snd $1}
+| terminal {$1}
 
+terminal:
+| word {(P_tok, check_word_alone $1), snd $1}
 | NUM {(P_tok, Num(fst $1, get_pos $1)), snd $1}
 | STRING {(P_tok, to_String $1), snd $1}
 | RAW_STRING {(P_tok, to_Raw_string $1), snd $1}
@@ -366,6 +371,7 @@ my_our: /* Things that can be "my"'d */
 | MY_OUR SCALAR_IDENT {My_our(fst $1, [I_scalar, sndfst $2], get_pos $2), sp_pos_range $1 $2}
 | MY_OUR HASH_IDENT   {My_our(fst $1, [I_hash,   sndfst $2], get_pos $2), sp_pos_range $1 $2}
 | MY_OUR ARRAY_IDENT  {My_our(fst $1, [I_array,  sndfst $2], get_pos $2), sp_pos_range $1 $2}
+| MY_OUR STAR_IDENT   {if fst $1 <> "our" then die_rule "syntax error"; My_our(fst $1, [I_star, sndfst $2], get_pos $2), sp_pos_range $1 $2}
 
 my_our_paren:
 | MY_OUR PAREN {sp_1($2); ((true, fst $1), []), sp_pos_range $1 $2}
@@ -395,7 +401,7 @@ word:
 | bareword { $1 }
 | RAW_IDENT { to_Ident $1, snd $1}
 
-comma: COMMA {$1} | RIGHT_ARROW {sp_p($1); $1}
+comma: COMMA {true, snd $1} | RIGHT_ARROW {sp_p($1); false, snd $1}
 
 semi_colon: SEMI_COLON {sp_0($1); $1}
 

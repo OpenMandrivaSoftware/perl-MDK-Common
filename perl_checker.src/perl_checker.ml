@@ -67,6 +67,6 @@ let parse_options =
   let usage = "Usage: perl_checker [-v] [-q] <files>\nOptions are:" in
   Arg.parse options (lpush args_r) usage;
 
-  let args = if !args_r = [] then ["../t.pl"] else !args_r in
+  let args = if !args_r = [] then (Unix.chdir "/home/pixel/cooker/gi/perl-install" ; ["/home/pixel/cooker/gi/perl-install/t.pl"]) else !args_r in
   let state = List.fold_left parse_file default_state args in
   List.iter (check_tree state) (List.map snd state.per_package)

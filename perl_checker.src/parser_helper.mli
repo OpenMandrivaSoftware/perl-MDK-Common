@@ -21,6 +21,7 @@ val warn : int * int -> string -> unit
 val die_rule : string -> 'a
 val warn_rule : string -> unit
 val debug : string -> unit
+val warn_verb : int -> string -> unit
 val warn_too_many_space : int -> unit
 val warn_no_space : int -> unit
 val warn_cr : int -> unit
@@ -54,8 +55,6 @@ val check_foreach : string * ('a * (int * int)) -> unit
 val check_for : string * ('a * (int * int)) -> unit
 val check_MULT_is_x : string * 'a -> unit
 val check_my : string * 'a -> unit
-val check_my_our :
-  string -> Types.fromparser list -> 'a * (int * int) -> unit
 val check_block_sub :
   Types.fromparser list * (Types.spaces * (int * int)) ->
   'a * (Types.spaces * (int * 'b)) -> unit
@@ -66,11 +65,18 @@ val check_my_our_paren : ((bool * 'a) * 'b) * 'c -> unit
 val only_one : Types.fromparser list * ('a * (int * int)) -> Types.fromparser
 val only_one_in_List :
   ('a * Types.fromparser) * ('b * (int * int)) -> Types.fromparser
+val maybe_to_Raw_string : Types.fromparser -> Types.fromparser
 val to_List : Types.fromparser list -> Types.fromparser
 val deref_arraylen : Types.fromparser -> Types.fromparser
 val to_Ident :
   (string option * string) * ('a * (int * int)) -> Types.fromparser
 val to_Raw_string : string * ('a * (int * int)) -> Types.fromparser
+val to_Method_callP :
+  Types.fromparser * Types.fromparser * Types.fromparser list ->
+  Types.fromparser
+val to_Method_call :
+  Types.fromparser * Types.fromparser * Types.fromparser list ->
+  Types.fromparser
 val to_Local :
   ('a * Types.fromparser) * ('b * (int * int)) -> Types.fromparser
 val op : 'a -> 'b -> 'c * 'd -> 'a * ((unit * 'd) * 'b)
@@ -86,6 +92,10 @@ val call_op :
 val sub_declaration :
   Types.fromparser * string -> Types.fromparser list -> Types.fromparser
 val anonymous_sub : Types.fromparser list -> Types.fromparser
+val followed_by_comma :
+  ('a * Types.fromparser list) * 'b -> bool * 'c -> Types.fromparser list
+val call_func :
+  bool -> Types.fromparser * Types.fromparser list -> Types.fromparser
 val call : Types.fromparser * Types.fromparser list -> Types.fromparser
 val call_one_scalar_para :
   string * ('a * (int * int)) ->

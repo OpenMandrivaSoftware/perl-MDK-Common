@@ -229,20 +229,16 @@ let warn lexbuf err = prerr_endline (pos2sfull_with (lexeme_start lexbuf) (lexem
 let die lexbuf err = failwith (pos2sfull_with (lexeme_start lexbuf) (lexeme_end lexbuf) ^ err)
 let die_in_string lexbuf err = failwith (pos2sfull_with !current_string_start_pos (lexeme_end lexbuf) ^ err)
 
+let next_interpolated toks =
+  let r = Stack.top building_current_string in
+  Queue.push (!r, toks) (Stack.top building_current_interpolated_string) ;
+  r := ""
+
 let raw_ins t lexbuf = 
   Stack.push (ref "") building_current_string; 
   current_string_start_pos := lexeme_start lexbuf;
   t lexbuf ;
   !(Stack.pop building_current_string), (!current_string_start_pos, lexeme_end lexbuf)
-let raw_ins_to_string t lexbuf =
-  let s, pos = raw_ins t lexbuf in
-  not_ok_for_match := lexeme_end lexbuf; 
-  RAW_STRING(s, pos)
-
-let next_interpolated toks =
-  let r = Stack.top building_current_string in
-  Queue.push (!r, toks) (Stack.top building_current_interpolated_string) ;
-  r := ""
 
 let ins t lexbuf =
   Stack.push (Queue.create()) building_current_interpolated_string ;
@@ -252,6 +248,11 @@ let ins t lexbuf =
   next_interpolated [] ;
   let _ = Stack.pop building_current_string in
   queue2list (Stack.pop building_current_interpolated_string), (!current_string_start_pos, lexeme_end lexbuf)
+
+let raw_ins_to_string t lexbuf =
+  let s, pos = raw_ins t lexbuf in
+  not_ok_for_match := lexeme_end lexbuf; 
+  RAW_STRING(s, pos)
 let ins_to_string t lexbuf =
   let s, pos = ins t lexbuf in
   not_ok_for_match := lexeme_end lexbuf; 
@@ -417,9 +418,9 @@ rule token = parse
 | "split"
 | "grep"  { (* ok_for_match! *) BAREWORD(lexeme lexbuf, pos lexbuf) }
 
-| "print " ident ' ' { 
-    putback lexbuf 1; 
-    PRINT_TO_STAR(skip_n_char 6 (lexeme lexbuf), pos lexbuf);
+| "print " ['A'-'Z'] ['A'-'Z' '0'-'9']* ' ' { 
+    putback lexbuf 1;
+    PRINT_TO_STAR(skip_n_char 6 (lexeme lexbuf), pos lexbuf)
   }
 | "print $" ident ' ' { 
     putback lexbuf 1; 
@@ -588,14 +589,14 @@ rule token = parse
   }
 
 | '"'   { ins_to_string string lexbuf }
-| "'"   { ins_to_string rawstring lexbuf }
+| "'"   { raw_ins_to_string rawstring lexbuf }
 | '`'   { delimit_char := '`'; 
 	  current_string_start_line := !current_file_current_line;
 	  not_ok_for_match := lexeme_end lexbuf; 
 	  let s, pos = ins delimited_string lexbuf in
 	  check_multi_line_delimited_string None pos ;
 	  COMMAND_STRING(s, pos) }
-| "q("  { ins_to_string qstring lexbuf }
+| "q("  { raw_ins_to_string qstring lexbuf }
 | "qq(" { ins_to_string qqstring lexbuf }
 | "qw(" { let s, pos = raw_ins qstring lexbuf in QUOTEWORDS(s, pos) }
 
