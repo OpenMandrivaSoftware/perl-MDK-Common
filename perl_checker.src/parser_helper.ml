@@ -889,6 +889,11 @@ let call_raw force_non_builtin_func (e, para) =
 	  | [ List(String _ :: _) ] -> die_rule "don't use interpolated translated string, use %s or %d instead"
 	  |  _ -> die_rule (sprintf "%s() must be used with a string" f))
 
+      | "if_" ->
+	  (match para with
+	  | [ List [ _ ] ] -> warn_rule "not enough parameters";
+	  | _ -> ())
+
       | "map" ->
 	  (match para with
 

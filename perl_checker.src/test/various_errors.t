@@ -29,6 +29,8 @@ join(@l)                                 first argument of join() must be a scal
 
 join(',', 'foo')                         join('...', $foo) is the same as $foo
 
+if_($xxx)                                not enough parameters
+
 push @l                                  you must give some arguments to push
 
 push $xxx, 1                             push is expecting an array
