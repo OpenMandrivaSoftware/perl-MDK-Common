@@ -357,7 +357,7 @@ let check_variables vars t =
     | Method_call(Raw_string(pkg, _) as class_, Raw_string(method_, pos), para) ->
 	let vars = List.fold_left check_variables_ vars para in	
 	let rec search pkg =
-	  if is_global_var_declared vars (I_func, pkg, method_) (Some(pos, class_ :: para)) then true
+	  if is_global_var_declared vars (I_func, pkg, method_) (Some(pos, [ List (class_ :: para) ])) then true
 	  else
 	    let package = Hashtbl.find vars.state.per_package pkg in
 	    List.exists search (List.map fst (some_or package.isa []))
