@@ -258,7 +258,7 @@ sub add_f4before_leaving {
     *N = sub {
 	my $f = $list->{$_[0]}{$name} or die '';
 	$name eq 'DESTROY' and delete $list->{$_[0]};
-	goto $f;
+	&$f;
     } unless defined &{*N};
 
 }

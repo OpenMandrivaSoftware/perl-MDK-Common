@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 2mdk
+%define release 3mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -49,6 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Tue Jul  9 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-3mdk
+- workaround perl 5.8.0-RC2 bug
+
 * Tue Jul  9 2002 Pixel <pixel@mandrakesoft.com> 1.0.3-2mdk
 - rebuild for perl 5.8.0
 
