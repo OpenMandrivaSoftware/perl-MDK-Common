@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 2mdk
+%define release 3mdk
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
@@ -44,7 +44,7 @@ make test %build_option
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install PREFIX="$RPM_BUILD_ROOT/usr" %build_option
+%makeinstall_std %build_option
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -59,9 +59,16 @@ rm -rf $RPM_BUILD_ROOT
 %doc index.html tutorial.html perl_checker.src/perl_checker.html
 %{_bindir}/*
 %{perl_vendorlib}/perl_checker_fake_packages
+%{_datadir}/vim/ftplugin/*
+%config(noreplace) %{_sysconfdir}/emacs/site-start.d/*
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Aug 13 2004 Pixel <pixel@mandrakesoft.com> 1.1.18-3mdk
+- use DESTDIR
+- add perl_checker-vim
+- add Ctrl-return in perl and cperl emacs mode
+
 * Wed Aug 11 2004 Pixel <pixel@mandrakesoft.com> 1.1.17-2mdk
 - various perl_checker enhancements/fixes
 

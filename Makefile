@@ -5,7 +5,7 @@ RPM ?= $(HOME)/rpm
 PREFIX = /usr
 BINDIR = $(PREFIX)/bin
 VENDORLIB = $(shell eval "`perl -V:installvendorlib`"; echo $$installvendorlib)
-INSTALLVENDORLIB = $(shell echo $(VENDORLIB) | sed 's,/usr,$(PREFIX),')
+INSTALLVENDORLIB = $(DESTDIR)$(VENDORLIB)
 PERL_CHECKER_TARGET = native-code
 
 GENERATED = MDK/Common.pm index.html perl_checker.src/perl_checker
@@ -34,8 +34,9 @@ clean:
 	find -name "*~" | xargs rm -rf
 
 install: clean all
-	install -d $(BINDIR) $(INSTALLVENDORLIB)/MDK/Common
-	install perl_checker.src/perl_checker $(BINDIR)
+	install -d $(DESTDIR)$(BINDIR) $(INSTALLVENDORLIB)/MDK/Common
+	$(MAKE) -C misc install
+	install perl_checker.src/perl_checker $(DESTDIR)$(BINDIR)
 	install -m 644 MDK/Common.pm $(INSTALLVENDORLIB)/MDK
 	install -m 644 MDK/Common/*.pm $(INSTALLVENDORLIB)/MDK/Common
 	tar c `find perl_checker_fake_packages -name "*.pm"` | tar xC $(INSTALLVENDORLIB)
