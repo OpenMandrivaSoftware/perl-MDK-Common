@@ -594,6 +594,18 @@ let cook_call_op op para pos =
       (match List.hd para with
       | List [ List _ ] -> warn_rule "remove the parentheses"
       | e -> if is_not_a_scalar e then warn_rule (sprintf "\"%s\" is only useful with a scalar" op))
+  | "foreach" ->
+      (match para with
+      |	[ _; Block [ Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)) ; Deref(I_scalar, Ident(None, "_", _)) ]) ] ; _ ], _) ; Semi_colon ] ] ->
+	  let l = string_of_Ident l in
+	  warn_rule (sprintf "use \"push @%s, grep { ... } ...\" instead of \"foreach (...) { push @%s, $_ if ... }\"\n  or sometimes \"@%s = grep { ... } ...\"" l l l) 
+      |	[ _; Block [ Call_op("if infix", [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)); _ ]) ] ; _ ], _) ; Semi_colon ] ] ->
+	  let l = string_of_Ident l in
+	  warn_rule (sprintf "use \"push @%s, map { ... ? ... : () } ...\" instead of \"foreach (...) { push @%s, ... if ... }\"\n  or sometimes \"@%s = map { ... ? ... : () } ...\"\n  or sometimes \"@%s = map { if_(..., ...) } ...\"" l l l l)
+      | [ _; Block [ List [ Call(Deref(I_func, Ident(None, "push", _)), [ Deref(I_array, (Ident _ as l)); _ ]) ] ; Semi_colon ] ] ->
+	  let l = string_of_Ident l in
+	  warn_rule (sprintf "use \"push @%s, map { ... } ...\" instead of \"foreach (...) { push @%s, ... }\"\n  or sometimes \"@%s = map { ... } ...\"" l l l)
+      | _ -> ())
   | _ -> ());
   let call = Call_op(op, para, raw_pos2pos pos) in
   match op, para with
