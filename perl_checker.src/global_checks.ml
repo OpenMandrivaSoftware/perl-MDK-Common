@@ -175,7 +175,7 @@ let is_global_var context ident =
       | "defined" | "delete" | "die"
       | "each" | "endpwent" | "eof" | "eval" | "exec" | "exists" | "exit"
       | "fcntl" | "fileno" | "flock" | "formline" | "fork"
-      | "gethostbyaddr" | "gethostbyname" | "getgrent" | "getgrnam" | "getgrgid" | "getppid" | "getpwent" | "getpwnam" | "getpwuid" | "glob" | "gmtime" | "goto" | "grep" | "hex"
+      | "gethostbyaddr" | "gethostbyname" | "getgrent" | "getgrnam" | "getgrgid" | "getppid" | "getpwent" | "getpwnam" | "getpwuid" | "getservbyname" | "glob" | "gmtime" | "goto" | "grep" | "hex"
       | "index" | "int" | "ioctl" | "join" | "keys" | "kill"
       | "last" | "lc" | "lcfirst" | "length" | "link" | "localtime" | "log" | "lstat"
       | "map" | "mkdir" | "next" | "no" | "oct" | "open" | "opendir" | "ord"
