@@ -839,6 +839,7 @@ let call_and_context(e, para) force_non_builtin_func priority esp_start esp_end 
 	| "any" | "every" -> M_scalar
 	| "find_index" -> M_int
 	| "each_index" -> M_none
+	| "N" | "N_" -> M_string
 	| _ -> M_unknown)
     | _ -> M_unknown
   in
@@ -1086,7 +1087,7 @@ let mcontext_check_none esp =
       | [List [Num("1", _)]; Semi_colon] -> () (* allow "1;" for package return value. It would be much better to check we are at toplevel, but hell i don't want to wire this information up to here *)
       | [List [Call_op ("<>", [Ident (None, "STDIN", _)], _)]; Semi_colon] -> () (* allow <STDIN> to ask "press return" *)
       | [List [Call(Deref(I_func, Ident(None, "map", _)), _)]; Semi_colon] -> warn_rule "if you don't use the return value, use \"foreach\" instead of \"map\""
-      | _ -> warn_rule "value is dropped"
+      | _ -> warn esp.pos "value is dropped"
 
 let mcontext_op_assign left right =
   mcontext_check_non_none right;
