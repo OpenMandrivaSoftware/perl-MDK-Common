@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 2mdk
+%define release 1mdk
 
 Summary: Various simple functions
 Name: perl-MDK-Common
@@ -52,6 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Apr 25 2003 Pixel <pixel@mandrakesoft.com> 1.1.1-1mdk
+- perl_checker: enhanced "number of arguments" checking, including method calls
+
 * Fri Apr 18 2003 Guillaume Cottenceau <gc@mandrakesoft.com> 1.1.0-2mdk
 - add the tutorial to the -devel package
 
