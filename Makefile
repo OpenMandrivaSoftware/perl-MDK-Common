@@ -42,6 +42,6 @@ tar: clean
 
 build:
 	cp -f ../$(TAR) $(RPM)/SOURCES
-	perl -MMDK::Common -pe 's/THEVERSION/$$MDK::Common::VERSION/' $(NAME).spec > $(RPM)/SPECS/$(NAME).spec
+	perl -I. -MMDK::Common -pe 's/THEVERSION/$$MDK::Common::VERSION/' $(NAME).spec > $(RPM)/SPECS/$(NAME).spec
 	-rpm -ba $(RPM)/SPECS/$(NAME).spec
 	rm -f ../$(TAR)
