@@ -232,8 +232,14 @@ let un_parenthesize_one_elt_List = function
   | l -> l
 
 let check_unused_local_variables vars =
-  List.iter (fun ((_, s as v), (pos, used, _proto)) ->
-    if not !used && (s.[0] != '_' || s = "_") && not (List.mem s [ "BEGIN"; "END"; "DESTROY" ]) then warn_with_pos pos (sprintf "unused variable %s" (variable2s v))
+  List.iter (fun ((context, s as v), (pos, used, _proto)) ->
+    if not !used then
+      match s with
+      | "BEGIN" | "END" | "DESTROY" -> ()
+      | "_" when context = I_array ->
+	  warn_with_pos pos "if the function doesn't take any parameters, please use the empty prototype.\nexample \"sub foo() { ... }\""
+      | _ ->
+	  if s.[0] != '_' || s = "_" then warn_with_pos pos (sprintf "unused variable %s" (variable2s v))
   ) (List.hd vars.my_vars)
   
 
