@@ -27,35 +27,47 @@ let findfile dirs f = List.find Sys.file_exists (List.map (fun dir -> dir ^ "/" 
 let rec parse_file state file =
   try
     if !Flags.verbose then prerr_endline ("checking " ^ file) ;
-    let lexbuf = Lexing.from_channel (Unix.open_process_in (Printf.sprintf "expand \"%s\"" file)) in
+    let channel = Unix.open_process_in (Printf.sprintf "expand \"%s\"" file) in
+    let lexbuf = Lexing.from_channel channel in
     try
       Info.start_a_new_file file ;
       let tokens = Lexer.get_token Lexer.token lexbuf in
+      (*let _ = Unix.close_process_in channel in*)
       let t = Parser_helper.parse_tokens Parser.prog tokens (Some lexbuf) in
-      let required_packages, package = get_global_info_from_package t in
-      Tree.get_vars_declaration state package ;
-      let state = { state with per_package = (package.package_name, package) :: state.per_package } in
-      let state = List.fold_left parse_package_if_needed state (required_packages @ List.map (fun (s, (_, pos)) -> s, pos) package.uses) in
-      state
+      let packages, required_packages = get_global_info_from_package t in
+      List.fold_left (fun (required_packages, state) package ->
+	Tree.get_vars_declaration state package ;
+	let state = Tree.add_package_to_state state package in
+	List.map (fun (s, (_, pos)) -> s, pos) package.uses @ required_packages, state
+      ) (required_packages, state) packages
     with Failure s -> (
       prerr_endline s ;
       exit 1
      )
-  with _ -> failwith ("bad file " ^ file)
+  with 
+  | Not_found -> internal_error "runaway Not_found"
 
 and parse_package_if_needed state (package_name, pos) =
-  if List.mem_assoc package_name state.per_package then state else
+  if List.mem_assoc package_name state.per_package then [], state else
   try
     let package = snd (List.hd state.per_package) in
     let inc = inc package.file_name package.package_name package.has_package_name in
-    if List.mem package_name !ignored_packages then state 
+    if List.mem package_name !ignored_packages then [], state
     else
-      let file = String.concat "/" (split_at2 ':'':' package_name) ^ ".pm" in
-      parse_file state (findfile inc file)
+      let rel_file = String.concat "/" (split_at2 ':'':' package_name) ^ ".pm" in
+      let file = findfile inc rel_file in
+      if List.mem file state.files_parsed 
+      then [], state (* already seen, it happens when many files have the same package_name *)
+      else parse_file state file
   with Not_found -> 
     Tree.warn_with_pos pos (Printf.sprintf "can't find package %s" package_name) ;
-    state
+    [], state
 
+let rec parse_required_packages state = function
+  | [] -> state
+  | e :: l ->
+      let el, state = parse_package_if_needed state e in
+      parse_required_packages state (el @ l)
 
 let parse_options =
   let args_r = ref [] in
@@ -67,5 +79,8 @@ let parse_options =
   Arg.parse options (lpush args_r) usage;
 
   let args = if !args_r = [] then (Unix.chdir "/home/pixel/cooker/gi/perl-install" ; ["/home/pixel/cooker/gi/perl-install/t.pl"]) else !args_r in
-  let state = List.fold_left parse_file default_state args in
+  let required_packages, state = collect_withenv parse_file default_state args in
+
+  let state = parse_required_packages state required_packages in
+
   List.iter (check_tree state) (List.map snd state.per_package)

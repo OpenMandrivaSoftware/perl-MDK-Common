@@ -22,20 +22,16 @@ type fromparser =
 
    | Ref of context * fromparser
    | Deref of context * fromparser
-   | Deref_with of context * fromparser * fromparser
+   | Deref_with of context * context * fromparser * fromparser (* from_context, to_context, ref, para *)
 
    | Diamond of fromparser option
-   | Binop of string * fromparser * fromparser
-   | If_then_else of string * (fromparser * fromparser) list * fromparser option
 
    | List of fromparser list
    | Block of fromparser list
 
-   | Call_op of string * fromparser list
+   | Call_op of string * fromparser list * pos
    | Call of fromparser * fromparser list
-   | CallP of fromparser * fromparser list
    | Method_call of fromparser * fromparser * fromparser list
-   | Method_callP of fromparser * fromparser * fromparser list
 
    | Anonymous_sub of fromparser
    | My_our of string * (context * string) list * pos

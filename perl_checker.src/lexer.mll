@@ -51,14 +51,14 @@ type raw_token =
 
 and raw_interpolated_string = (string * raw_token list) list
 
-let rec concat_bareword_paren = function
+let rec concat_bareword_paren accu = function
   | PRINT(s, pos1) :: PAREN(pos2) :: l
   | BAREWORD(s, pos1) :: PAREN(pos2) :: l ->
-      BAREWORD_PAREN(s, pos1) :: PAREN(pos2) :: concat_bareword_paren l
+      concat_bareword_paren (PAREN(pos2) :: BAREWORD_PAREN(s, pos1) :: accu) l
   | RAW_IDENT(kind, ident, pos1) :: PAREN(pos2) :: l -> 
-      RAW_IDENT_PAREN(kind, ident, pos1) :: PAREN(pos2) :: concat_bareword_paren l
-  | [] -> []
-  | e :: l -> e :: concat_bareword_paren l
+      concat_bareword_paren (PAREN(pos2) :: RAW_IDENT_PAREN(kind, ident, pos1) :: accu) l
+  | [] -> List.rev accu
+  | e :: l -> concat_bareword_paren (e :: accu) l
 
 let rec raw_token_to_pos_and_token spaces = function
   | NUM(s, pos) -> pos, Parser.NUM(s, (spaces, pos))
@@ -188,7 +188,7 @@ let rec lexbuf2list accu t lexbuf =
 
 let get_token token lexbuf = 
   let tokens = lexbuf2list [] token lexbuf in
-  let tokens = concat_bareword_paren tokens in
+  let tokens = concat_bareword_paren [] tokens in
   let tokens = concat_spaces Space_0 tokens in
   tokens
 
@@ -268,7 +268,7 @@ let string_interpolate token pre lexbuf =
    let local_lexbuf = Lexing.from_string (pre ^ s ^ " ") in (* add a space to help tokenizing "xxx$$" *)
    local_lexbuf.lex_abs_pos <- lexeme_start lexbuf ;
    let l = lexbuf2list [] token local_lexbuf in
-   let l = concat_bareword_paren l in
+   let l = concat_bareword_paren [] l in
    next_interpolated l; 
    (Stack.pop next_rule) lexbuf
 

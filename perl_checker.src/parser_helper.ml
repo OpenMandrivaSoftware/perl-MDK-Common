@@ -11,7 +11,12 @@ let get_pos (_, (_, pos)) = raw_pos2pos pos
 let var_dollar_ = Deref(I_scalar, Ident(None, "_", raw_pos2pos bpos))
 let var_STDOUT = Deref(I_star, Ident(None, "STDOUT", raw_pos2pos bpos))
 
+let is_var_dollar_ = function
+  | Deref(I_scalar, Ident(None, "_", _)) -> true
+  | _ -> false
+
 let is_parenthesized = function
+  | List[]
   | List[List[_]] -> true
   | _ -> false
 
@@ -26,8 +31,8 @@ let rec un_parenthesize_full = function
 let not_complex e =
   if is_parenthesized e then true else
   let rec not_complex_ op = function
-    | Call_op("?:", _) -> false
-    | Call_op(op', l) -> op <> op' && List.for_all (not_complex_ op') l
+    | Call_op("?:", _, _) -> false
+    | Call_op(op', l, _) -> op <> op' && List.for_all (not_complex_ op') l
     | e -> not (is_parenthesized e)
   in not_complex_ "" (un_parenthesize_full e)
 
@@ -39,6 +44,44 @@ let string_of_Ident = function
   | Ident(None, s, _) -> s
   | Ident(Some fq, s, _) -> fq ^ "::" ^ s
   | _ -> internal_error "string_of_Ident"
+let context2s = function
+  | I_scalar -> "$"
+  | I_hash -> "%"
+  | I_array -> "@"
+  | I_func -> "&"
+  | I_raw -> ""
+  | I_star -> "*"
+let variable2s(context, ident) = context2s context ^ ident
+
+let non_scalar_context context = context = I_hash || context = I_array
+
+let rec is_same_fromparser a b =
+  match a, b with
+  | Undef, Undef -> true
+  | Ident(fq1, s1, _), Ident(fq2, s2, _) -> fq1 = fq2 && s1 = s2
+  | Num(s1, _), Num(s2, _) 
+  | Raw_string(s1, _), Raw_string(s2, _) -> s1 = s2
+
+  | String(l1, _), String(l2, _) ->
+      List.for_all2 (fun (s1, e1) (s2, e2) -> s1 = s2 && is_same_fromparser e1 e2) l1 l2
+
+  | Ref(c1, e1), Ref(c2, e2)
+  | Deref(c1, e1), Deref(c2, e2) -> c1 = c2 && is_same_fromparser e1 e2
+
+  | Deref_with(c1, c_1, e1, e_1), Deref_with(c2, c_2, e2, e_2) -> c1 = c2 && c_1 = c_2 && is_same_fromparser e1 e2 && is_same_fromparser e_1 e_2
+
+  | Diamond(None), Diamond(None) -> true
+  | Diamond(Some e1), Diamond(Some e2) -> is_same_fromparser e1 e2
+
+  | List(l1), List(l2) -> List.for_all2 is_same_fromparser l1 l2
+
+  | Call_op(op1, l1, _), Call_op(op2, l2, _) -> op1 = op2 && List.for_all2 is_same_fromparser l1 l2
+  | Call(e1, l1), Call(e2, l2) -> is_same_fromparser e1 e2 && List.for_all2 is_same_fromparser l1 l2
+
+  | Method_call(e1, m1, l1), Method_call(e2, m2, l2) ->
+      is_same_fromparser e1 e2 && is_same_fromparser m1 m2 && List.for_all2 is_same_fromparser l1 l2
+
+  | _ -> false
 
 let from_scalar (e, _) =
   match e with
@@ -204,21 +247,51 @@ let check_parenthesized_first_argexpr word ((_, e), (_, (start, _)) as ex) =
   let want_space = word.[0] = '-' in
   if word = "return" then () else
   match e with
-  | [ Call_op(_, (e' :: l)) ]
+  | [ Call_op(_, (e' :: l), _) ]
   | e' :: l ->
       if is_parenthesized e' then
-	if want_space then
-	  if l = [] then sp_n(ex) else die_with_rawpos (start, start) "can't handle this nicely"
-	else
-	  if l = [] then sp_0(ex) else die_with_rawpos (start, start) "you must not have a space here"
+	if l = [] then 
+	  (if want_space then sp_n else sp_0) ex
+	else die_with_rawpos (start, start) "can't handle this nicely"
+      else
+	sp_p(ex)
   | _ -> 
       if word = "time" then die_rule "please use time() instead of time";
       sp_p(ex)
 
-let check_foreach (s, (_, pos)) = if s = "for"     then warn pos "write \"foreach\" instead of \"for\""
-let check_for     (s, (_, pos)) = if s = "foreach" then warn pos "write \"for\" instead of \"foreach\""
+let check_hash_subscript ((_, e), (_, pos)) =
+  let can_be_raw_string = function
+    | "" | "x" | "y" -> false (* special case for {'y'} otherwise the emacs mode goes wild, special case for {'x'} to have the same as {'y'} (since they usually go together) *)
+    | s -> 
+	char_is_alpha s.[0] && (String.length s = 1 || string_forall_with char_is_alphanumerical_ 1 s)
+  in
+  match e with
+  | List [String ([(s, List [])], _)] when can_be_raw_string s -> warn pos (sprintf "{\"%s\"} can be written {%s}" s s)
+  | List [Raw_string(s, _)] when can_be_raw_string s -> warn pos (sprintf "{'%s'} can be written {%s}" s s)
+  | _ -> ()
+
+let check_arrow_needed ((_, e), _) ter =
+  match e with
+  | Deref_with(I_array, I_scalar, List [List [Call _]], _) -> () (* "->" needed for (f())[0]->{XX} *)
+  | Deref_with _ -> warn (sndsnd ter) "the arrow \"->\" is unneeded"
+  | _ -> ()
+
+let check_unneeded_var_dollar_    ((_, e), (_, pos)) = if is_var_dollar_ e then warn pos "\"$_ =~ /regexp/\" can be written \"/regexp/\""
+let check_unneeded_var_dollar_s   ((_, e), (_, pos)) = if is_var_dollar_ e then warn pos "\"$_ =~ s/regexp/.../\" can be written \"s/regexp/.../\""
+let check_unneeded_var_dollar_not ((_, e), (_, pos)) = if is_var_dollar_ e then warn pos "\"$_ !~ /regexp/\" can be written \"!/regexp/\""
+
 let check_MULT_is_x (s, _) = if s <> "x" then die_rule "syntax error"
 let check_my (s, _) = if s <> "my" then die_rule "syntax error"
+let check_foreach (s, (_, pos)) = if s = "for"     then warn pos "write \"foreach\" instead of \"for\""
+let check_for     (s, (_, pos)) = if s = "foreach" then warn pos "write \"for\" instead of \"foreach\""
+let check_for_foreach (s, (_, pos)) ((_, expr), _) =
+  match expr with
+  | List [ Deref(I_scalar, _) ] ->
+      if s = "foreach" then warn pos "you are using the special fpons trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
+  | List [ Deref_with(context, I_scalar, _, _) ] when context <> I_func -> 
+      if s = "foreach" then warn pos "you are using the special fpons trick to locally set $_ with a value, for this please use \"for\" instead of \"foreach\""
+  | _ -> 
+      if s = "for" then warn pos "write \"foreach\" instead of \"for\""
 
 let check_block_sub (l, (_, (_, end_)) as ter_lines) (_, (space, _) as ter_BRACKET_END) =  
   if l = [] then
@@ -254,6 +327,15 @@ let only_one_in_List ((_, e), both) =
   | List l -> only_one(l, both)
   | _ -> e
   
+let rec is_only_one_in_List = function
+  | [List l] -> is_only_one_in_List l
+  | [_] -> true
+  | _ -> false
+  
+let is_not_a_scalar = function
+  | Deref_with(_, context, _, _)
+  | Deref(context, _) -> non_scalar_context context
+  | _ -> false
 
 let maybe_to_Raw_string = function
   | Ident(None, s, pos) -> Raw_string(s, pos)
@@ -267,8 +349,12 @@ let to_List = function
 let deref_arraylen e = Call(Deref(I_func, Ident(None, "int", raw_pos2pos bpos)), [Deref(I_array, e)])
 let to_Ident ((fq, name), (_, pos)) = Ident(fq, name, raw_pos2pos pos)
 let to_Raw_string (s, (_, pos)) = Raw_string(s, raw_pos2pos pos)
-let to_Method_callP(object_, method_, para) = Method_callP(maybe_to_Raw_string object_, maybe_to_Raw_string method_, para)
-let to_Method_call (object_, method_, para) = Method_call (maybe_to_Raw_string object_, maybe_to_Raw_string method_, para)
+let to_Method_call (object_, method_, para) = Method_call(maybe_to_Raw_string object_, maybe_to_Raw_string method_, para)
+let to_Deref_with(from_context, to_context, ref_, para) =
+  if is_not_a_scalar ref_ then warn_rule "bad deref";
+  Deref_with(from_context, to_context, ref_, para)
+
+  
 let to_Local ((_, e), (_, pos)) =
   let l = 
     match e with
@@ -281,14 +367,14 @@ let to_Local ((_, e), (_, pos)) =
     | Deref(I_scalar, Ident _)
     | Deref(I_array, Ident _)
     | Deref(I_star, Ident _)
-    | Deref_with(I_hash, Ident _, _)
-    | Deref_with(I_hash, Deref(I_scalar, _), _)
-    | Deref_with(I_hash, Deref_with(I_hash, Ident _, _), _)
-    | Deref_with(I_hash, Deref_with(I_hash, Deref(I_scalar, Ident _), _), _) ->
+    | Deref_with(I_hash, I_scalar, Ident _, _)
+    | Deref_with(I_hash, I_scalar, Deref(I_scalar, _), _)
+    | Deref_with(I_hash, I_scalar, Deref_with(I_hash, I_scalar, Ident _, _), _)
+    | Deref_with(I_hash, I_scalar, Deref_with(I_hash, I_scalar, Deref(I_scalar, Ident _), _), _) ->
 	None
     | _ -> die_with_rawpos pos "bad argument to \"local\""
   ) l in
-  if local_vars = [] then Call_op("local", local_exprs)
+  if local_vars = [] then Call_op("local", local_exprs, raw_pos2pos pos)
   else if local_exprs = [] then My_our("local", local_vars, raw_pos2pos pos)
   else die_with_rawpos pos "bad argument to \"local\""
 
@@ -298,41 +384,43 @@ let op_p prio s e = sp_p e ; op prio s e
 let sub_declaration (name, proto) body = Sub_declaration(name, proto, Block body)
 let anonymous_sub body = Anonymous_sub (Block body)
 
-let call_op((prio, (prev_ter, op)), (_, (_, pos) as ter), para) = 
+let cook_call_op(op, para, pos) =
+  let call = Call_op(op, para, raw_pos2pos pos) in
+  match op, para with
+  | "=", [My_our _; Ident(None, "undef", _)] -> 
+      warn pos "no need to initialize variable, it's done by default" ;
+      call
+  | "=", [My_our _; List[]] -> 
+      if Info.is_on_same_line_current pos then warn pos "no need to initialize variables, it's done by default" ;
+      call
+
+  | "=", [ Deref(I_star, String ([(sf1, List [])], _)); _ ] ->
+      warn_rule (sprintf "write *{'%s'} instead of *{\"%s\"}" sf1 sf1) ;
+      call
+
+  | "=", [ Deref(I_star, (Ident _ as f1)); Deref(I_star, (Ident _ as f2)) ] ->
+      let s1, s2 = string_of_Ident f1, string_of_Ident f2 in
+      warn pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
+      sub_declaration (f1, "") [ Deref(I_func, f2) ]
+  | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Deref(I_star, (Ident _ as f2)) ] ->
+      let s2 = string_of_Ident f2 in
+      warn pos (sprintf "\"*{'%s'} = *%s\" is better written \"*{'%s'} = \\&%s\"" sf1 s2 sf1 s2) ;
+      sub_declaration (Ident(None, sf1, pos_f1), "") [ Deref(I_func, f2) ]
+
+  | "=", [ Deref(I_star, (Ident _ as f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
+      sub_declaration (f1, "") [ Deref(I_func, f2) ]
+  | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
+      sub_declaration (Ident(None, sf1, pos_f1), "") [ Deref(I_func, f2) ]
+
+  | _ -> 
+      call
+
+let call_op_((prio, (prev_ter, op)), ter, para) (sp, pos) = 
   sp_same prev_ter ter ;
+  (prio, cook_call_op(op, para, pos)), (sp, pos)
 
-  let call = Call_op(op, para) in
-  let call =
-    match op, para with
-    | "=", [List [My_our _]; Ident(None, "undef", _)] -> 
-	warn pos "no need to initialize variable, it's done by default" ;
-	call
-    | "=", [List [My_our _]; List[]] -> 
-	if Info.is_on_same_line_current pos then warn pos "no need to initialize variables, it's done by default" ;
-	call
-
-    | "=", [ Deref(I_star, String ([(sf1, List [])], _)); _ ] ->
-	warn_rule (sprintf "write *{'%s'} instead of *{\"%s\"}" sf1 sf1) ;
-	call
-
-    | "=", [ Deref(I_star, (Ident _ as f1)); Deref(I_star, (Ident _ as f2)) ] ->
-	let s1, s2 = string_of_Ident f1, string_of_Ident f2 in
-	warn pos (sprintf "\"*%s = *%s\" is better written \"*%s = \\&%s\"" s1 s2 s1 s2) ;
-	sub_declaration (f1, "") [ Deref(I_func, f2) ]
-    | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Deref(I_star, (Ident _ as f2)) ] ->
-	let s2 = string_of_Ident f2 in
-	warn pos (sprintf "\"*{'%s'} = *%s\" is better written \"*{'%s'} = \\&%s\"" sf1 s2 sf1 s2) ;
-	sub_declaration (Ident(None, sf1, pos_f1), "") [ Deref(I_func, f2) ]
-
-    | "=", [ Deref(I_star, (Ident _ as f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
-	sub_declaration (f1, "") [ Deref(I_func, f2) ]
-    | "=", [ Deref(I_star, Raw_string(sf1, pos_f1)); Ref(I_scalar, Deref(I_func, (Ident _ as f2))) ] ->
-	sub_declaration (Ident(None, sf1, pos_f1), "") [ Deref(I_func, f2) ]
-
-    | _ -> 
-	call
-  in
-  prio, call
+let to_Call_op(op, para) (sp, pos) = Call_op(op, para, raw_pos2pos pos), (sp, pos)
+let to_Call_op_(prio, op, para) (sp, pos) = (prio, Call_op(op, para, raw_pos2pos pos)), (sp, pos)
 
 let followed_by_comma ((_,e), _) (true_comma, _) =
   if true_comma then e else
@@ -344,12 +432,6 @@ let call_func is_a_func (e, para) =
   match e with
   | Deref(I_func, Ident(None, f, _)) ->
       let para' = match f with
-      | "require" ->
-	  (match para with
-	  | [ Ident(_, _, pos) as s ] -> Some [ Raw_string(string_of_Ident s, pos) ]
-	  | [ String _ ]
-	  | [ Raw_string _ ] -> None
-	  | _ -> die_rule "use either \"require PACKAGE\" or \"require 'PACKAGE.pm'\"")
       | "no" ->
 	  (match para with
 	  | [ Ident(_, _, pos) as s ] -> Some [ Raw_string(string_of_Ident s, pos) ]
@@ -357,7 +439,8 @@ let call_func is_a_func (e, para) =
 	  | _ -> die_rule "use \"no PACKAGE <para>\"")
       | "N" | "N_" ->
 	  (match para with
-	  | [List(String _ :: _)] -> None
+	  | [ List(String([ _s, List [] ], _) :: _) ] -> None
+	  | [ List(String _ :: _) ] -> die_rule "don't use interpolated translated string, use %s or %d instead"
 	  |  _ -> die_rule (sprintf "%s() must be used with a string" f))
 
       | "goto" ->
@@ -370,6 +453,11 @@ let call_func is_a_func (e, para) =
 	  | [ Ident(None, s, pos) ] -> Some [ Raw_string(s, pos) ]
 	  | _ -> die_rule (sprintf "%s must be used with a raw string" f))
 
+      | "length" ->
+	  if para = [] then warn_rule "length() with no parameter !?" else
+	  if is_not_a_scalar (List.hd para) then warn_rule "never use \"length @l\", it returns the length of the string int(@l)" ;
+	  None
+	    
       | _ -> None
       in Call(e, some_or para' para)
   | _ -> Call(e, para)
@@ -383,10 +471,34 @@ let call_one_scalar_para (e, (_, pos)) para =
     | "defined" -> P_expr
     | _ -> P_add
   in
-  pri, Call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)
+  pri, call(Deref(I_func, Ident(None, e, raw_pos2pos pos)), para)
+
+
+let call_op_if_infix left right (sp, pos) =
+  (match left, right with
+  | List [Call_op("=", [Deref(context, _); _], _)], _ when non_scalar_context context -> ()
+  | List [Call_op("=", [v; _], _)],
+    List [Call_op("not", [v'], _)] when is_same_fromparser v v' ->
+      warn_rule "\"$foo = ... if !$foo\" can be written \"$foo ||= ...\""
+  | _ -> ());
+  Call_op("if infix", [ left ; right], raw_pos2pos pos), (sp, pos)
+
+let call_op_unless_infix left right (sp, pos) =
+  (match left, right with
+  | List [Call_op("=", [Deref(context, _); _], _)], _ when non_scalar_context context -> ()
+  | List [Call_op("=", [v; _], _)], List [v'] when is_same_fromparser v v' ->
+      warn_rule "\"$foo = ... unless $foo\" can be written \"$foo ||= ...\""
+  | _ -> ());
+  (match right with
+  | List [Call_op(op, _, _)] ->
+      (match op with
+      | "&&" | "||" | "not" | "ne" | "?:" -> warn_rule "don't use \"unless\" when the condition is complex, use \"if\" instead"
+      | _ -> ());
+  | _ -> ());
+  Call_op("unless infix", [ left ; right], raw_pos2pos pos), (sp, pos)
+
 
 let (current_lexbuf : Lexing.lexbuf option ref) = ref None
-
 
 let rec list2tokens l =
   let rl = ref l in
@@ -404,9 +516,25 @@ let parse_tokens parse tokens lexbuf_opt =
   if tokens = [] then [] else
   parse (list2tokens tokens) (some !current_lexbuf)
 
-let parse_interpolated parse l = List.map (fun (s, tokens) -> s, to_List(parse_tokens parse tokens None)) l
+let parse_interpolated parse l = 
+  let l' = List.map (fun (s, tokens) -> s, to_List(parse_tokens parse tokens None)) l in
+  match split_last l' with
+  | pl, ("", List []) -> pl
+  | _ -> l'
 
-let to_String parse (l, (_, pos)) = String(parse_interpolated parse l, raw_pos2pos pos)
+let to_String parse strict (l, (_, pos)) = 
+  let l' = parse_interpolated parse l in
+  (match l' with
+  | [ "", List [Deref(I_scalar, Ident(None, ident, _))]] -> 
+      if strict then warn pos (sprintf "%s is better written without the double quotes" (variable2s(I_scalar, ident)))
+  | [ "", List [Deref(I_hash, _)]] -> 
+      warn pos "don't use a hash in string context"
+  | [ "", List [Deref(I_array, _)]] -> 
+      ()
+  | [("", _)] -> 
+      if strict then warn pos "double quotes are unneeded"
+  | _ -> ());
+  String(l', raw_pos2pos pos)
 
 let from_PATTERN parse ((s, opts), (_, pos)) = 
   [ String(parse_interpolated parse s, raw_pos2pos pos) ; 

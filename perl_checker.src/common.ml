@@ -643,12 +643,24 @@ let int_sort l = sort (fun a b -> a - b) l
 let str_begins_with s prefix =
   String.sub s 0 (min (String.length s) (String.length prefix)) = prefix
 
-let rec str_contains s1 s2 =
-  match s1 with
-  | "" -> false
-  | _ -> 
-      if str_begins_with s1 s2 then true
-      else str_contains (String.sub s1 1 (String.length s1 - 1)) s2
+let rec strstr s subs =
+  let len_s, len_subs = String.length s, String.length subs in
+  let rec rec_ i =
+    let i' = String.index_from s i subs.[0] in
+    if i' + len_subs <= len_s then
+      if String.sub s i' len_subs = subs then
+	i'
+      else
+	rec_ (i' + 1)
+    else
+      raise Not_found
+  in
+  rec_ 0
+
+let str_contains s subs =
+  try
+    let _ = strstr s subs in true
+  with Not_found -> false
 
 let str_ends_with s suffix =
   let len = min (String.length s) (String.length suffix) in
@@ -685,6 +697,29 @@ let rec explode_string = function
 
 let is_uppercase c = Char.lowercase c <> c
 let is_lowercase c = Char.uppercase c <> c
+
+let char_is_alphanumerical c =
+  let i = Char.code c in
+  Char.code 'a' <= i && i <= Char.code 'z' ||
+  Char.code 'A' <= i && i <= Char.code 'Z' ||
+  Char.code '0' <= i && i <= Char.code '9'
+
+let char_is_alphanumerical_ c =
+  let i = Char.code c in
+  Char.code 'a' <= i && i <= Char.code 'z' ||
+  Char.code 'A' <= i && i <= Char.code 'Z' ||
+  Char.code '0' <= i && i <= Char.code '9' || c = '_'
+
+let char_is_alpha c =
+  let i = Char.code c in
+  Char.code 'a' <= i && i <= Char.code 'z' ||
+  Char.code 'A' <= i && i <= Char.code 'Z'
+
+let rec string_forall_with f i s =
+  try
+    f s.[i] && string_forall_with f (i+1) s
+  with Invalid_argument _ -> true
+
 
 let starts_with_non_lowercase s = s <> "" && s.[0] <> '_' && not (is_lowercase s.[0])
 

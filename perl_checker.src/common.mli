@@ -175,6 +175,7 @@ val graph_sort_by :
   ('a * 'a list) list -> (('a * 'a list) list, 'a * 'a) or_option
 val int_sort : int list -> int list
 val str_begins_with : string -> string -> bool
+val strstr : string -> string -> int
 val str_contains : string -> string -> bool
 val str_ends_with : string -> string -> bool
 val chop : string -> string
@@ -189,6 +190,10 @@ val non_rindex : string -> char -> int
 val explode_string : string -> char list
 val is_uppercase : char -> bool
 val is_lowercase : char -> bool
+val char_is_alphanumerical : char -> bool
+val char_is_alphanumerical_ : char -> bool
+val char_is_alpha : char -> bool
+val string_forall_with : (char -> bool) -> int -> string -> bool
 val starts_with_non_lowercase : string -> bool
 val fold_lines : ('a -> string -> 'a) -> 'a -> in_channel -> 'a
 val readlines : in_channel -> string list
