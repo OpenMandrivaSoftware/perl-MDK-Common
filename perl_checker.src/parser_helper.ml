@@ -311,7 +311,6 @@ let word_alone esp =
 	  Call(Deref(I_func, word), [var_dollar_ pos])
 	    
       | "split" -> Call(Deref(I_func, word), [ Raw_string(" ", pos) ; var_dollar_ pos ])
-      | "shift" -> Call(Deref(I_func, word), [ Deref(I_array,  Ident(None, "_", raw_pos2pos bpos)) ])
       | "die"   -> Call(Deref(I_func, word), [ Deref(I_scalar, Ident(None, "@", raw_pos2pos bpos)) ])
       | "return" | "eof" | "caller" 
       | "redo" | "next" | "last" -> 
@@ -855,7 +854,7 @@ let call_one_scalar_para { any = e ; pos = pos } para esp_start esp_end =
     match para with
     | [] ->
 	  if e = "shift" then 
-	    [ Deref(I_array, Ident(None, "_", raw_pos2pos pos)) ]
+	    [] (* can't decide here *)
 	  else
 	    (if not (List.mem e [ "length" ]) then warn_rule (sprintf "please use \"%s $_\" instead of \"%s\"" e e) ;
 	     [var_dollar_ (raw_pos2pos pos)])
