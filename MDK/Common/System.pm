@@ -177,13 +177,13 @@ L<MDK::Common>
 use MDK::Common::Math;
 use MDK::Common::File;
 
-use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_int $bitof_int); #);
-@ISA = qw(Exporter);
-@EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch distrib typeFromMagic list_passwd list_home list_skels list_users syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos whereis_binary getVarsFromSh setVarsInSh setVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile read_gnomekderc update_gnomekderc fuzzy_pidofs); #);
-%EXPORT_TAGS = (all => [ @EXPORT_OK ]);
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch distrib typeFromMagic list_passwd list_home list_skels list_users syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos whereis_binary getVarsFromSh setVarsInSh setVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile read_gnomekderc update_gnomekderc fuzzy_pidofs); #);
+our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
-%compat_arch = ( #- compatibilty arch mapping.
+our %compat_arch = ( #- compatibilty arch mapping.
 		     'noarch'  => undef,
 		     'ia32'    => 'noarch',
 		     'i386'    => 'ia32',
@@ -205,9 +205,9 @@ use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK %compat_arch $printable_chars $sizeof_i
 		     'ia64'    => 'noarch',
 		   );
 
-$printable_chars = "\x20-\x7E";
-$sizeof_int      = psizeof("i");
-$bitof_int       = $sizeof_int * 8;
+our $printable_chars = "\x20-\x7E";
+our $sizeof_int      = psizeof("i");
+our $bitof_int       = $sizeof_int * 8;
 
 
 sub arch() {

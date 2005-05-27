@@ -112,14 +112,14 @@ L<MDK::Common>
 =cut
 
 
-use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK $PRECISION $PI);
-@ISA = qw(Exporter);
-@EXPORT_OK = qw($PI even odd sqr sign round round_up round_down divide min max or_ and_ sum product factorial);
-%EXPORT_TAGS = (all => [ @EXPORT_OK ]);
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw($PI even odd sqr sign round round_up round_down divide min max or_ and_ sum product factorial);
+our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
-$PRECISION = 10;
-$PI = 3.1415926535897932384626433832795028841972;
+our $PRECISION = 10;
+our $PI = 3.1415926535897932384626433832795028841972;
 
 sub even { $_[0] % 2 == 0 }
 sub odd  { $_[0] % 2 == 1 }

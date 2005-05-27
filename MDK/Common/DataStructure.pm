@@ -117,10 +117,10 @@ use MDK::Common::Math;
 use MDK::Common::Func;
 
 
-use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
-@ISA = qw(Exporter);
-@EXPORT_OK = qw(sort_numbers ikeys add2hash add2hash_ put_in_hash member invbool listlength deref deref_array is_empty_array_ref is_empty_hash_ref uniq uniq_ difference2 intersection next_val_in_array group_by2 list2kv);
-%EXPORT_TAGS = (all => [ @EXPORT_OK ]);
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(sort_numbers ikeys add2hash add2hash_ put_in_hash member invbool listlength deref deref_array is_empty_array_ref is_empty_hash_ref uniq uniq_ difference2 intersection next_val_in_array group_by2 list2kv);
+our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
 sub sort_numbers { sort { $a <=> $b } @_ }

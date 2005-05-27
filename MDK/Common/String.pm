@@ -67,10 +67,10 @@ L<MDK::Common>
 =cut
 
 
-use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
-@ISA = qw(Exporter);
-@EXPORT_OK = qw(bestMatchSentence formatList formatError formatTimeRaw formatLines formatAlaTeX begins_with warp_text);
-%EXPORT_TAGS = (all => [ @EXPORT_OK ]);
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(bestMatchSentence formatList formatError formatTimeRaw formatLines formatAlaTeX begins_with warp_text);
+our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
 # count the number of character that match

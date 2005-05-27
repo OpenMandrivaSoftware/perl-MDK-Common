@@ -171,10 +171,10 @@ L<MDK::Common>
 use MDK::Common::Math;
 
 
-use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
-@ISA = qw(Exporter);
-@EXPORT_OK = qw(may_apply if_ if__ fold_left mapn mapn_ find any every map_index each_index grep_index find_index map_each grep_each partition before_leaving catch_cdie cdie);
-%EXPORT_TAGS = (all => [ @EXPORT_OK ]);
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(may_apply if_ if__ fold_left mapn mapn_ find any every map_index each_index grep_index find_index map_each grep_each partition before_leaving catch_cdie cdie);
+our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
 sub may_apply { $_[0] ? $_[0]->($_[1]) : (@_ > 2 ? $_[2] : $_[1]) }

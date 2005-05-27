@@ -96,10 +96,10 @@ L<MDK::Common>
 =cut
   
 
-use vars qw(@ISA %EXPORT_TAGS @EXPORT_OK);
-@ISA = qw(Exporter);
-@EXPORT_OK = qw(first second top to_bool to_int to_float bool2text bool2yesno text2bool chomp_ backtrace internal_error noreturn);
-%EXPORT_TAGS = (all => [ @EXPORT_OK ]);
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(first second top to_bool to_int to_float bool2text bool2yesno text2bool chomp_ backtrace internal_error noreturn);
+our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
 sub first { $_[0] }
