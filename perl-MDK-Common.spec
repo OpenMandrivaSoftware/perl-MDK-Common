@@ -40,7 +40,7 @@ Various verifying scripts created for DrakX
 %setup -n %{name}
 
 %build
-make test %build_option
+make %build_option
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -64,6 +64,14 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Thu May 19 2005 Pixel <pixel@mandriva.com> 1.1.23-1mdk
+- use "our" instead of "use vars"
+- add addVarsInSh() and addVarsInShMode()
+
+* Wed Feb 16 2005 Pixel <pixel@mandrakesoft.com> 1.1.22-2mdk
+- no need to call "make test", "make" is doing all what's needed
+  (and otherwise MDK/Common.pm is not generated when needed due to missing dependencies)
+
 * Tue Feb 15 2005 Pixel <pixel@mandrakesoft.com> 1.1.22-1mdk
 - fix building doc without buildrequiring perl-MDK-Common (thanks to Gary L. Greene)
 
