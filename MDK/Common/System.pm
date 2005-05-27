@@ -110,6 +110,18 @@ restrict the fields that will be printed to LIST
 
 like setVarsInSh with INT being the chmod value for the config file
 
+=item addVarsInSh(FILENAME, HASH REF)
+
+like setVarsInSh but keeping the entries in the file
+
+=item addVarsInSh(FILENAME, HASH REF, LIST)
+
+like setVarsInSh but keeping the entries in the file
+
+=item addVarsInShMode(FILENAME, INT, HASH REF, LIST)
+
+like addVarsInShMode but keeping the entries in the file
+
 =item setExportedVarsInCsh(FILENAME, HASH REF, LIST)
 
 same as C<setExportedVarsInSh> for csh format
@@ -179,7 +191,7 @@ use MDK::Common::File;
 
 use Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch distrib typeFromMagic list_passwd list_home list_skels list_users syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos whereis_binary getVarsFromSh setVarsInSh setVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile read_gnomekderc update_gnomekderc fuzzy_pidofs); #);
+our @EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch distrib typeFromMagic list_passwd list_home list_skels list_users syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos whereis_binary getVarsFromSh setVarsInSh setVarsInShMode addVarsInSh addVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile read_gnomekderc update_gnomekderc fuzzy_pidofs); #);
 our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 
@@ -329,6 +341,22 @@ sub getVarsFromSh {
 	$l{$v} = $val;
     }
     %l;
+}
+
+sub addVarsInSh {
+    my ($file, $l, @fields) = @_;
+    addVarsInShMode($file, 0777 ^ umask(), $l, @fields);
+}
+
+sub addVarsInShMode {
+    my ($file, $mod, $l, @fields) = @_;
+    my %l = map { $_ => $l->{$_} } @fields;
+    my %l2 = getVarsFromSh($file);
+
+    # below is add2hash_(\%l, \%l2);
+    exists $l{$_} or $l{$_} = $l2{$_} foreach keys %l2; 
+
+    setVarsInShMode($file, $mod, \%l);
 }
 
 sub setVarsInSh {
