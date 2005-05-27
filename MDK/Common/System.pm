@@ -350,7 +350,7 @@ sub addVarsInSh {
 
 sub addVarsInShMode {
     my ($file, $mod, $l, @fields) = @_;
-    my %l = map { $_ => $l->{$_} } @fields;
+    my %l = @fields ? map { $_ => $l->{$_} } @fields : %$l;
     my %l2 = getVarsFromSh($file);
 
     # below is add2hash_(\%l, \%l2);
