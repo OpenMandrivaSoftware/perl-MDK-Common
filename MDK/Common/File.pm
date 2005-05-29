@@ -309,7 +309,7 @@ sub expand_symlinks {
 sub openFileMaybeCompressed { 
     my ($f) = @_;
     -e $f || -e "$f.gz" or die "file $f not found";
-    open(my $F, -e $f ? $f : "gzip -dc $f.gz|") or die "file $f is not readable";
+    open(my $F, -e $f ? $f : "gzip -dc \'$f.gz\'|") or die "file $f is not readable";
     $F;
 }
 sub catMaybeCompressed { cat__(openFileMaybeCompressed($_[0])) }
