@@ -64,6 +64,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon May 30 2005 Pixel <pixel@mandriva.com> 1.1.24-1mdk
+- fix openFileMaybeCompressed() catMaybeCompressed() when file names contain spaces (bugzilla #16172)
+
 * Thu May 19 2005 Pixel <pixel@mandriva.com> 1.1.23-1mdk
 - use "our" instead of "use vars"
 - add addVarsInSh() and addVarsInShMode()

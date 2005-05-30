@@ -74,7 +74,7 @@ our @ISA = qw(Exporter);
 # perl_checker: RE-EXPORT-ALL
 our @EXPORT = map { @$_ } map { values %{'MDK::Common::' . $_ . 'EXPORT_TAGS'} } grep { /::$/ } keys %MDK::Common::;
 
-our $VERSION = "1.1.23";
+our $VERSION = "1.1.24";
 
 1;
 EOF
