@@ -11,6 +11,7 @@ type state = {
     methods : (string, (pos * variable_used ref * prototype option) list) Hashtbl.t ;
     global_vars_used : ((context * string * string) * pos) list ref ;
     packages_being_classes : (string, unit) Hashtbl.t ;
+    packages_dependencies : (string * string, unit) Hashtbl.t ;
   }
 
 type vars = { 
@@ -105,6 +106,11 @@ let check_para_comply_with_prototype para proto =
 
 let is_anonymous_variable_name s = String.length s > 1 && s.[0] = '_'
 
+let add_to_packages_really_used state current_package used_name =
+  Hashtbl.replace state.packages_dependencies (current_package.package_name, used_name) () ;
+  (*List.iter (fun (p1, p2) -> prerr_endline (Printf.sprintf "%s -> %s" p1 p2)) (hashtbl_keys state.packages_dependencies);*)
+  ()
+
 let variable_used write_only used =
   if !used != Access_various then
     used := if write_only then Access_write_only else Access_various
@@ -124,7 +130,8 @@ let is_var_declared_raw write_only state package var para =
       let _, used, proto = Hashtbl.find package.vars_declared var in
       Some(used, proto)
     with Not_found -> try
-      let _, used, proto = List.assoc var (get_imports state package) in
+      let package_name, used, proto = List.assoc var (get_imports state package) in
+      add_to_packages_really_used state package package_name ;
       Some(used, proto)
     with Not_found ->
       None
@@ -143,6 +150,7 @@ let is_var_declared vars var para =
 let is_global_var_declared vars (context, fq, name) para =
   try
     let package = Hashtbl.find vars.state.per_packages fq in
+    add_to_packages_really_used vars.state vars.current_package package.package_name ;
     is_var_declared_raw vars.write_only vars.state package (context, name) para
   with Not_found -> false
  
@@ -558,7 +566,14 @@ let get_methods_available state =
 
 
 let default_per_files() = Hashtbl.create 16
-let default_state per_files = { per_files = per_files; per_packages = Hashtbl.create 16; methods = Hashtbl.create 256 ; global_vars_used = ref []; packages_being_classes = Hashtbl.create 16 }
+let default_state per_files = { 
+  per_files = per_files;
+  per_packages = Hashtbl.create 16;
+  methods = Hashtbl.create 256;
+  global_vars_used = ref []; 
+  packages_being_classes = Hashtbl.create 16;
+  packages_dependencies = Hashtbl.create 16
+}
 
 let cache_cache = Hashtbl.create 16
 
@@ -600,3 +615,10 @@ let write_packages_cache per_files dir =
     close_out fh ;
     if !Flags.verbose then print_endline_flush (sprintf "saving cached files\n%sin %s" (pkgs2s "   " l) file)
   with Sys_error _ -> ()
+
+let generate_package_dependencies_graph packages_dependencies file =
+  let fh = open_out file in
+  output_string fh "digraph pgks {\n" ;
+  Hashtbl.iter (fun (p1, p2) _ -> output_string fh ("\"" ^ p1 ^ "\" -> \"" ^ p2 ^ "\"\n")) packages_dependencies ;
+  output_string fh "}\n" ;
+  close_out fh

@@ -85,6 +85,7 @@ let parse_options =
   let restrict_to_files = ref false in
 
   let pot_file = ref "" in
+  let package_dependencies_graph_file = ref "" in
   let generate_pot_chosen file =
     Flags.generate_pot := true ;
     Flags.expand_tabs := None ;
@@ -96,7 +97,8 @@ let parse_options =
     "-t", Arg.Int (fun i -> Flags.expand_tabs := Some i), "  set the tabulation width (default is 8)" ;
     "--restrict-to-files", Arg.Set restrict_to_files, "  only display warnings concerning the file(s) given on command line" ;
     "--no-cache", Arg.Set Flags.no_cache, "  do not use cache" ;
-    "--generate-pot", Arg.String generate_pot_chosen, 
+    "--generate-pot", Arg.String generate_pot_chosen, "" ;
+    "--generate-package-dependencies-graph", Arg.String (fun f -> package_dependencies_graph_file := f),
     "\n" ;
 
     "--check-unused-global-vars", Arg.Set Flags.check_unused_global_vars, "  disable unused global functions & variables check" ^
@@ -174,6 +176,8 @@ let parse_options =
 
   List.iter (Global_checks.check_tree state) l;
 
-  if !Flags.check_unused_global_vars then List.iter Global_checks.check_unused_vars l 
+  if !Flags.check_unused_global_vars then List.iter Global_checks.check_unused_vars l;
+
+  if !package_dependencies_graph_file <> "" then generate_package_dependencies_graph state.packages_dependencies !package_dependencies_graph_file 
 
   )

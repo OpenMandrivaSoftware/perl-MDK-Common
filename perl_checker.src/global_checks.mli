@@ -7,6 +7,7 @@ type state = {
     methods : (string, (pos * variable_used ref * prototype option) list) Hashtbl.t ;
     global_vars_used : ((context * string * string) * pos) list ref ;
     packages_being_classes : (string, unit) Hashtbl.t ;
+    packages_dependencies : (string * string, unit) Hashtbl.t ;
   }
 
 val default_per_files : unit -> (string, per_file) Hashtbl.t
@@ -20,3 +21,5 @@ val get_methods_available : state -> state
 
 val read_packages_from_cache : (string, per_file) Hashtbl.t -> string -> unit
 val write_packages_cache : (string, per_file) Hashtbl.t -> string -> unit
+
+val generate_package_dependencies_graph : (string * string, unit) Hashtbl.t -> string -> unit
