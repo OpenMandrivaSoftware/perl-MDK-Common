@@ -500,7 +500,7 @@ let add_file_to_files per_files file =
 
 let check_unused_vars package =
   Hashtbl.iter (fun (context, name) (pos, is_used, _proto) ->
-    if not (!is_used != Access_various || List.mem name ["BEGIN"; "END"; "DESTROY"; "ISA"; "AUTOLOAD"; "EXPORT"; "EXPORT_OK"; "EXPORT_TAGS"]) then
+    if !is_used != Access_various && not (List.mem name ["BEGIN"; "END"; "DESTROY"; "ISA"; "AUTOLOAD"; "EXPORT"; "EXPORT_OK"; "EXPORT_TAGS"]) then
       warn_with_pos [Warn_unused_global_vars] pos (sprintf "unused %s%s::%s" (if context = I_func then "function " else "variable " ^ context2s context) package.package_name name)
   ) package.vars_declared
 
