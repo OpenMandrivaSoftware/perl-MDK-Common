@@ -8,7 +8,7 @@ open Tree
 type state = {
     per_files : (string, per_file) Hashtbl.t ;
     per_packages : (string, per_package) Hashtbl.t ;
-    methods : (string, (pos * variable_used ref * prototype option) list) Hashtbl.t ;
+    methods : (string, (string * variable_used ref * prototype option) list) Hashtbl.t ;
     global_vars_used : ((context * string * string) * pos) list ref ;
     packages_being_classes : (string, unit) Hashtbl.t ;
     packages_dependencies : (string * string, unit) Hashtbl.t ;
@@ -446,18 +446,19 @@ let check_variables vars t =
 	let vars = List.fold_left check_variables_ vars para in	
 	(try 
 	  let l = Hashtbl.find vars.state.methods method_ in
-	  let l_and = List.map (fun (_, used, proto) -> used, do_para_comply_with_prototype [ List (o :: un_parenthesize_one_elt_List para) ] proto) l in
+	  let l_and = List.map (fun (pkg_name, used, proto) -> pkg_name, used, do_para_comply_with_prototype [ List (o :: un_parenthesize_one_elt_List para) ] proto) l in
 	  let l_and =
-	    match List.filter (fun (_, n) -> n = 0) l_and with
-	    | [] ->
-		(match uniq (List.map snd l_and) with
+	    match List.filter (fun (_, _, n) -> n = 0) l_and with
+	    | [] -> 
+		(match uniq (List.map ter3 l_and) with
 		| [-1] -> warn_with_pos [Warn_prototypes] pos "not enough parameters"
 		| [ 1] -> warn_with_pos [Warn_prototypes] pos "too many parameters"
 		| _ -> warn_with_pos [Warn_prototypes] pos "not enough or too many parameters") ;
 		l_and
 	    | l -> l
 	  in
-	  List.iter (fun (used, _) -> used := Access_various) l_and
+	  List.iter (fun (pkg_name, _, _) -> add_to_packages_really_used vars.state vars.current_package pkg_name) l_and ;
+	  List.iter (fun (_, used, _) -> used := Access_various) l_and
 	with Not_found -> 
 	  if not (List.mem method_ [ "isa"; "can" ]) then
 	    warn_with_pos [Warn_names] pos ("unknown method " ^ method_)) ;
@@ -556,10 +557,10 @@ let get_methods_available state =
   ) in
   List.iter (fun pkg ->
     Hashtbl.replace state.packages_being_classes pkg.package_name () ;
-    Hashtbl.iter (fun (context, v) (pos, is_used, proto) ->
+    Hashtbl.iter (fun (context, v) (_pos, is_used, proto) ->
       if context = I_func then
 	let l = try Hashtbl.find state.methods v with Not_found -> [] in
-	Hashtbl.replace state.methods v ((pos, is_used, proto) :: l)
+	Hashtbl.replace state.methods v ((pkg.package_name, is_used, proto) :: l)
     ) pkg.vars_declared
   ) classes ;
   state
