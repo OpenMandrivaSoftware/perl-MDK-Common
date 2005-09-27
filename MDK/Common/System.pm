@@ -438,6 +438,9 @@ sub update_gnomekderc {
     my %subst = map { lc($_) => [ $_, $subst_{$_} ] } keys %subst_;
 
     my $s;
+    # create the parent directory for the config file, if needed
+    my $directory = MDK::Common::File::dirname($file);
+    MDK::Common::File::mkdir_p($directory) if ! -r $directory;
     defined($category) or $category = "DEFAULTCATEGORY";
     foreach ("[DEFAULTCATEGORY]\n", MDK::Common::File::cat_($file), "[NOCATEGORY]\n") {
 	if (my $i = /^\s*\[\Q$category\E\]/i ... /^\[/) {
