@@ -18,12 +18,13 @@ MDK::Common::File - miscellaneous file/filename manipulation functions
 
 returns the dirname/basename of the file name
 
-=item cat_(FILENAME)
+=item cat_(FILES)
 
-returns the file content: in scalar context it returns a single string, in
+returns the files contents: in scalar context it returns a single string, in
 array context it returns the lines.
 
-If the file doesn't exist, it returns undef
+If no file is found, undef is returned
+
 
 =item cat_or_die(FILENAME)
 
@@ -131,7 +132,8 @@ our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
 sub basename { local $_ = shift; s|/*\s*$||; s|.*/||; $_ }
-sub cat_ { open(my $F, $_[0]) or return; my @l = <$F>; wantarray() ? @l : join '', @l }
+sub cat_a_file { open(my $F, $_[0]) or return; my @l = <$F>; @l }
+sub cat_ { my @l; @l = (@l, cat_a_file($_)) foreach @_; wantarray() ? @l : join '', @l }
 sub cat_or_die { open(my $F, $_[0]) or die "can't read file $_[0]: $!\n"; my @l = <$F>; wantarray() ? @l : join '', @l }
 sub cat__ { my ($f) = @_; my @l = <$f>; wantarray() ? @l : join '', @l }
 sub output { my $f = shift; open(my $F, ">$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; 1 }
