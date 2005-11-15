@@ -132,8 +132,8 @@ our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
 sub basename { local $_ = shift; s|/*\s*$||; s|.*/||; $_ }
-sub cat_ { my @l = map { my $F; open($F, $_) ? <$F> : () } @_; wantarray() ? @l : join '', @l }
-sub cat_or_die { open(my $F, $_[0]) or die "can't read file $_[0]: $!\n"; my @l = <$F>; wantarray() ? @l : join '', @l }
+sub cat_ { my @l = map { my $F; open($F, '<', $_) ? <$F> : () } @_; wantarray() ? @l : join '', @l }
+sub cat_or_die { open(my $F, '<', $_[0]) or die "can't read file $_[0]: $!\n"; my @l = <$F>; wantarray() ? @l : join '', @l }
 sub cat__ { my ($f) = @_; my @l = <$f>; wantarray() ? @l : join '', @l }
 sub output { my $f = shift; open(my $F, ">$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; 1 }
 sub append_to_file { my $f = shift; open(my $F, ">>$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; 1 }
