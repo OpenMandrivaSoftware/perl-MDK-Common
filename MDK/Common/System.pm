@@ -241,7 +241,7 @@ sub distrib() {
     my ($real_system, $real_product) = $release =~ /(.*) release ([\d.]+)/;
     my $oem_config = '/etc/sysconfig/oem';
     my %oem = -f $oem_config && getVarsFromSh($oem_config);
-    my $company = $oem{COMPANY} || 'Mandrakesoft';
+    my $company = $oem{COMPANY} || 'Mandriva';
     my $system = $oem{SYSTEM} || $real_system;
     my $product = $oem{PRODUCT} || $real_product;
     (company => $company, system => $system, product => $product, real_system => $real_system, real_product => $real_product);
