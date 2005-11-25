@@ -176,7 +176,7 @@ let get_exported t =
   ) empty_exports t
 
 let uses_external_package = function
-  | "vars" | "Exporter" | "diagnostics" | "strict" | "lib" | "POSIX" | "Gtk" | "Storable"
+  | "vars" | "Exporter" | "diagnostics" | "strict" | "warnings" | "lib" | "POSIX" | "Gtk" | "Storable"
   | "Config" | "Socket" | "IO::Socket" | "DynaLoader" | "Data::Dumper" | "Time::localtime" | "Expect" -> true
   | _ -> false
 
