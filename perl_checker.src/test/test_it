@@ -62,8 +62,8 @@ foreach my $test (@tests) {
 
     pop @l while $l[-1] =~ /^\s*$/;
     if (@l == 1) {
-        if ($l[-1] !~ /(;|[\s{]\})\s+$/) {
-            $l[-1] =~ s/^(.*?)(\s+$)/xxx($1);$2/;
+        if ($l[-1] !~ /(;|[\s{]\})\s*$/) {
+            $l[-1] =~ s/^(.*?)(\s*$)/xxx($1);$2/;
         } else {
             # no comma for: 
             # - prefix for/foreach/...

@@ -15,6 +15,7 @@ sub read_t {
 	} else {
 	    $column_width ||= length(first(/(.{20}\s+)/));
 	    my ($line, $log) = $column_width > 25 && /(.{$column_width})(.*)/ ? (chomp_($1) . "\n", $2) : ($_, '');
+	    $line =~ s/[ \t]*$//;
 	    push @lines, $line;
 	    push @logs, $log;
 	}
