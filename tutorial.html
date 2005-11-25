@@ -8,15 +8,15 @@
 
 <head>
   <title>perl-MDK-Common tutorial</title>
-  <link rev="made" href="mailto:gc at mandrake_nospam_soft.com" />
-  <meta name="keywords" content="perl mandrakesoft pixel library functional" />
+  <link rev="made" href="mailto:pixel at mandriva dot com" />
+  <meta name="keywords" content="perl mandriva pixel library functional" />
 </head>
 
 <body bgcolor="#FFFFFF" text="#000000" link="#0000ee" vlink="#551a8b">
 
   <h1 align="center">perl-MDK-Common tutorial v0.1</h1>
 
-<p><a href="mailto:gc at mandrake_nospam_soft.com">Guillaume Cottenceau</a></p>
+<p>Guillaume Cottenceau (maintainer: <a href="mailto:pixel at mandriva dot com">Pixel</a>)</p>
 
 <hr />
 
@@ -25,7 +25,7 @@
   
   <p>This document aims at helping people interested in learning
   more on <tt>perl-MDK-Common</tt>, a Perl library which is intensively
-  used in MandrakeSoft in-house software development.</p>
+  used in Mandriva in-house software development.</p>
 
   <p>The library adds some convenient "basic" functions to Perl,
   allows easier functional-style programming, and also provides
@@ -53,7 +53,7 @@
   <p>Additionally, <tt>perl-MDK-Common</tt> provides a binary
   called <tt>perl_checker</tt>, which is a Perl compiler aiming
   at enforcing the use of a subset of Perl, so that all
-  MandrakeSoft Perl programs roughly follow the same code style.
+  Mandriva Perl programs roughly follow the same code style.
   It will also help the programmer to remove unneeded parentheses
   and conditionals.</p>
 
@@ -142,7 +142,7 @@
   files. <tt>cat_</tt> allows to do that easily:</p>
 
   <pre class="SCREEN">
-  printf "Mandrake release:\n%s\n", cat_('/etc/mandrake-release');
+  printf "Mandriva release:\n%s\n", cat_('/etc/mandriva-release');
 
   foreach (cat_('/proc/mounts')) {
       my ($dev, $where, $type) = split;
