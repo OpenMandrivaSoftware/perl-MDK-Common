@@ -677,16 +677,19 @@ rule token = parse
     not_ok_for_match := lexeme_end lexbuf; 
     HERE_DOC(here_doc_next_line (skip_n_char 2 (lexeme lexbuf)), pos lexbuf)
   }
+| "<<\"" ident "\"" { 
+    warn_with_pos [Warn_suggest_simpler] (lexeme_start lexbuf + 2, lexeme_end lexbuf) "Don't use <<\"MARK\", use <<MARK instead" ;
+    not_ok_for_match := lexeme_end lexbuf; 
+    HERE_DOC(here_doc_next_line (skip_n_char_ 3 1 (lexeme lexbuf)), pos lexbuf)
+  }
 | "<<'" ident "'" { 
     not_ok_for_match := lexeme_end lexbuf; 
     RAW_HERE_DOC(raw_here_doc_next_line (skip_n_char_ 3 1 (lexeme lexbuf)), pos lexbuf)
   }
 | "<<" ' '+ "'"
-| "<<" ' '+ ident { 
-    failwith (pos2sfull_with (lexeme_start lexbuf + 2) (lexeme_end lexbuf) ^ "No space allowed between \"<<\" and the marker")
-  }
+| "<<" ' '+ ident
 | "<<" ' '* '"' { 
-    failwith (pos2sfull_with (lexeme_start lexbuf + 2) (lexeme_end lexbuf) ^ "Don't use <<\"MARK\", use <<MARK instead")
+    failwith (pos2sfull_with (lexeme_start lexbuf + 2) (lexeme_end lexbuf) ^ "No space allowed between \"<<\" and the marker")
   }
 
 | "\\"+ stash
@@ -880,7 +883,7 @@ and here_doc = parse
     let s = lexeme lexbuf in
     if chomps s <> !current_here_doc_mark
     then next_s s here_doc lexbuf 
-    else if s <> !current_here_doc_mark then Printf.eprintf "%sTrailing spaces after HERE-document mark\n" (pos2sfull lexbuf)
+    else if s <> !current_here_doc_mark then warn_with_pos [Warn_traps] (pos lexbuf) "Trailing spaces after HERE-document mark"
   }
 | '\n' { 
     add_a_new_line(lexeme_end lexbuf);
@@ -893,7 +896,7 @@ and raw_here_doc = parse
     let s = lexeme lexbuf in
     if chomps s <> !current_here_doc_mark
     then next_s s raw_here_doc lexbuf 
-    else if s <> !current_here_doc_mark then Printf.eprintf "%sTrailing spaces after HERE-document mark\n" (pos2sfull lexbuf)
+    else if s <> !current_here_doc_mark then warn_with_pos [Warn_traps] (pos lexbuf) "Trailing spaces after HERE-document mark"
   }
 | '\n' { 
     add_a_new_line(lexeme_end lexbuf);
