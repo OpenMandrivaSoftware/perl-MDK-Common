@@ -4,66 +4,49 @@
 %define version THEVERSION
 %define release 1mdk
 
-%ifarch x86_64
-%define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
-%define require_ocaml /usr/bin/ocamlrun
-%else
-%define build_option %nil
-%define require_ocaml %nil
-%endif
-
 Summary: Various simple functions
 Name: perl-MDK-Common
 Version: %{version}
 Release: %{release}
-URL: http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-MDK-Common/
-Source0: %{name}.tar.bz2
+URL: http://cvs.mandriva.com/cgi-bin/cvsweb.cgi/soft/perl-MDK-Common/
+Source0: MDK-Common-%version.tar.bz2
 License: GPL
 Group: Development/Perl
 Conflicts: drakxtools-newt < 9.1-30mdk, drakconf < 9.1-14mdk
 BuildRoot: %{_tmppath}/%{name}-buildroot
-BuildRequires: ocaml >= 3.06
-
-%package devel
-Summary: Various verifying scripts
-Group: Development/Perl
-AutoReqProv: 0
-Requires: perl-base >= 2:5.8.0 %{require_ocaml}
 
 %description
 Various simple functions created for DrakX
 
-%description devel
-Various verifying scripts created for DrakX
-
 %prep
-%setup -n %{name}
+%setup -q -n MDK-Common-%{version}
 
 %build
-make %build_option
+%{__perl} Makefile.PL INSTALLDIRS=vendor
+make
+make test
 
 %install
 rm -rf $RPM_BUILD_ROOT
-%makeinstall_std %build_option
+%{makeinstall_std}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc COPYING
+%doc COPYING tutorial.html 
 %{perl_vendorlib}/MDK
-
-%files devel
-%defattr(-,root,root)
-%doc index.html tutorial.html perl_checker.src/perl_checker.html
-%{_bindir}/*
-%{perl_vendorlib}/perl_checker_fake_packages
-%{_datadir}/vim/ftplugin/*
-%config(noreplace) %{_sysconfdir}/emacs/site-start.d/*
+%{_mandir}/man*/*
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Fri Nov 25 2005 Pixel <pixel@mandriva.com> 1.2-1mdk
+- MDK::Common::Globals removed
+- simplified version number
+- perl-MDK-Common-devel replaced by package perl_checker,
+  => perl-MDK-Common is a simple perl package, no more requiring ocaml
+
 * Mon May 30 2005 Pixel <pixel@mandriva.com> 1.1.24-1mdk
 - fix openFileMaybeCompressed() catMaybeCompressed() when file names contain spaces (bugzilla #16172)
 
