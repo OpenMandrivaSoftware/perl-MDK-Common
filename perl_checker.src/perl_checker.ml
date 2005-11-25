@@ -178,6 +178,6 @@ let parse_options =
 
   if !Flags.check_unused_global_vars then List.iter Global_checks.check_unused_vars l;
 
-  if !package_dependencies_graph_file <> "" then generate_package_dependencies_graph state.packages_dependencies !package_dependencies_graph_file 
+  if !package_dependencies_graph_file <> "" then generate_package_dependencies_graph state !package_dependencies_graph_file 
 
   )

@@ -12,6 +12,7 @@ type state = {
     global_vars_used : ((context * string * string) * pos) list ref ;
     packages_being_classes : (string, unit) Hashtbl.t ;
     packages_dependencies : (string * string, unit) Hashtbl.t ;
+    packages_dependencies_maybe : (string * string * string, unit) Hashtbl.t ;
   }
 
 type vars = { 
@@ -109,6 +110,11 @@ let is_anonymous_variable_name s = String.length s > 1 && s.[0] = '_'
 let add_to_packages_really_used state current_package used_name =
   Hashtbl.replace state.packages_dependencies (current_package.package_name, used_name) () ;
   (*List.iter (fun (p1, p2) -> prerr_endline (Printf.sprintf "%s -> %s" p1 p2)) (hashtbl_keys state.packages_dependencies);*)
+  ()
+
+let add_to_packages_maybe_used state current_package used_name method_name =
+  Hashtbl.replace state.packages_dependencies_maybe (current_package.package_name, used_name, method_name) () ;
+  (*List.iter (fun (p1, p2) -> prerr_endline (Printf.sprintf "%s -> %s" p1 p2)) (hashtbl_keys state.packages_dependencies_maybe);*)
   ()
 
 let variable_used write_only used =
@@ -447,7 +453,7 @@ let check_variables vars t =
 	(try 
 	  let l = Hashtbl.find vars.state.methods method_ in
 	  let l_and = List.map (fun (pkg_name, used, proto) -> pkg_name, used, do_para_comply_with_prototype [ List (o :: un_parenthesize_one_elt_List para) ] proto) l in
-	  let l_and =
+	  let l_and' =
 	    match List.filter (fun (_, _, n) -> n = 0) l_and with
 	    | [] -> 
 		(match uniq (List.map ter3 l_and) with
@@ -457,8 +463,8 @@ let check_variables vars t =
 		l_and
 	    | l -> l
 	  in
-	  List.iter (fun (pkg_name, _, _) -> add_to_packages_really_used vars.state vars.current_package pkg_name) l_and ;
-	  List.iter (fun (_, used, _) -> used := Access_various) l_and
+	  List.iter (fun (pkg_name, _, _) -> add_to_packages_maybe_used vars.state vars.current_package pkg_name method_) l_and' ;
+	  List.iter (fun (_, used, _) -> used := Access_various) l_and'
 	with Not_found -> 
 	  if not (List.mem method_ [ "isa"; "can" ]) then
 	    warn_with_pos [Warn_names] pos ("unknown method " ^ method_)) ;
@@ -573,7 +579,8 @@ let default_state per_files = {
   methods = Hashtbl.create 256;
   global_vars_used = ref []; 
   packages_being_classes = Hashtbl.create 16;
-  packages_dependencies = Hashtbl.create 16
+  packages_dependencies = Hashtbl.create 16;
+  packages_dependencies_maybe = Hashtbl.create 16
 }
 
 let cache_cache = Hashtbl.create 16
@@ -617,9 +624,16 @@ let write_packages_cache per_files dir =
     if !Flags.verbose then print_endline_flush (sprintf "saving cached files\n%sin %s" (pkgs2s "   " l) file)
   with Sys_error _ -> ()
 
-let generate_package_dependencies_graph packages_dependencies file =
+let generate_package_dependencies_graph state file =
   let fh = open_out file in
-  output_string fh "digraph pgks {\n" ;
-  Hashtbl.iter (fun (p1, p2) _ -> output_string fh ("\"" ^ p1 ^ "\" -> \"" ^ p2 ^ "\"\n")) packages_dependencies ;
-  output_string fh "}\n" ;
+
+  List.iter (fun (p1, p2) -> 
+    output_string fh (p1 ^ " -> " ^ p2 ^ "\n")
+  ) (List.sort compare (hashtbl_keys state.packages_dependencies)) ;  
+
+  let l = Hashtbl.fold (fun (p1, p2, method_) _ l -> ((p1, method_), p2) :: l) state.packages_dependencies_maybe [] in
+  List.iter (fun ((p1, method_), l) -> 
+    output_string fh (p1 ^ " ?-> " ^ String.concat " " l ^ " (" ^ method_ ^ ")\n")
+  ) (List.sort compare (prepare_want_all_assoc l));
+
   close_out fh
