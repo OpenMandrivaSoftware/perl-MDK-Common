@@ -54,7 +54,7 @@ foreach my $f (<MDK/Common/*.pm>) {
 print <<'EOF';
 =head1 COPYRIGHT
 
-Copyright (c) 2001 MandrakeSoft <pixel@mandrakesoft.com>. All rights reserved.
+Copyright (c) 2001-2005 Mandriva <pixel@mandriva.com>. All rights reserved.
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
