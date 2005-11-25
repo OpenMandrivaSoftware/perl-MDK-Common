@@ -176,7 +176,7 @@ let get_exported t =
   ) empty_exports t
 
 let uses_external_package = function
-  | "vars" | "MDK::Common::Globals" | "Exporter" | "diagnostics" | "strict" | "lib" | "POSIX" | "Gtk" | "Storable"
+  | "vars" | "Exporter" | "diagnostics" | "strict" | "lib" | "POSIX" | "Gtk" | "Storable"
   | "Config" | "Socket" | "IO::Socket" | "DynaLoader" | "Data::Dumper" | "Time::localtime" | "Expect" -> true
   | _ -> false
 
@@ -308,7 +308,6 @@ let get_vars_declaration global_vars_declared file_name package =
     | My_our("our", ours, pos) ->
 	List.iter (fun (context, name) -> Hashtbl.replace package.vars_declared (context, name) (pos, ref Access_none, None)) ours
 
-    | Use(Ident(Some "MDK::Common", "Globals", pos), [ String _ ; ours ])
     | Use(Ident(None, "vars", pos), [ours]) -> 
 	List.iter (fun (context, name) -> Hashtbl.replace package.vars_declared (context, name) (pos, ref Access_none, None)) (from_qw ours)
     | Use(Ident(None, "vars", pos), _) -> 

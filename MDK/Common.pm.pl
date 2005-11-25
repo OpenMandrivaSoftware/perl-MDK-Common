@@ -26,7 +26,6 @@ C<MDK::Common> is a collection of packages containing various simple functions:
 L<MDK::Common::DataStructure>,
 L<MDK::Common::File>,
 L<MDK::Common::Func>,
-L<MDK::Common::Globals>,
 L<MDK::Common::Math>,
 L<MDK::Common::String>,
 L<MDK::Common::System>,
@@ -74,7 +73,7 @@ our @ISA = qw(Exporter);
 # perl_checker: RE-EXPORT-ALL
 our @EXPORT = map { @$_ } map { values %{'MDK::Common::' . $_ . 'EXPORT_TAGS'} } grep { /::$/ } keys %MDK::Common::;
 
-our $VERSION = "1.1.24";
+our $VERSION = "1.1.25";
 
 1;
 EOF
