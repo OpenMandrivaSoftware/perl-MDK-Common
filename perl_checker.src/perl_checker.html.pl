@@ -21,12 +21,25 @@ $s = <<'EOF';
      In perl_checker's subset of Perl, there is not too many ways to do it.
      This is especially useful for big projects.
      (NB: the subset is chosen to keep a good expressivity)
+</ul>
 
+<h1>Compared to <a href="http://perlcritic.tigris.org/">Perl-Critic</a>
+
+<ul>
+<li>perl_checker use its own OCaml-written perl parser, which is in no way as robust as <a href="http://www.perl.com/pub/a/2005/06/09/ppi.html">PPI</a>.
+    A PPI require is to be able to parse non finished perl documents.
+    perl_checker is a checker, and it is not a big deal to die horribly on a weird perl expression, telling the programmer what to write instead.
+
+<li>perl_checker is <b>much</b> faster (more than 100 times) (ML pattern matching rulez)
+
+<li>perl_checker checks a lot more things than perlcritic: undeclared variables, unknown functions, unknown methods...
+
+<li>and of course perl_checker checks are different from the Conways's <a href="http://www.oreilly.com/catalog/perlbp/">Perl Best Practices</a>
 </ul>
 
 <h1>Get it</h1>
 
-<a href="http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-MDK-Common/perl_checker.src/">CVS source</a>
+<a href="http://cvs.mandriva.com/cgi-bin/cvsweb.cgi/soft/perl-MDK-Common/perl_checker.src/">CVS source</a>
 
 <h1>Implemented features</h1>
 
