@@ -296,7 +296,7 @@ sub syscall_ {
     my $f = shift;
 
     require 'syscall.ph';
-    syscall(&{"SYS_$f"}, @_) == 0;
+    syscall(&{"main::SYS_$f"}, @_) == 0;
 }
 
 
