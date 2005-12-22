@@ -41,6 +41,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Thu Dec 22 2005 Thierry Vignaud <tvignaud@mandriva.com> 1.2.1-1mdk
+- fix syscall()
+
 * Fri Nov 25 2005 Pixel <pixel@mandriva.com> 1.2-1mdk
 - MDK::Common::Globals removed
 - simplified version number
