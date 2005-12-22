@@ -188,6 +188,7 @@ L<MDK::Common>
 
 use MDK::Common::Math;
 use MDK::Common::File;
+require 'syscall.ph';
 
 use Exporter;
 our @ISA = qw(Exporter);
@@ -294,9 +295,7 @@ sub list_users() {
 
 sub syscall_ {
     my $f = shift;
-
-    require 'syscall.ph';
-    syscall(&{"main::SYS_$f"}, @_) == 0;
+    syscall(&{"MDK::Common::System::SYS_$f"}, @_) == 0
 }
 
 
