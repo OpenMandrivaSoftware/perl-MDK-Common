@@ -14,6 +14,7 @@ License: GPL
 Group: Development/Perl
 Conflicts: drakxtools-newt < 9.1-30mdk, drakconf < 9.1-14mdk
 BuildRoot: %{_tmppath}/%{name}-buildroot
+BuildArch: noarch
 
 %description
 Various simple functions created for DrakX
@@ -49,6 +50,7 @@ rm -rf $RPM_BUILD_ROOT
 - simplified version number
 - perl-MDK-Common-devel replaced by package perl_checker,
   => perl-MDK-Common is a simple perl package, no more requiring ocaml
+  => noarch
 
 * Mon May 30 2005 Pixel <pixel@mandriva.com> 1.1.24-1mdk
 - fix openFileMaybeCompressed() catMaybeCompressed() when file names contain spaces (bugzilla #16172)
