@@ -188,6 +188,9 @@ L<MDK::Common>
 
 use MDK::Common::Math;
 use MDK::Common::File;
+
+#- force loading of syscall.ph into this namespace
+delete @INC{qw(syscall.ph bits/syscall.ph sys/syscall.ph asm/unistd.ph)};
 require 'syscall.ph';
 
 use Exporter;
