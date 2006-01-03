@@ -42,6 +42,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Tue Jan  3 2006 Pixel <pixel@mandriva.com> 1.2.2-1mdk
+- better fix for syscall.ph used somewhere else
+
 * Thu Dec 22 2005 Thierry Vignaud <tvignaud@mandriva.com> 1.2.1-1mdk
 - fix syscall()
 

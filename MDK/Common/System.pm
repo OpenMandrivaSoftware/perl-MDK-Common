@@ -189,10 +189,6 @@ L<MDK::Common>
 use MDK::Common::Math;
 use MDK::Common::File;
 
-#- force loading of syscall.ph into this namespace
-delete @INC{qw(syscall.ph bits/syscall.ph sys/syscall.ph asm/unistd.ph)};
-require 'syscall.ph';
-
 use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(%compat_arch $printable_chars $sizeof_int $bitof_int arch distrib typeFromMagic list_passwd list_home list_skels list_users syscall_ psizeof availableMemory availableRamMB gettimeofday unix2dos whereis_binary getVarsFromSh setVarsInSh setVarsInShMode addVarsInSh addVarsInShMode setExportedVarsInSh setExportedVarsInCsh template2file template2userfile read_gnomekderc update_gnomekderc fuzzy_pidofs); #);
@@ -298,7 +294,12 @@ sub list_users() {
 
 sub syscall_ {
     my $f = shift;
-    syscall(&{"MDK::Common::System::SYS_$f"}, @_) == 0
+
+    #- load syscall.ph in package "main". If every use of syscall.ph do the same, all will be nice
+    package main;
+    require 'syscall.ph';
+
+    syscall(&{"main::SYS_$f"}, @_) == 0
 }
 
 
