@@ -8,14 +8,22 @@ sub MICRO_VERSION() {}
 sub MINOR_VERSION() {}
 sub critical { my ($_class, $_domain, $_message) = @_ }
 sub error { my ($_class, $_domain, $_message) = @_ }
+sub filename_display_basename { my ($_filename) = @_ }
+sub filename_display_name { my ($_filename) = @_ }
 sub filename_from_unicode { my ($_class_or_filename, $_o_filename) = @_ }
 sub filename_from_uri { my (@_more_paras) = @_ }
 sub filename_to_unicode { my ($_class_or_filename, $_o_filename) = @_ }
 sub filename_to_uri { my (@_more_paras) = @_ }
 sub get_application_name() {}
 sub get_home_dir() {}
+sub get_language_names() {}
 sub get_real_name() {}
+sub get_system_config_dirs() {}
+sub get_system_data_dirs() {}
 sub get_tmp_dir() {}
+sub get_user_cache_dir() {}
+sub get_user_config_dir() {}
+sub get_user_data_dir() {}
 sub get_user_name() {}
 sub install_exception_handler { my ($_class, $_func, $_o_data) = @_ }
 sub log { my ($_class, $_log_domain, $_log_level, $_message) = @_ }
@@ -65,6 +73,44 @@ package Glib::Idle;
 our @ISA = qw();
 sub add { my ($_class, $_callback, $_o_data, $_o_priority) = @_ }
 
+package Glib::KeyFile;
+our @ISA = qw();
+sub DESTROY { my ($_key_file) = @_ }
+sub get_boolean { my ($_key_file, $_group_name, $_key) = @_ }
+sub get_boolean_list { my ($_key_file, $_group_name, $_key) = @_ }
+sub get_comment { my ($_key_file, $_o_group_name, $_o_key) = @_ }
+sub get_groups { my ($_key_file) = @_ }
+sub get_integer { my ($_key_file, $_group_name, $_key) = @_ }
+sub get_integer_list { my ($_key_file, $_group_name, $_key) = @_ }
+sub get_keys { my ($_key_file, $_group_name) = @_ }
+sub get_locale_string { my ($_key_file, $_group_name, $_key, $_o_locale) = @_ }
+sub get_locale_string_list { my ($_key_file, $_group_name, $_key, $_locale) = @_ }
+sub get_start_group { my ($_key_file) = @_ }
+sub get_string { my ($_key_file, $_group_name, $_key) = @_ }
+sub get_string_list { my ($_key_file, $_group_name, $_key) = @_ }
+sub get_value { my ($_key_file, $_group_name, $_key) = @_ }
+sub has_group { my ($_key_file, $_group_name) = @_ }
+sub has_key { my ($_key_file, $_group_name, $_key) = @_ }
+sub load_from_data { my ($_key_file, $_buf, $_flags) = @_ }
+sub load_from_data_dirs { my ($_key_file, $_file, $_flags) = @_ }
+sub load_from_file { my ($_key_file, $_file, $_flags) = @_ }
+sub new { my ($_class) = @_ }
+sub remove_comment { my ($_key_file, $_o_group_name, $_o_key) = @_ }
+sub remove_group { my ($_key_file, $_group_name) = @_ }
+sub remove_key { my ($_key_file, $_group_name, $_key) = @_ }
+sub set_boolean { my ($_key_file, $_group_name, $_key, $_value) = @_ }
+sub set_boolean_list { my ($_key_file, $_group_name, $_key, @_more_paras) = @_ }
+sub set_comment { my ($_key_file, $_group_name, $_key, $_comment) = @_ }
+sub set_integer { my ($_key_file, $_group_name, $_key, $_value) = @_ }
+sub set_integer_list { my ($_key_file, $_group_name, $_key, @_more_paras) = @_ }
+sub set_list_separator { my ($_key_file, $_separator) = @_ }
+sub set_locale_string { my ($_key_file, $_group_name, $_key, $_locale, $_string) = @_ }
+sub set_locale_string_list { my ($_key_file, $_group_name, $_key, $_locale, @_more_paras) = @_ }
+sub set_string { my ($_key_file, $_group_name, $_key, $_value) = @_ }
+sub set_string_list { my ($_key_file, $_group_name, $_key, @_more_paras) = @_ }
+sub set_value { my ($_key_file, $_group_name, $_key, $_value) = @_ }
+sub to_data { my ($_key_file) = @_ }
+
 package Glib::Log;
 our @ISA = qw();
 sub remove_handler { my ($_class, $_log_domain, $_handler_id) = @_ }
@@ -89,10 +135,14 @@ sub new { my ($_class, $_o_context, $_o_is_running) = @_ }
 sub quit { my ($_loop) = @_ }
 sub run { my ($_loop) = @_ }
 
+package Glib::Markup;
+our @ISA = qw();
+sub escape_text { my ($_text) = @_ }
+
 package Glib::Object;
 our @ISA = qw();
+sub CLONE { my ($_class) = @_ }
 sub DESTROY { my ($_sv) = @_ }
-sub do_stuff_by_func { my ($_instance, $_func, $_o_data) = @_ }
 sub freeze_notify { my ($_object) = @_ }
 sub get { my ($_object, @_more_paras) = @_ }
 sub get_data { my ($_object, $_key) = @_ }
@@ -101,9 +151,12 @@ sub get_property { my ($_object, @_more_paras) = @_ }
 sub list_properties { my ($_object_or_class_name) = @_ }
 sub new { my ($_class, @_more_paras) = @_ }
 sub new_from_pointer { my ($_class, $_pointer, $_o_noinc) = @_ }
+sub notify { my ($_object, $_property_name) = @_ }
 sub set { my ($_object, @_more_paras) = @_ }
 sub set_data { my ($_object, $_key, $_data) = @_ }
 sub set_property { my ($_object, @_more_paras) = @_ }
+sub set_threadsafe { my ($_class, $_threadsafe) = @_ }
+sub signal_add_emission_hook { my ($_object_or_class_name, $_detailed_signal, $_hook_func, $_o_hook_data) = @_ }
 sub signal_chain_from_overridden { my ($_instance, @_more_paras) = @_ }
 sub signal_connect { my ($_instance, $_detailed_signal, $_callback, $_o_data) = @_ }
 sub signal_connect_after { my ($_instance, $_detailed_signal, $_callback, $_o_data) = @_ }
@@ -116,12 +169,103 @@ sub signal_handler_unblock { my ($_object, $_handler_id) = @_ }
 sub signal_handlers_block_by_func { my ($_instance, $_func, $_o_data) = @_ }
 sub signal_handlers_disconnect_by_func { my ($_instance, $_func, $_o_data) = @_ }
 sub signal_handlers_unblock_by_func { my ($_instance, $_func, $_o_data) = @_ }
+sub signal_query { my ($_object_or_class_name, $_name) = @_ }
+sub signal_remove_emission_hook { my ($_object_or_class_name, $_signal_name, $_hook_id) = @_ }
 sub signal_stop_emission_by_name { my ($_instance, $_detailed_signal) = @_ }
 sub thaw_notify { my ($_object) = @_ }
 sub tie_properties { my ($_object, $_o_all) = @_ }
 
+package Glib::Object::_LazyLoader;
+our @ISA = qw();
+sub _load { my ($_package) = @_ }
+
+package Glib::Param::Boolean;
+our @ISA = qw();
+sub get_default_value { my ($_pspec_boolean) = @_ }
+
+package Glib::Param::Char;
+our @ISA = qw();
+sub get_default_value { my ($_pspec) = @_ }
+sub get_maximum { my ($_pspec) = @_ }
+sub get_minimum { my ($_pspec) = @_ }
+
+package Glib::Param::Double;
+our @ISA = qw();
+sub get_default_value { my ($_pspec) = @_ }
+sub get_epsilon { my ($_pspec) = @_ }
+sub get_maximum { my ($_pspec) = @_ }
+sub get_minimum { my ($_pspec) = @_ }
+
+package Glib::Param::Enum;
+our @ISA = qw();
+sub get_default_value { my ($_pspec_enum) = @_ }
+sub get_enum_class { my ($_pspec_enum) = @_ }
+
+package Glib::Param::Flags;
+our @ISA = qw();
+sub get_default_value { my ($_pspec_flags) = @_ }
+sub get_flags_class { my ($_pspec_flags) = @_ }
+
+package Glib::Param::Float;
+our @ISA = qw();
+sub get_default_value { my ($_pspec) = @_ }
+sub get_epsilon { my ($_pspec) = @_ }
+sub get_maximum { my ($_pspec) = @_ }
+sub get_minimum { my ($_pspec) = @_ }
+
+package Glib::Param::Int;
+our @ISA = qw();
+sub get_default_value { my ($_pspec) = @_ }
+sub get_maximum { my ($_pspec) = @_ }
+sub get_minimum { my ($_pspec) = @_ }
+
+package Glib::Param::Int64;
+our @ISA = qw();
+sub get_default_value { my ($_pspec) = @_ }
+sub get_maximum { my ($_pspec) = @_ }
+sub get_minimum { my ($_pspec) = @_ }
+
+package Glib::Param::Long;
+our @ISA = qw();
+sub get_default_value { my ($_pspec) = @_ }
+sub get_maximum { my ($_pspec) = @_ }
+sub get_minimum { my ($_pspec) = @_ }
+
+package Glib::Param::String;
+our @ISA = qw();
+sub get_default_value { my ($_pspec_string) = @_ }
+
+package Glib::Param::UChar;
+our @ISA = qw();
+sub get_default_value { my ($_pspec) = @_ }
+sub get_maximum { my ($_pspec) = @_ }
+sub get_minimum { my ($_pspec) = @_ }
+
+package Glib::Param::UInt;
+our @ISA = qw();
+sub get_default_value { my ($_pspec) = @_ }
+sub get_maximum { my ($_pspec) = @_ }
+sub get_minimum { my ($_pspec) = @_ }
+
+package Glib::Param::UInt64;
+our @ISA = qw();
+sub get_default_value { my ($_pspec) = @_ }
+sub get_maximum { my ($_pspec) = @_ }
+sub get_minimum { my ($_pspec) = @_ }
+
+package Glib::Param::ULong;
+our @ISA = qw();
+sub get_default_value { my ($_pspec) = @_ }
+sub get_maximum { my ($_pspec) = @_ }
+sub get_minimum { my ($_pspec) = @_ }
+
+package Glib::Param::Unichar;
+our @ISA = qw();
+sub get_default_value { my ($_pspec_unichar) = @_ }
+
 package Glib::ParamSpec;
 our @ISA = qw();
+sub DESTROY { my ($_pspec) = @_ }
 sub IV { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
 sub UV { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
 sub boolean { my ($_class, $_name, $_nick, $_blurb, $_default_value, $_flags) = @_ }
@@ -132,8 +276,11 @@ sub enum { my ($_class, $_name, $_nick, $_blurb, $_enum_type, $_default_value, $
 sub flags { my ($_class, $_name, $_nick, $_blurb, $_flags_type, $_default_value, $_flags) = @_ }
 sub float { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
 sub get_blurb { my ($_pspec) = @_ }
+sub get_flags { my ($_pspec) = @_ }
 sub get_name { my ($_pspec) = @_ }
 sub get_nick { my ($_pspec) = @_ }
+sub get_owner_type { my ($_pspec) = @_ }
+sub get_value_type { my ($_pspec) = @_ }
 sub int { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
 sub int64 { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
 sub long { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
@@ -145,7 +292,7 @@ sub uchar { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_defaul
 sub uint { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
 sub uint64 { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
 sub ulong { my ($_class, $_name, $_nick, $_blurb, $_minimum, $_maximum, $_default_value, $_flags) = @_ }
-sub unichar { my ($_name, $_nick, $_blurb, $_default_value, $_flags) = @_ }
+sub unichar { my ($_class, $_name, $_nick, $_blurb, $_default_value, $_flags) = @_ }
 
 package Glib::Source;
 our @ISA = qw();
