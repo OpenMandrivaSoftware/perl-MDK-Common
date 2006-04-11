@@ -1,7 +1,7 @@
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common/
 
 %define version 1.1.21
-%define release 1mdk
+%define release %mkrel 1
 
 %ifarch x86_64
 %define build_option PERL_CHECKER_TARGET='debug-code BCSUFFIX=""'
