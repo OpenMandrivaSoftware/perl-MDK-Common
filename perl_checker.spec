@@ -1,6 +1,6 @@
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common/
 
-%define version 1.1.21
+%define version 1.1.22
 %define release %mkrel 1
 
 %ifarch x86_64
@@ -55,6 +55,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Tue Apr 11 2006 Thierry Vignaud <tvignaud@mandriva.com> 1.1.22-1mdk
+- sync with Glib/Gtk2-1.120
+
 * Fri Nov 25 2005 Pixel <pixel@mandriva.com> 1.1.21-1mdk
 - renamed package from perl-MDK-Common-devel to perl_checker
 - new option --generate-package-dependencies-graph 
