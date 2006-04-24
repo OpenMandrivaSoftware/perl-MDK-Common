@@ -83,8 +83,19 @@ foreach my $test (@tests) {
         @l = ($header, @l);
     }
     output('.pl', @l);
-    my @log = grep { !/^File .*, line / } `../perl_checker .pl`;
-    die "@log in .pl ($file):\n" . join('', @{$test->{lines}}) if any { /^syntax error$/ } @log;
+    my @raw_log = `../perl_checker .pl`;
+    die "@raw_log in .pl ($file):\n" . join('', @{$test->{lines}}) if any { /^syntax error$/ } @raw_log;
+
+    my $f;
+    my @log = grep {
+        if (/^File "(.*)", line /) {
+            $f = $1;
+            0;
+        } else {
+            $f eq '.pl';
+        }
+    } @raw_log;
+
     foreach my $i (0 .. max(int @{$test->{lines}}, int @log) - 1) {
         my $s = $test->{lines}[$i];
         $s =~ s/\s+$//;
