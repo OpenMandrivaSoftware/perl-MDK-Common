@@ -1,6 +1,6 @@
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common/
 
-%define version 1.1.22
+%define version 1.1.23
 %define release %mkrel 1
 
 %ifarch x86_64
@@ -55,6 +55,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon May 15 2006 Pixel <pixel@mandriva.com> 1.1.23-1mdk
+- it seems stack is smaller on amd64, function concat_spaces need to be tail-recursive
+
 * Tue Apr 11 2006 Thierry Vignaud <tvignaud@mandriva.com> 1.1.22-1mdk
 - sync with Glib/Gtk2-1.120
 
