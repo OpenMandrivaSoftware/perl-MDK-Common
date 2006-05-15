@@ -209,10 +209,10 @@ and raw_token_to_token spaces raw_token =
   token
 
 and raw_interpolated_string_to_tokens l =
-  List.map (fun (s, rtok) -> s, concat_spaces Space_0 rtok) l
+  List.map (fun (s, rtok) -> s, concat_spaces [] Space_0 rtok) l
 
-and concat_spaces spaces = function
-  | CR :: l -> concat_spaces Space_cr l
+and concat_spaces ret spaces = function
+  | CR :: l -> concat_spaces ret Space_cr l
   | SPACE n :: l ->
       let spaces' = 
 	match spaces with
@@ -220,9 +220,9 @@ and concat_spaces spaces = function
 	| Space_0 -> if n = 1 then Space_1 else Space_n
 	| _ -> Space_n
       in
-      concat_spaces spaces' l
-  | [] -> []
-  | token :: l -> raw_token_to_pos_and_token spaces token :: concat_spaces Space_0 l
+      concat_spaces ret spaces' l
+  | [] -> List.rev ret
+  | token :: l -> concat_spaces (raw_token_to_pos_and_token spaces token :: ret) Space_0 l
 
 let rec lexbuf2list accu t lexbuf =
   match t lexbuf with
@@ -232,7 +232,7 @@ let rec lexbuf2list accu t lexbuf =
 let get_token token lexbuf = 
   let tokens = lexbuf2list [] token lexbuf in
   let tokens = concat_bareword_paren [] tokens in
-  let tokens = concat_spaces Space_0 tokens in
+  let tokens = concat_spaces [] Space_0 tokens in
   let tokens = bracket_bareword_is_hashref [] tokens in
   tokens
 
