@@ -5,7 +5,7 @@ BINDIR = $(PREFIX)/bin
 VENDORLIB = $(shell eval "`perl -V:installvendorlib`"; echo $$installvendorlib)
 INSTALLVENDORLIB = $(DESTDIR)$(VENDORLIB)
 PERL_CHECKER_TARGET = native-code
-PERL_CHECKER_VERSION = 1.1.23
+PERL_CHECKER_VERSION = 1.1.24
 
 FILES-perl_checker = AUTHORS COPYING README.emacs Makefile misc perl_checker.spec perl_checker.src perl_checker_fake_packages
 
