@@ -35,8 +35,6 @@ push @l                                  you must give some arguments to push
 
 push $xxx, 1                             push is expecting an array
 
-pop @l, 1                                pop is expecting an array and nothing else
-
 pop $xxx                                 pop is expecting an array and nothing else
 
 my (@l2, $xxx) = @l;                     @l2 takes all the arguments, $xxx is undef in any case
