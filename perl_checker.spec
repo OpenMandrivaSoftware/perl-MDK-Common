@@ -1,6 +1,6 @@
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common/
 
-%define version 1.1.23
+%define version 1.1.24
 %define release %mkrel 1
 
 %ifarch x86_64
@@ -55,6 +55,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Jun 14 2006 Pixel <pixel@mandriva.com> 1.1.24-1mdv2007.0
+- "pop @l" return value can be dropped (ie make it similar to "shift")
+
 * Mon May 15 2006 Pixel <pixel@mandriva.com> 1.1.23-1mdk
 - it seems stack is smaller on amd64, function concat_spaces need to be tail-recursive
 

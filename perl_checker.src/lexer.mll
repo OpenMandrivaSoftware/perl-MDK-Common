@@ -546,6 +546,7 @@ rule token = parse
 | "keys" 
 | "exists" 
 | "shift"
+| "pop"
 | "eval"
 | "ref"      { ONE_SCALAR_PARA(lexeme lexbuf, pos lexbuf) }
 
