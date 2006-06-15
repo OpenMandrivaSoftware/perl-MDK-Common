@@ -186,6 +186,9 @@ let get_uses t =
     | Use(Ident(None, "lib", _), [libs]) ->
 	use_lib := List.map Info.file_to_absolute_file (List.map snd (from_qw libs)) @ !use_lib ;
 	uses
+    | Use(Ident(None, "base", _), classes) ->
+	let l = List.map (fun (pkg, pos) -> (pkg, (None, pos))) (collect from_qw_raw classes) in
+	l @ uses
     | Use(Ident(_, _, pos) as pkg, l) ->
 	let package = string_of_fromparser pkg in
 	if uses_external_package package then
@@ -203,9 +206,12 @@ let get_uses t =
 let get_isa t =
   List.fold_left (fun (isa, exporter) e ->
     match e with
+    | Use(Ident(None, "base", pos), classes) ->
+	if isa <> None || exporter <> None then die_with_pos pos "\"use base\" and \"@ISA\" must be used once only";
+	Some (collect from_qw_raw classes), None
     | List [ Call_op("=", [ Deref(I_array, Ident(None, "ISA", pos)) ; classes ], _) ]
     | List [ Call_op("=", [ My_our("our", [ I_array, "ISA" ], pos) ; classes ], _) ] ->
-	if isa <> None || exporter <> None then die_with_pos pos "@ISA set twice";
+	if isa <> None || exporter <> None then die_with_pos pos "\"use base\" and \"@ISA\" must be used once only";
 	let special, l = List.partition (fun (s, _) -> s = "DynaLoader" || s = "Exporter") (from_qw_raw classes) in
 	let exporter = if List.mem_assoc "Exporter" special then Some pos else None in
 	let isa = if l = [] && special <> [] then None else Some l in

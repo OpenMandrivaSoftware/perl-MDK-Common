@@ -56,6 +56,7 @@ rm -rf $RPM_BUILD_ROOT
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
 * Thu Jun 15 2006 Pixel <pixel@mandriva.com> 1.1.25-1mdv2007.0
+- handle "use base ..."
 - add a fake packdrake.pm
 
 * Wed Jun 14 2006 Pixel <pixel@mandriva.com> 1.1.24-1mdv2007.0
