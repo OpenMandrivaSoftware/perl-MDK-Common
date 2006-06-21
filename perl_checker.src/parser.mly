@@ -473,6 +473,7 @@ word_or_scalar:
 | word_paren {$1}
 | MULT_L_STR { new_1esp (Ident(None, "x", get_pos $1)) $1 }
 | FOR { new_1esp (Ident(None, $1.any, get_pos $1)) $1 }
+| ONE_SCALAR_PARA { new_1esp (Ident(None, $1.any, get_pos $1)) $1 }
 
 bareword:
 | NEW { new_1esp (Ident(None, "new", get_pos $1)) $1 }
