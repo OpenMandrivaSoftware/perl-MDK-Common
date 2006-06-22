@@ -914,6 +914,9 @@ and string_escape = parse
 | 'x' [^ '{'] _     { string_escape_useful := Left true; hex_in_string lexbuf next_rule (skip_n_char 1 (lexeme lexbuf)) }
 | '\n' { die lexbuf "do not use \"\\\" before end-of-line, it's useless and generally bad" }
 | '\\'{ next_s "\\" (Stack.pop next_rule) lexbuf }
+| 'Q' { 
+	warn [Warn_complex_expressions] lexbuf ("don't use \\Q, use quotemeta instead");
+	string_escape_useful := Left true; next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 | ['b' 'f' 'a' 'r'] { string_escape_useful := Left true; next_s ("\\" ^ lexeme lexbuf) (Stack.pop next_rule) lexbuf }
 | ['$' '@' '%' '{' '[' ':'] { 
 	if !string_escape_useful = Left false then string_escape_useful := Right (lexeme_char lexbuf 0) ;
