@@ -1,6 +1,6 @@
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common/
 
-%define version 1.1.26
+%define version 1.1.27
 %define release %mkrel 1
 
 %ifarch x86_64
@@ -55,6 +55,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Wed Aug 23 2006 Pixel <pixel@mandriva.com> 1.1.27-1mdv2007.0
+- add fake MDV::Distribconf
+
 * Wed Jun 21 2006 Pixel <pixel@mandriva.com> 1.1.26-1mdv2007.0
 - handle $o->pop
 
