@@ -2,7 +2,7 @@
 
 # do not change the version here, change in MDK/Common.pm.pl
 %define version THEVERSION
-%define release 1mdk
+%define release %mkrel 1
 
 Summary: Various simple functions
 Name: perl-MDK-Common
