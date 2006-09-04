@@ -11,4 +11,3 @@ lib/MDK/Common/System.pm
 lib/MDK/Common/Various.pm
 lib/MDK/Common.pm
 MANIFEST
-META.yml                                 Module meta-data (added by MakeMaker)

@@ -23,7 +23,7 @@ test: perl_checker.src/perl_checker
 	$(MAKE) -C perl_checker.src/test
 
 clean:
-	rm -f Makefile-MDK-Common MDK/Common.pm perl_checker.src/perl_checker *.tar.* META.yml .perl_checker.cache lib
+	rm -f Makefile-MDK-Common MDK/Common.pm perl_checker.src/perl_checker *.tar.* .perl_checker.cache lib
 	$(MAKE) -C perl_checker.src clean
 	find -name "*~" | xargs rm -rf
 
@@ -60,7 +60,7 @@ Makefile-MDK-Common:
 tar-MDK-Common: clean Makefile-MDK-Common
 	$(MAKE) -f Makefile-MDK-Common dist
 
-srpm-MDK-Common: update tar-MDK-Common
+srpm-MDK-Common: tar-MDK-Common
 	cp -f MDK-Common*.tar.* $(RPM)/SOURCES
 	perl -I. -MMDK::Common -pe 's/THEVERSION/$$MDK::Common::VERSION/' perl-MDK-Common.spec > $(RPM)/SPECS/perl-MDK-Common.spec
 	-rpmbuild -bs $(RPM)/SPECS/perl-MDK-Common.spec
