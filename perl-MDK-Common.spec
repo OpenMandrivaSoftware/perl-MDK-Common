@@ -42,6 +42,9 @@ rm -rf $RPM_BUILD_ROOT
 
 # MODIFY IN THE CVS: cvs.mandrakesoft.com:/cooker soft/perl-MDK-Common
 %changelog
+* Mon Sep  4 2006 Pixel <pixel@mandriva.com> 1.2.3-1mdv2007.0
+- setVarsInSh: fix writing "|" in sh config files
+
 * Tue Jan  3 2006 Pixel <pixel@mandriva.com> 1.2.2-1mdk
 - better fix for syscall.ph used somewhere else
 
