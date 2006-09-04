@@ -25,6 +25,8 @@ Various simple functions created for DrakX
 %build
 %{__perl} Makefile.PL INSTALLDIRS=vendor
 make
+
+%check
 make test
 
 %install
