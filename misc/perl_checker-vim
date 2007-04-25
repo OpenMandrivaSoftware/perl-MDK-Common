@@ -1,3 +1,0 @@
-#!/bin/sh
-
-perl_checker --restrict-to-files "$@" > errors.err && vim -c ':copen 4' -c ':so /usr/share/vim/ftplugin/perl_checker.vim' -q

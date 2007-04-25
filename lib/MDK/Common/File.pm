@@ -25,10 +25,17 @@ array context it returns the lines.
 
 If no file is found, undef is returned
 
-
 =item cat_or_die(FILENAME)
 
 same as C<cat_> but dies when something goes wrong
+
+=item cat_utf8(FILES)
+
+same as C(<cat_>) but reads utf8 encoded strings
+
+=item cat_utf8_or_die(FILES)
+
+same as C(<cat_or_die>) but reads utf8 encoded strings
 
 =item cat__(FILEHANDLE REF)
 
@@ -38,6 +45,10 @@ array context it returns the lines
 =item output(FILENAME, LIST)
 
 creates a file and outputs the list (if the file exists, it is clobbered)
+
+=item output_utf8(FILENAME, LIST)
+
+same as C(<output>) but writes utf8 encoded strings
 
 =item secured_output(FILENAME, LIST)
 
@@ -133,9 +144,12 @@ our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
 sub basename { local $_ = shift; s|/*\s*$||; s|.*/||; $_ }
 sub cat_ { my @l = map { my $F; open($F, '<', $_) ? <$F> : () } @_; wantarray() ? @l : join '', @l }
+sub cat_utf8 { my @l = map { my $F; open($F, '<:utf8', $_) ? <$F> : () } @_; wantarray() ? @l : join '', @l }
 sub cat_or_die { open(my $F, '<', $_[0]) or die "can't read file $_[0]: $!\n"; my @l = <$F>; wantarray() ? @l : join '', @l }
+sub cat_utf8_or_die { open(my $F, '<:utf8', $_[0]) or die "can't read file $_[0]: $!\n"; my @l = <$F>; wantarray() ? @l : join '', @l }
 sub cat__ { my ($f) = @_; my @l = <$f>; wantarray() ? @l : join '', @l }
 sub output { my $f = shift; open(my $F, ">$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; 1 }
+sub output_utf8 { my $f = shift; open(my $F, '>:utf8', $f) or die "output in file $f failed: $!\n"; print $F $_ foreach @_; 1 }
 sub append_to_file { my $f = shift; open(my $F, ">>$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; 1 }
 sub output_p { my $f = shift; mkdir_p(dirname($f)); output($f, @_) }
 sub output_with_perm { my ($f, $perm, @l) = @_; mkdir_p(dirname($f)); output($f, @l); chmod $perm, $f }
