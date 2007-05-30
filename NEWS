@@ -1,1 +1,3 @@
+Version 1.2.5 - 30 May 2007, by Pascal "Pixel" Rigaux
+
 - enhance fuzzy_pidofs() to handle kernel processes
