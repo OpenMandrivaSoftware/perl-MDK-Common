@@ -258,7 +258,8 @@ sub find_index(&@) {
 	$_ = $_[$i];
 	&$f and return $i;
     }
-    die "find_index failed in @_";
+    use Carp;
+    carp("find_index failed in @_")
 }
 sub map_each(&%) {
     my ($f, %h) = @_;
