@@ -1,3 +1,8 @@
+Version 1.2.6 - 06 August 2007, by Thierry Vignaud
+
+- make find_index() pinpoint the actual bug (ie the caller)
+- make formatError() safer (managing exceptions containing " at ")
+
 Version 1.2.5 - 30 May 2007, by Pascal "Pixel" Rigaux
 
 - enhance fuzzy_pidofs() to handle kernel processes
