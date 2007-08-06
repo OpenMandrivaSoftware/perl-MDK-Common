@@ -101,7 +101,7 @@ sub formatError {
     my ($err) = @_;
     if (!$::testing) {
 	$err =~ s/Uncaught exception from user code:\n\t//s; #- happens with "use diagnostics"
-	$err =~ s/ at .*?$/./s;
+	$err =~ s/ at \Q$0\E line .*?$/./s;
     }
     $err;
 }
