@@ -1,3 +1,7 @@
+Version 1.2.7 - 09 August 2007, by Thierry Vignaud
+
+- fix installer breakage
+
 Version 1.2.6 - 06 August 2007, by Thierry Vignaud
 
 - make find_index() pinpoint the actual bug (ie the caller)
