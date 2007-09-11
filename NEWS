@@ -1,3 +1,7 @@
+Version 1.2.9 - 11 September 2007, by Thierry Vignaud
+
+- fix including the doc of sub-modules
+
 Version 1.2.8 - 04 September 2007, by Thierry Vignaud
 
 - make formatError() work with any modules (#33131)
