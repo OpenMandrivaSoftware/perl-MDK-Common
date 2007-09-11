@@ -1,6 +1,6 @@
 Version 1.2.8 - 04 September 2007, by Thierry Vignaud
 
-- make formatError() work with any modules
+- make formatError() work with any modules (#33131)
 
 Version 1.2.7 - 09 August 2007, by Thierry Vignaud
 
