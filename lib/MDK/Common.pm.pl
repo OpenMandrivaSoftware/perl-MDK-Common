@@ -33,7 +33,7 @@ L<MDK::Common::Various>.
 
 EOF
 
-foreach my $f (<MDK/Common/*.pm>) {
+foreach my $f (<lib/MDK/Common/*.pm>) {
     (my $pkg = $f) =~ s|/|::|g;
     open F, $f or die "can't open file $f";
     my $line;
