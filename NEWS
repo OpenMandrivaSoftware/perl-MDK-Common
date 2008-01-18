@@ -1,3 +1,5 @@
+Version 1.2.10 - 18 January 2008, by Pascal "Pixel" Rigaux
+
 - modify before_leaving() to be compatible with perl 5.10.0
 
 Version 1.2.9 - 11 September 2007, by Thierry Vignaud
