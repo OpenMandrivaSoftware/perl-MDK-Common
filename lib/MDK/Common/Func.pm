@@ -286,20 +286,16 @@ sub partition(&@) {
 sub add_f4before_leaving {
     my ($f, $b, $name) = @_;
 
-    unless ($MDK::Common::Func::before_leaving::{$name}) {
+    $MDK::Common::Func::before_leaving::_list->{$b}{$name} = $f;
+    if (!$MDK::Common::Func::before_leaving::_added{$name}) {
+	$MDK::Common::Func::before_leaving::_added{$name} = 1;
 	no strict 'refs';
-	${"MDK::Common::Func::before_leaving::$name"} = 1;
-	${"MDK::Common::Func::before_leaving::list"} = 1;
+	*{"MDK::Common::Func::before_leaving::$name"} = sub {
+	    my $f = $MDK::Common::Func::before_leaving::_list->{$_[0]}{$name} or die '';
+	    $name eq 'DESTROY' and delete $MDK::Common::Func::before_leaving::_list->{$_[0]};
+	    &$f;
+	};
     }
-    local *N = *{$MDK::Common::Func::before_leaving::{$name}};
-    my $list = *MDK::Common::Func::before_leaving::list;
-    $list->{$b}{$name} = $f;
-    *N = sub {
-	my $f = $list->{$_[0]}{$name} or die '';
-	$name eq 'DESTROY' and delete $list->{$_[0]};
-	&$f;
-    } if !defined &{*N};
-
 }
 
 #- ! the functions are not called in the order wanted, in case of multiple before_leaving :(
