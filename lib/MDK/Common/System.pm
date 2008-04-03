@@ -279,7 +279,7 @@ sub list_passwd() {
     @l;
 }
 sub list_home() {
-    map { $_->[7] } grep { $_->[2] >= 500 } list_passwd();
+    uniq(map { $_->[7] } grep { $_->[2] >= 500 } list_passwd());
 }
 sub list_skels { 
     my ($prefix, $suffix) = @_;
@@ -287,7 +287,7 @@ sub list_skels {
 }
 
 sub list_users() {
-    map { 500 <= $_->[2] && $_->[0] ne "nobody" ? $_->[0] : () } list_passwd();
+    uniq(map { 500 <= $_->[2] && $_->[0] ne "nobody" ? $_->[0] : () } list_passwd());
 }
 
 
