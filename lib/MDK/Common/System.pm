@@ -188,6 +188,7 @@ L<MDK::Common>
 
 use MDK::Common::Math;
 use MDK::Common::File;
+use MDK::Common::DataStructure;
 
 use Exporter;
 our @ISA = qw(Exporter);
@@ -279,7 +280,7 @@ sub list_passwd() {
     @l;
 }
 sub list_home() {
-    uniq(map { $_->[7] } grep { $_->[2] >= 500 } list_passwd());
+    MDK::Common::DataStructure::uniq(map { $_->[7] } grep { $_->[2] >= 500 } list_passwd());
 }
 sub list_skels { 
     my ($prefix, $suffix) = @_;
@@ -287,7 +288,7 @@ sub list_skels {
 }
 
 sub list_users() {
-    uniq(map { 500 <= $_->[2] && $_->[0] ne "nobody" ? $_->[0] : () } list_passwd());
+    MDK::Common::DataStructure::uniq(map { 500 <= $_->[2] && $_->[0] ne "nobody" ? $_->[0] : () } list_passwd());
 }
 
 
