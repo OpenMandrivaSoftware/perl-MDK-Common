@@ -1,3 +1,5 @@
+- export cat_utf8() and cat_utf8_or_die()
+
 Version 1.2.12 - 3 April 2008, by Olivier "blino" Blin
 
 - fix crash introduced in previous release
