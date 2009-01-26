@@ -1,3 +1,7 @@
+Version 1.2.15 - 26 January 2009, by Pascal Terjan
+
+- protect parenthesis in setVarsInSh and drop dead code (#47298)
+
 Version 1.2.14 - 1 October 2008, by Pascal "Pixel" Rigaux
 
 - round_up(), round_down(): workaround "Illegal modulus zero" (#43165)

@@ -377,8 +377,7 @@ sub setVarsInShMode {
 	    if ($val =~ /["`\$]/) {
 		$val =~ s/(')/\\$1/g;
 		$val = qq('$val');
-	    } elsif ($val =~ /['|\s\\]/) {
-		$val =~ s/(["\\])/\\$1/g;
+	    } elsif ($val =~ /[\(\)'|\s\\]/) {
 		$val = qq("$val");
 	    }
 	    "$_=$val\n";
