@@ -1,3 +1,7 @@
+Version 1.2.16 - 2 February 2009, by Pascal Terjan
+
+- protect ;<>&#[]~{}*? in setVarsInSh
+
 Version 1.2.15 - 26 January 2009, by Pascal Terjan
 
 - protect parenthesis in setVarsInSh and drop dead code (#47298)
