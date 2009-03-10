@@ -368,20 +368,22 @@ sub setVarsInSh {
     setVarsInShMode($file, 0777 ^ umask(), $l, @fields);
 }
 
+sub quoteForSh {
+    my ($val) = @_;
+    if ($val =~ /["`\$]/) {
+	$val =~ s/(')/\\$1/g;
+	$val = qq('$val');
+    } elsif ($val =~ /[\(\)'|\s\\;<>&#\[\]~{}*?]/) {
+	$val = qq("$val");
+    }
+    $val;
+}
+
 sub setVarsInShMode {
     my ($file, $mod, $l, @fields) = @_;
     @fields = keys %$l unless @fields;
     my $string = join('',
-	map { 
-	    my $val = $l->{$_};
-	    if ($val =~ /["`\$]/) {
-		$val =~ s/(')/\\$1/g;
-		$val = qq('$val');
-	    } elsif ($val =~ /[\(\)'|\s\\;<>&#\[\]~{}*?]/) {
-		$val = qq("$val");
-	    }
-	    "$_=$val\n";
-	} grep { $l->{$_} } @fields
+	map { "$_=".quoteForSh($l->{$_})."\n" } grep { $l->{$_} } @fields
     );
     if ($file =~ m!^/home/!) {
         MDK::Common::File::secured_output($file, $string);
@@ -397,7 +399,7 @@ sub setExportedVarsInSh {
     @fields = keys %$l unless @fields;
 
     MDK::Common::File::output($file, 
-	(map { $l->{$_} ? "$_=$l->{$_}\n" : () } @fields), 
+	(map { $l->{$_} ? "$_=".quoteForSh($l->{$_})."\n" : () } @fields), 
 	@fields ? "export " . join(" ", @fields) . "\n" : (),
     );
 }
@@ -406,7 +408,7 @@ sub setExportedVarsInCsh {
     my ($file, $l, @fields) = @_;
     @fields = keys %$l unless @fields;
 
-    MDK::Common::File::output($file, map { $l->{$_} ? "setenv $_ $l->{$_}\n" : () } @fields);
+    MDK::Common::File::output($file, map { $l->{$_} ? "setenv $_ ".quoteForSh($l->{$_})."\n" : () } @fields);
 }
 
 sub template2file {

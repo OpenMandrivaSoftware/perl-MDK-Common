@@ -1,3 +1,7 @@
+Version 1.2.17 - 10 March 2009, by Pascal Terjan
+
+- protect various chars in setExportedVarsInSh and setExportedVarsInCsh
+
 Version 1.2.16 - 2 February 2009, by Pascal Terjan
 
 - protect ;<>&#[]~{}*? in setVarsInSh
