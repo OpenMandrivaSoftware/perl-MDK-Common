@@ -371,7 +371,7 @@ sub setVarsInSh {
 sub quoteForSh {
     my ($val) = @_;
     if ($val =~ /["`\$]/) {
-	$val =~ s/(')/\\$1/g;
+	$val =~ s/(')/$1\\$1$1/g;
 	$val = qq('$val');
     } elsif ($val =~ /[\(\)'|\s\\;<>&#\[\]~{}*?]/) {
 	$val = qq("$val");
