@@ -341,7 +341,12 @@ sub getVarsFromSh {
 	s/#.*//; # remove comments
 	s/^\s*//; # leading space
 	my ($v, $val) = /^(\w+)=(.*)/ or next;
-	$val = $1 if $val =~ /^"(.*)"$/ || $val =~ /^'(.*)'$/;
+	if ($val =~ /^"(.*)"$/) {
+	    $val = $1;
+	} elsif ($val =~ /^'(.*)'$/) {
+	    $val = $1;
+	    $val =~ s/(^|[^'])'\\''/$1'/g;
+	}
 	$l{$v} = $val;
     }
     %l;
