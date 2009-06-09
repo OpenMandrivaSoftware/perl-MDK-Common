@@ -1,3 +1,7 @@
+Version 1.2.19 - 09 June 2009, by Eugeni Dodonov
+
+- Correctly handling '#' when loading shell variables (#50670, #51457).
+
 Version 1.2.18 - 14 April 2009, by Pascal Terjan
 
 - decode ' inside '' properly in getVarsFromSh
