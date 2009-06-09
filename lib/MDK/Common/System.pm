@@ -338,12 +338,12 @@ sub getVarsFromSh {
     open(my $F, $_[0]) or return;
     local $_;
     while (<$F>) {
-	s/#.*//; # remove comments
+	s/^\s*#.*//; # remove comment-only lines
 	s/^\s*//; # leading space
 	my ($v, $val) = /^(\w+)=(.*)/ or next;
-	if ($val =~ /^"(.*)"$/) {
+	if ($val =~ /^"(.*)"(\s+#.*)?$/) {
 	    $val = $1;
-	} elsif ($val =~ /^'(.*)'$/) {
+	} elsif ($val =~ /^'(.*)'(\s+#.*)?$/) {
 	    $val = $1;
 	    $val =~ s/(^|[^'])'\\''/$1'/g;
 	}
