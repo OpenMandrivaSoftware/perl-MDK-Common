@@ -135,6 +135,7 @@ L<MDK::Common>
 
 =cut
 
+use File::Sync qw(fsync);
 
 use Exporter;
 our @ISA = qw(Exporter);
@@ -148,9 +149,9 @@ sub cat_utf8 { my @l = map { my $F; open($F, '<:utf8', $_) ? <$F> : () } @_; wan
 sub cat_or_die { open(my $F, '<', $_[0]) or die "can't read file $_[0]: $!\n"; my @l = <$F>; wantarray() ? @l : join '', @l }
 sub cat_utf8_or_die { open(my $F, '<:utf8', $_[0]) or die "can't read file $_[0]: $!\n"; my @l = <$F>; wantarray() ? @l : join '', @l }
 sub cat__ { my ($f) = @_; my @l = <$f>; wantarray() ? @l : join '', @l }
-sub output { my $f = shift; open(my $F, ">$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; 1 }
-sub output_utf8 { my $f = shift; open(my $F, '>:utf8', $f) or die "output in file $f failed: $!\n"; print $F $_ foreach @_; 1 }
-sub append_to_file { my $f = shift; open(my $F, ">>$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; 1 }
+sub output { my $f = shift; open(my $F, ">$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; fsync($F); 1 }
+sub output_utf8 { my $f = shift; open(my $F, '>:utf8', $f) or die "output in file $f failed: $!\n"; print $F $_ foreach @_; fsync($F); 1 }
+sub append_to_file { my $f = shift; open(my $F, ">>$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; fsync($F); 1 }
 sub output_p { my $f = shift; mkdir_p(dirname($f)); output($f, @_) }
 sub output_with_perm { my ($f, $perm, @l) = @_; mkdir_p(dirname($f)); output($f, @l); chmod $perm, $f }
 sub linkf    { unlink $_[1]; link    $_[0], $_[1] }
