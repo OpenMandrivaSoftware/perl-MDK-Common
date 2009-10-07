@@ -1,3 +1,4 @@
+- use a more portable df()
 - substInFile:
   o do not unlink the symlink to recreate it later to the same target
 

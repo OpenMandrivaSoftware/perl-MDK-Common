@@ -307,17 +307,9 @@ sub syscall_ {
 #- return the size of the partition and its free space in KiB
 sub df {
     my ($mntpoint) = @_;
-    my ($blocksize, $size, $free);
-    my $buf = ' ' x 20000;
-    syscall_('statfs', $mntpoint, $buf) or return;
-    # at least on mips the statfs structure is different to x86
-    # Should we use bavail or bfree ?
-    if (arch() =~ /mips/) {
-        (undef, $blocksize, undef, $size, $free, undef, undef, $avail) = unpack "L!8", $buf;
-    } else {
-       (undef, $blocksize, $size, $free, undef, undef) = unpack "L!6", $buf;
-    }
-    map { $_ * ($blocksize / 1024) } $size, $free;
+    require Filesys::Df;
+    my $df = Filesys::Df::df("/", 1024); # ask 1kb values
+    @$df{qw(blocks bfree)};
 }
 
 sub sync() { syscall_('sync') }
