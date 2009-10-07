@@ -289,6 +289,8 @@ sub substInFile(&@) {
 	    &$f($_); 
 	    print;
 	}
+	open(my $F, $file);
+	fsync($F);
 	unlink "$file$^I"; # remove old backup now that we'have closed new file
     } else {
 	local *F; my $old = select F; # that way eof return true
