@@ -310,7 +310,13 @@ sub df {
     my ($blocksize, $size, $free);
     my $buf = ' ' x 20000;
     syscall_('statfs', $mntpoint, $buf) or return;
-    (undef, $blocksize, $size, $free, undef, undef) = unpack "L!6", $buf;
+    # at least on mips the statfs structure is different to x86
+    # Should we use bavail or bfree ?
+    if (arch() =~ /mips/) {
+        (undef, $blocksize, undef, $size, $free, undef, undef, $avail) = unpack "L!8", $buf;
+    } else {
+       (undef, $blocksize, $size, $free, undef, undef) = unpack "L!6", $buf;
+    }
     map { $_ * ($blocksize / 1024) } $size, $free;
 }
 
