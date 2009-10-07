@@ -282,13 +282,14 @@ sub substInFile(&@) {
     }
     if (-s $file) {
 	local @ARGV = $file;
-	local $^I = '';
+	local $^I = '.bak';
 	local $_;
 	while (<>) { 
 	    $_ .= "\n" if eof && !/\n/;
 	    &$f($_); 
 	    print;
 	}
+	unlink "$file$^I"; # remove old backup now that we'have closed new file
     } else {
 	local *F; my $old = select F; # that way eof return true
 	local $_ = '';

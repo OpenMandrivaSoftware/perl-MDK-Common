@@ -1,3 +1,6 @@
+- substInFile:
+  o ensure we keep old file as file.bak until we wrote new file
+
 Version 1.2.20 - 13 August 2009, by Aurelien Lefebvre
 
 - Call fsync after writing to ensure that files are written
