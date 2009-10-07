@@ -1,3 +1,4 @@
+- fix df on mips, statfs structure is different from x86
 - substInFile:
   o ensure we keep old file as file.bak until we wrote new file
   o call fsync() when editing a non empty file
@@ -5,7 +6,6 @@
 Version 1.2.20 - 13 August 2009, by Aurelien Lefebvre
 
 - Call fsync after writing to ensure that files are written
-- fix df on mips, statfs structure is different from x86
 
 Version 1.2.19 - 09 June 2009, by Eugeni Dodonov
 
