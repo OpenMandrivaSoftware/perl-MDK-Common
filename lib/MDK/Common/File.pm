@@ -272,7 +272,7 @@ sub glob_ {
 
 sub substInFile(&@) {
     my ($f, $file) = @_;
-    #- try hard to keep symlinks as they were set
+    #FIXME we should follow symlinks, and fail in case of loop
     if (-l $file) {
         my $targetfile = readlink $file;
         $file = $targetfile;
