@@ -1,3 +1,6 @@
+- substInFile:
+  o do not unlink the symlink to recreate it later to the same target
+
 Version 1.2.21 - 7 October 2009, by Thierry Vignaud
 
 - substInFile:
