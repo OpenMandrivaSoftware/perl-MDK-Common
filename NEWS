@@ -1,3 +1,5 @@
+Version 1.2.21 - 7 October 2009, by Thierry Vignaud
+
 - fix df on mips, statfs structure is different from x86
 - substInFile:
   o ensure we keep old file as file.bak until we wrote new file
