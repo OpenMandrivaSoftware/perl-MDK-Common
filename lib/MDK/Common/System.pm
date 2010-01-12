@@ -319,6 +319,17 @@ sub availableRamMB() { 4 * MDK::Common::Math::round((-s '/proc/kcore') / 1024 / 
 sub gettimeofday() { my $t = pack "LL"; syscall_('gettimeofday', $t, 0) or die "gettimeofday failed: $!\n"; unpack("LL", $t) }
 sub unix2dos { local $_ = $_[0]; s/\015$//mg; s/$/\015/mg; $_ }
 
+sub expandLinkInChroot {
+    my ($file, $prefix) = @_;
+    my $l = readlink "$prefix$file";
+    return unless $l;
+    return $l if $l =~ /^\//;
+    my $path = $file;
+    $path =~ s!/[^/]*$!!;
+    $path .= "/$l";
+    return $path;
+}
+
 sub whereis_binary {
     my ($prog, $o_prefix) = @_;
     if ($prog =~ m!/!) {
@@ -327,7 +338,16 @@ sub whereis_binary {
     }
     foreach (split(':', $ENV{PATH})) {
 	my $f = "$_/$prog";
-	-x "$o_prefix$f" and return $f; 
+	my $links = 0;
+	my $l = $f;
+	while ( -l "$o_prefix$l" ){
+	    $l = expandLinkInChroot($l, $o_prefix);
+	    if ($links++ > 16) {
+		warn qq(symlink recursion too deep in whereis_binary\n);
+		return;
+	    }
+	}
+	-x "$o_prefix$l" and return $f; 
     }
 }
 
