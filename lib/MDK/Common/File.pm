@@ -214,7 +214,7 @@ sub cp_with_option {
 	} elsif (-d $src) {
 	    -d $dest or mkdir $dest, (stat($src))[2] or die "mkdir: can't create directory $dest: $!\n";
 	    cp_with_option($option, glob_($src), $dest);
-	} elsif ((-b $src || -c $src) && $keep_special) {
+	} elsif ((-b $src || -c $src || -S $src || -p $src) && $keep_special) {
 	    my @stat = stat($src);
 	    require MDK::Common::System;
 	    MDK::Common::System::syscall_('mknod', $dest, $stat[2], $stat[6]) or die "mknod failed (dev $dest): $!";

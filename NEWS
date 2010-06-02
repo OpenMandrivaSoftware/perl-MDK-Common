@@ -1,3 +1,7 @@
+Version 1.2.25 - 2 June 2010, by Pascal Terjan
+
+- preserve sockets and pipes in cp_af
+
 Version 1.2.24 - 12 January 2010, by Pascal Terjan
 
 - fix whereis_binary to work on absolute symlinks inside chroot
