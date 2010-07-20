@@ -1,3 +1,5 @@
+Version 1.2.26 - 20 July 2010, by Thierry Vignaud
+
 - if_, if__: make easier to debug (#60153)
 
 Version 1.2.25 - 2 June 2010, by Pascal Terjan
