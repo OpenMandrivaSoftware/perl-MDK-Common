@@ -189,7 +189,7 @@ sub if_($@) {
 sub if__($@) {
     my $b = shift;
     defined $b or return ();
-    wantarray() || @_ <= 1 or die("if_ called in scalar context with more than one argument " . join(":", caller()));
+    wantarray() || @_ <= 1 or die("if__ called in scalar context with more than one argument " . join(":", caller()));
     wantarray() ? @_ : $_[0];
 }
 
