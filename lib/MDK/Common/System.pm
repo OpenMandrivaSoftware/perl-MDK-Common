@@ -323,7 +323,7 @@ sub expandLinkInChroot {
     my ($file, $prefix) = @_;
     my $l = readlink "$prefix$file";
     return unless $l;
-    return $l if $l =~ /^\//;
+    return $l if $l =~ m!^/!;
     my $path = $file;
     $path =~ s!/[^/]*$!!;
     $path .= "/$l";
@@ -340,7 +340,7 @@ sub whereis_binary {
 	my $f = "$_/$prog";
 	my $links = 0;
 	my $l = $f;
-	while ( -l "$o_prefix$l" ){
+	while (-l "$o_prefix$l") {
 	    $l = expandLinkInChroot($l, $o_prefix);
 	    if ($links++ > 16) {
 		warn qq(symlink recursion too deep in whereis_binary\n);
