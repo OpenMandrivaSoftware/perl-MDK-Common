@@ -1,3 +1,6 @@
+- append_to_file: better error message making easier to pinpoint actual place
+  of error
+
 Version 1.2.26 - 20 July 2010, by Thierry Vignaud
 
 - if_, if__: make easier to debug (#60153)

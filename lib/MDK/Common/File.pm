@@ -151,7 +151,7 @@ sub cat_utf8_or_die { open(my $F, '<:utf8', $_[0]) or die "can't read file $_[0]
 sub cat__ { my ($f) = @_; my @l = <$f>; wantarray() ? @l : join '', @l }
 sub output { my $f = shift; open(my $F, ">$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; fsync($F); 1 }
 sub output_utf8 { my $f = shift; open(my $F, '>:utf8', $f) or die "output in file $f failed: $!\n"; print $F $_ foreach @_; fsync($F); 1 }
-sub append_to_file { my $f = shift; open(my $F, ">>$f") or die "output in file $f failed: $!\n"; print $F $_ foreach @_; fsync($F); 1 }
+sub append_to_file { my $f = shift; open(my $F, ">>$f") or die "append to file $f failed: $!\n"; print $F $_ foreach @_; fsync($F); 1 }
 sub output_p { my $f = shift; mkdir_p(dirname($f)); output($f, @_) }
 sub output_with_perm { my ($f, $perm, @l) = @_; mkdir_p(dirname($f)); output($f, @l); chmod $perm, $f }
 sub linkf    { unlink $_[1]; link    $_[0], $_[1] }
