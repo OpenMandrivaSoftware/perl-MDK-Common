@@ -1,7 +1,3 @@
-Version 1.2.27 - 2 February 2011, by Eugeni Dodonov
-
-- add cp_afx command
-
 Version 1.2.26.1 - 24 October 2010, by Thierry Vignaud
 
 - append_to_file: better error message making easier to pinpoint actual place
