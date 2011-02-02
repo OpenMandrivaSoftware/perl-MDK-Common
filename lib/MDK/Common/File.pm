@@ -83,6 +83,10 @@ just like "cp -f"
 
 just like "cp -af"
 
+=item cp_afx(FILES, DEST)
+
+just like "cp -afx"
+
 =item linkf(SOURCE, DESTINATION)
 
 =item symlinkf(SOURCE, DESTINATION)
@@ -139,7 +143,7 @@ use File::Sync qw(fsync);
 
 use Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(dirname basename cat_ cat_utf8 cat_or_die cat_utf8_or_die cat__ output output_p output_with_perm append_to_file linkf symlinkf renamef mkdir_p rm_rf cp_f cp_af touch all all_files_rec glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
+our @EXPORT_OK = qw(dirname basename cat_ cat_utf8 cat_or_die cat_utf8_or_die cat__ output output_p output_with_perm append_to_file linkf symlinkf renamef mkdir_p rm_rf cp_f cp_af cp_afx touch all all_files_rec glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
 our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
@@ -230,6 +234,7 @@ sub cp_with_option {
 
 sub cp_f  { cp_with_option('f', @_) }
 sub cp_af { cp_with_option('af', @_) }
+sub cp_afx { cp_with_option('afx', @_) }
 
 sub touch {
     my ($f) = @_;
