@@ -83,6 +83,10 @@ just like "cp -f"
 
 just like "cp -af"
 
+=item cp_afx(FILES, DEST)
+
+just like "cp -afx"
+
 =item linkf(SOURCE, DESTINATION)
 
 =item symlinkf(SOURCE, DESTINATION)
@@ -139,7 +143,7 @@ use File::Sync qw(fsync);
 
 use Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(dirname basename cat_ cat_utf8 cat_or_die cat_utf8_or_die cat__ output output_p output_with_perm append_to_file linkf symlinkf renamef mkdir_p rm_rf cp_f cp_af touch all all_files_rec glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
+our @EXPORT_OK = qw(dirname basename cat_ cat_utf8 cat_or_die cat_utf8_or_die cat__ output output_p output_with_perm append_to_file linkf symlinkf renamef mkdir_p rm_rf cp_f cp_af cp_afx touch all all_files_rec glob_ substInFile expand_symlinks openFileMaybeCompressed catMaybeCompressed);
 our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub dirname { local $_ = shift; s|[^/]*/*\s*$||; s|(.)/*$|$1|; $_ || '.' }
@@ -228,8 +232,56 @@ sub cp_with_option {
     1;
 }
 
+sub cp_same_filesystem_with_options {
+    my $rootdev = shift @_;
+    my $option = shift @_;
+    my $keep_special = $option =~ /a/;
+
+    my $dest = pop @_;
+
+    @_ or return;
+    @_ == 1 || -d $dest or die "cp: copying multiple files, but last argument ($dest) is not a directory\n";
+
+    foreach my $src (@_) {
+        # detect original file system
+        if ($rootdev == -1) {
+            my @stat = stat($src);
+            $rootdev = $stat[0];
+        }
+
+        my $dest = $dest;
+        -d $dest and $dest .= '/' . basename($src);
+
+        unlink $dest;
+
+        if (-l $src && $keep_special) {
+            unless (symlink(readlink($src) || die("readlink failed: $!"), $dest)) {
+            warn "symlink: can't create symlink $dest: $!\n";
+            }
+        } elsif (-d $src) {
+            -d $dest or mkdir $dest, (stat($src))[2] or die "mkdir: can't create directory $dest: $!\n";
+            cp_same_filesystem_with_options($rootdev, $option, glob_($src), $dest);
+        } elsif ((-b $src || -c $src || -S $src || -p $src) && $keep_special) {
+            my @stat = stat($src);
+            require MDK::Common::System;
+            MDK::Common::System::syscall_('mknod', $dest, $stat[2], $stat[6]) or die "mknod failed (dev $dest): $!";
+        } else {
+            my @stat = stat($src);
+            if ($stat[0] != $rootdev) {
+                next;
+            }
+            open(my $F, $src) or die "can't open $src for reading: $!\n";
+            open(my $G, "> $dest") or die "can't cp to file $dest: $!\n";
+            local $_; while (<$F>) { print $G $_ }
+            chmod((stat($src))[2], $dest);
+        }
+    }
+    1;
+}
+
 sub cp_f  { cp_with_option('f', @_) }
 sub cp_af { cp_with_option('af', @_) }
+sub cp_afx { cp_same_filesystem_with_options(-1, 'af', @_) }
 
 sub touch {
     my ($f) = @_;
