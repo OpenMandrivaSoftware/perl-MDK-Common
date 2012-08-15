@@ -342,11 +342,15 @@ sub substInFile(&@) {
 	fsync($F);
 	unlink "$file$^I"; # remove old backup now that we have closed new file
     } else {
-	local *F; my $old = select F; # that way eof return true
+	#- special handling for zero-sized or nonexistent files
+	#- because while (<>) will not do any iteration
+	open(my $F, "+> $file") or return;
+	#- "eof" without an argument uses the last file read
+	my $dummy = <$F>;
 	local $_ = '';
 	&$f($_);
-	select $old;
-	eval { output($file, $_) };
+	print $F $_;
+	fsync($F);
     }
 }
 

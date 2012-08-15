@@ -1,3 +1,8 @@
+- substInFile: fix writing to zero-sized or nonexistent files (#460),
+  eof does not seem to return true anymore for filehandles vivified
+  through select  (behavior change seems introduced by upstream perl
+  commit 32e653230c7ccc7fa595b1ab68502c6eb66ff980)
+
 Version 1.2.27 - 2 February 2011, by Eugeni Dodonov
 
 - add cp_afx command
