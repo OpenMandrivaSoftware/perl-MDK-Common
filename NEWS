@@ -1,3 +1,5 @@
+- fix namepsace in doc
+
 Version 1.2.28 - 12 April 2011, by Olivier Blin
 
 - substInFile: fix writing to zero-sized or nonexistent files (#460),

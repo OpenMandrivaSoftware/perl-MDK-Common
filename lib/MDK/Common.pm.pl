@@ -35,6 +35,7 @@ EOF
 
 foreach my $f (<lib/MDK/Common/*.pm>) {
     (my $pkg = $f) =~ s|/|::|g;
+    $pkg =~ s!lib::!!;
     open F, $f or die "can't open file $f";
     my $line;
     while (<F>) {
