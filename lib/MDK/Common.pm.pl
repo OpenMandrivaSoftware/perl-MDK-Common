@@ -36,9 +36,10 @@ EOF
 foreach my $f (<lib/MDK/Common/*.pm>) {
     (my $pkg = $f) =~ s|/|::|g;
     $pkg =~ s!lib::!!;
-    open F, $f or die "can't open file $f";
+    open my $F, $f or die "can't open file $f";
     my $line;
-    while (<F>) {
+    local $_;
+    while (<$F>) {
 	$line++;
 	if (/^=head1 (EXPORTS|OTHER)/ .. /^=back/) {
 	    s/^=head1 EXPORTS/=head1 EXPORTS from $pkg/;
