@@ -78,8 +78,6 @@ size of swap + memory
 size of RAM as reported by the BIOS (it is a round number that can be
 displayed or given as "mem=128M" to the kernel)
 
-!! "mem=..." is dangerous in 2.4 kernels
-
 =item gettimeofday()
 
 returns the epoch in microseconds
