@@ -9,5 +9,5 @@ WriteMakefile(
     VERSION_FROM  => 'lib/MDK/Common.pm',
     ABSTRACT_FROM => 'lib/MDK/Common.pm',
     AUTHOR        => 'Pixel <pixel@mandriva.com>',
-    dist	  => { COMPRESS => "bzip2 -f" },
+    dist	  => { COMPRESS => "xz -f" },
 );
