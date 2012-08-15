@@ -120,7 +120,7 @@ is reached using C<eof>
 =item expand_symlinks(FILENAME)
 
 expand the symlinks in the absolute filename:
-C<expand_symlinks("/etc/X11/X")> gives "/usr/X11R6/bin/XFree86"
+C<expand_symlinks("/etc/X11/X")> gives "/usr/bin/Xorg"
 
 =item openFileMaybeCompressed(FILENAME)
 
